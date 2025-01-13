@@ -1,0 +1,153 @@
+{% from 'modals/rpki_modal.html' import rpki_modal %}
+{% from 'modals/dane_modal.html' import dane_modal %}
+{% from 'modals/dnssec_modal.html' import dnssec_modal %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Standards Validation Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        {% include 'partials/header.html' %}
+
+        <main class="main-content">
+            <div class="container">
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="showServiceTab('all')">All Services</button>
+                        <button class="tab-button" onclick="showServiceTab('nameserver')">Nameservers</button>
+                        <button class="tab-button" onclick="showServiceTab('mailserver')">Mail Servers</button>
+                        <button class="tab-button" onclick="showServiceTab('mailserver-ns')">Mail Server NS</button>
+                    </div>
+
+                    <div id="tab-all" class="tab-content active">
+                        <table class="validation-table">
+                            <thead>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>Institution</th>
+                                    <th>Domain</th>
+                                    <th>Service Type</th>
+                                    <th>RPKI Status</th>
+                                    <th>DANE Status</th>
+                                    <th>DNSSEC Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for domain in validations.RPKI.state %}
+                                {% set check_types = validations.RPKI.state[domain].keys() %}
+                                {% for check_type in check_types %}
+                                <tr class="service-row" data-service="{{ check_type|lower|replace(' ', '-') }}">
+                                    {% if loop.first %}
+                                    <td rowspan="{{ check_types|length }}">{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
+                                    <td rowspan="{{ check_types|length }}">{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
+                                    <td rowspan="{{ check_types|length }}" class="server-name">{{ domain }}</td>
+                                    {% endif %}
+                                    <td>{{ check_type }}</td>
+                                    {% set show_dnssec = true %}
+                                    {% set tab_id = 'all-services' %}
+                                    {% include 'status_columns.html' %}
+                                </tr>
+                                {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="tab-nameserver" class="tab-content">
+                        <table class="validation-table">
+                            <thead>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>Institution</th>
+                                    <th>Domain</th>
+                                    <th>RPKI Status</th>
+                                    <th>DANE Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for domain in validations.RPKI.state %}
+                                {% set check_type = 'Nameserver of Domain' %}
+                                <tr class="service-row" data-service="nameserver-of-domain">
+                                    <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
+                                    <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
+                                    <td class="server-name">{{ domain }}</td>
+                                    {% set show_dnssec = false %}
+                                    {% set tab_id = 'nameservers' %}
+                                    {% include 'status_columns.html' %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="tab-mailserver" class="tab-content">
+                        <table class="validation-table">
+                            <thead>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>Institution</th>
+                                    <th>Domain</th>
+                                    <th>RPKI Status</th>
+                                    <th>DANE Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for domain in validations.RPKI.state %}
+                                {% set check_type = 'Mail Server of Domain' %}
+                                <tr class="service-row" data-service="mail-server-of-domain">
+                                    <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
+                                    <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
+                                    <td class="server-name">{{ domain }}</td>
+                                    {% set show_dnssec = false %}
+                                    {% set tab_id = 'mail-servers' %}
+                                    {% include 'status_columns.html' %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="tab-mailserver-ns" class="tab-content">
+                        <table class="validation-table">
+                            <thead>
+                                <tr>
+                                    <th>Country</th>
+                                    <th>Institution</th>
+                                    <th>Domain</th>
+                                    <th>RPKI Status</th>
+                                    <th>DANE Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for domain in validations.RPKI.state %}
+                                    {% if validations.RPKI.results[domain].mailserver_ns %}
+                                        {% set check_type = 'Nameserver of Mail Server' %}
+                                            <tr class="service-row" data-service="nameserver-of-mail-server">
+                                                <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
+                                                <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
+                                                <td class="server-name">{{ domain }}</td>
+                                                {% set show_dnssec = false %}
+                                                {% set tab_id = 'mailserver-ns' %}
+                                                {% include 'status_columns.html' %}
+                                            </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        {% include 'partials/footer.html' %}
+    </div>
+{% include 'partials/scripts.html' %}
+
+</body>
+</html>

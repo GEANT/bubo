@@ -1,0 +1,122 @@
+<script>
+// Modal functions
+// Tab and Modal Management
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the first tab as active
+    showServiceTab('all');
+
+    // Add click handlers for close buttons
+    document.querySelectorAll('.close-modal').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+
+    // Add click handlers for tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            if (tabId) {
+                showTab(tabId);
+            }
+        });
+    });
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    };
+});
+
+function showServiceTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Show the selected tab
+    const selectedTab = document.getElementById(`tab-${tabId}`);
+    if (selectedTab) {
+        selectedTab.classList.add('active');
+    }
+
+    // Add active class to the clicked button
+    const clickedButton = document.querySelector(`.tab-button[onclick*="${tabId}"]`);
+    if (clickedButton) {
+        clickedButton.classList.add('active');
+    }
+}
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) {
+        console.error(`Modal with ID ${modalId} not found`);
+        return;
+    }
+
+    // Hide all other modals first
+    document.querySelectorAll('.modal').forEach(m => {
+        m.style.display = 'none';
+    });
+
+    // Show this modal
+    modal.style.display = 'block';
+
+    // Find and show the first tab content
+    const firstTabContent = modal.querySelector('.tab-content');
+    if (firstTabContent) {
+        const tabId = firstTabContent.id;
+        showTab(tabId);
+    }
+}
+
+function showTab(tabId) {
+    const tabElement = document.getElementById(tabId);
+    if (!tabElement) {
+        console.error(`Tab with ID ${tabId} not found`);
+        return;
+    }
+
+    const modal = tabElement.closest('.modal-content');
+    if (!modal) {
+        console.error('Modal content container not found');
+        return;
+    }
+
+    // Hide all tab contents in this modal
+    modal.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all tab buttons in this modal
+    modal.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Show the selected tab
+    tabElement.classList.add('active');
+
+    // Activate the corresponding button
+    const button = modal.querySelector(`[onclick*="${tabId}"]`);
+    if (button) {
+        button.classList.add('active');
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
