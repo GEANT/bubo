@@ -1,5 +1,3 @@
-import asyncio
-import json
 from datetime import datetime
 from logging import getLogger
 
@@ -281,25 +279,3 @@ async def run(domain):
         }
 
     return results, state
-
-
-async def main():
-    domain = "surf.nl"
-    checker = DNSSECChecker(domain)
-    result = await checker.check_dnssec()
-    print(json.dumps(result, indent=2))
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-async def main():
-    domain = "surf.nl"  # Replace with your domain
-    checker = DNSSECChecker(domain)
-    result = await checker.check_dnssec()
-    print(json.dumps(result, indent=2))
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
