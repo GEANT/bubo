@@ -1,15 +1,15 @@
 {% macro rpki_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) %}
-<div id="{{ modal_id }}" class="modal">
-    <div class="modal-content">
-        <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
-        <h3>{{ validation_type }} Details - {{ domain }} ({{ check_type }})</h3>
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab('{{ modal_id }}-content')">Details</button>
-            </div>
-            <div id="{{ modal_id }}-content" class="tab-content active">
-                <table class="details-table">
-                    <thead>
+    <div id="{{ modal_id }}" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
+            <h3>{{ validation_type }} Details - {{ domain }} ({{ check_type }})</h3>
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('{{ modal_id }}-content')">Details</button>
+                </div>
+                <div id="{{ modal_id }}-content" class="tab-content active">
+                    <table class="details-table">
+                        <thead>
                         <tr>
                             <th>Server</th>
                             <th>IPv4</th>
@@ -18,31 +18,31 @@
                             <th>Prefix</th>
                             <th>RPKI State</th>
                         </tr>
-                    </thead>
-                    <tbody>
-                    {% for server, details in results_data[current_data_key].items() %}
-                        {% for prefix, prefix_data in details.prefix.items() %}
-                        <tr class="{{ 'server-row-start' if loop.first }}">
-                            {% if loop.first %}
-                            <td rowspan="{{ details.prefix|length }}" class="server-name">{{ server }}</td>
-                            <td rowspan="{{ details.prefix|length }}">
-                                {% for ip in details.prefix.values()|map(attribute='ipv4')|sum(start=[]) %}
-                                <span class="ip-address">{{ ip }}</span>
-                                {% endfor %}
-                            </td>
-                            <td rowspan="{{ details.prefix|length }}">
-                                {% for ip in details.ipv6 %}
-                                {% if ip != 'No IPv6' %}
-                                <span class="ip-address">{{ ip }}</span>
-                                {% else %}
-                                <span class="status-not-found">{{ ip }}</span>
-                                {% endif %}
-                                {% endfor %}
-                            </td>
-                            {% endif %}
-                            <td>AS{{ prefix_data.asn }}</td>
-                            <td class="prefix-cell">{{ prefix }}</td>
-                            <td>
+                        </thead>
+                        <tbody>
+                        {% for server, details in results_data[current_data_key].items() %}
+                            {% for prefix, prefix_data in details.prefix.items() %}
+                                <tr class="{{ 'server-row-start' if loop.first }}">
+                                    {% if loop.first %}
+                                        <td rowspan="{{ details.prefix|length }}" class="server-name">{{ server }}</td>
+                                        <td rowspan="{{ details.prefix|length }}">
+                                            {% for ip in details.prefix.values()|map(attribute='ipv4')|sum(start=[]) %}
+                                                <span class="ip-address">{{ ip }}</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td rowspan="{{ details.prefix|length }}">
+                                            {% for ip in details.ipv6 %}
+                                                {% if ip != 'No IPv6' %}
+                                                    <span class="ip-address">{{ ip }}</span>
+                                                {% else %}
+                                                    <span class="status-not-found">{{ ip }}</span>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    {% endif %}
+                                    <td>AS{{ prefix_data.asn }}</td>
+                                    <td class="prefix-cell">{{ prefix }}</td>
+                                    <td>
                                 <span class="rpki-state {{ {
                                     'Valid': 'rpki-valid',
                                     'Not-found': 'rpki-not-found',
@@ -55,14 +55,14 @@
                                     }[prefix_data.rpki_state] }}"></i>
                                 {{ prefix_data.rpki_state }}
                                 </span>
-                            </td>
-                        </tr>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         {% endfor %}
-                    {% endfor %}
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 {% endmacro %}

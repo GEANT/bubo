@@ -1,51 +1,51 @@
 {% macro dane_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) %}
-<div id="{{ modal_id }}" class="modal">
-    <div class="modal-content">
-        <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
-        <h3>{{ validation_type }} Details - {{ domain }} ({{ check_type }})</h3>
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab('{{ modal_id }}-content')">Details</button>
-            </div>
-            <div id="{{ modal_id }}-content" class="tab-content active">
-                <table class="details-table">
-                    <thead>
+    <div id="{{ modal_id }}" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
+            <h3>{{ validation_type }} Details - {{ domain }} ({{ check_type }})</h3>
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('{{ modal_id }}-content')">Details</button>
+                </div>
+                <div id="{{ modal_id }}-content" class="tab-content active">
+                    <table class="details-table">
+                        <thead>
                         <tr>
                             <th>Server</th>
                             <th>TLSA Records</th>
                             <th>Validation</th>
                         </tr>
-                    </thead>
-                    <tbody>
-                    {% for server, details in results_data[current_data_key].items() %}
-                        <tr>
-                            <td class="server-name">{{ server }}</td>
-                            <td>
-                                {% if details.tlsa_records %}
-                                <ul class="record-list">
-                                    {% for record in details.tlsa_records %}
-                                    <li>
-                                        <span class="ip-address">{{ record.record }}</span>
-                                        <i class="fas fa-{{ 'check status-valid' if record.valid else 'times status-not-valid' }}"></i>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                {% else %}
-                                <span class="status-not-found">No TLSA records found</span>
-                                {% endif %}
-                            </td>
-                            <td>
+                        </thead>
+                        <tbody>
+                        {% for server, details in results_data[current_data_key].items() %}
+                            <tr>
+                                <td class="server-name">{{ server }}</td>
+                                <td>
+                                    {% if details.tlsa_records %}
+                                        <ul class="record-list">
+                                            {% for record in details.tlsa_records %}
+                                                <li>
+                                                    <span class="ip-address">{{ record.record }}</span>
+                                                    <i class="fas fa-{{ 'check status-valid' if record.valid else 'times status-not-valid' }}"></i>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <span class="status-not-found">No TLSA records found</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                 <span class="rpki-state {{ 'rpki-valid' if details.validation else 'status-not-found' }}">
                                 <i class="fas fa-{{ 'check-circle' if details.validation else 'times-circle' }}"></i>
                                 {{ 'Valid' if details.validation else 'N/A' }}
                                 </span>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 {% endmacro %}

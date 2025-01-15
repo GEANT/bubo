@@ -1,74 +1,74 @@
 {% for validation_type in validations if validation_type != 'DNSSEC' %}
-<td class="text-center">
-    {% set state = validations[validation_type].state[domain][check_type] %}
-{% set modal_id = tab_id ~ '-' ~ validation_type|lower ~ '-' ~ domain|replace('.', '-') ~ '-' ~ check_type|replace(' ', '-')|lower %}
-    {% if state %}
-    <button class="status-button" onclick="openModal('{{ modal_id }}')">
-    {% set status_mapping = {
+    <td class="text-center">
+        {% set state = validations[validation_type].state[domain][check_type] %}
+        {% set modal_id = tab_id ~ '-' ~ validation_type|lower ~ '-' ~ domain|replace('.', '-') ~ '-' ~ check_type|replace(' ', '-')|lower %}
+        {% if state %}
+            <button class="status-button" onclick="openModal('{{ modal_id }}')">
+                {% set status_mapping = {
         'valid': {'icon': 'check-circle', 'class': 'status-valid', 'display': 'Valid'},
         'not-valid': {'icon': 'times-circle', 'class': 'status-not-valid', 'display': 'Not Valid'},
         'partially-valid': {'icon': 'exclamation-triangle', 'class': 'status-partially-valid', 'display': 'Partially Valid'},
         'not-found': {'icon': 'question-circle', 'class': 'status-not-found', 'display': 'Not Found'}
     } %}
 
-    {% if validation_type == 'RPKI' %}
-        {% set status = status_mapping.get(state.lower(), {'icon': 'times-circle', 'class': 'status-not-valid', 'display': state|replace('-', ' ')|title}) %}
-    {% else %}
-        {% if validation_type == 'DANE' and (check_type == 'Nameserver of Domain' or check_type == 'Nameserver of Mail Server') %}
-            {% if state.lower() == 'not-valid' %}
-                {% set status = {'icon': 'question-circle', 'class': 'status-not-found', 'display': 'Not Valid'} %}
-            {% else %}
-                {% set status = status_mapping.get(state.lower(), {'icon': 'times-circle', 'class': 'status-not-valid', 'display': state|replace('-', ' ')|title}) %}
-            {% endif %}
-        {% else %}
-            {% set status = status_mapping.get(state.lower(), {'icon': 'times-circle', 'class': 'status-not-valid', 'display': state|replace('-', ' ')|title}) %}
-        {% endif %}
-    {% endif %}
+                {% if validation_type == 'RPKI' %}
+                    {% set status = status_mapping.get(state.lower(), {'icon': 'times-circle', 'class': 'status-not-valid', 'display': state|replace('-', ' ')|title}) %}
+                {% else %}
+                    {% if validation_type == 'DANE' and (check_type == 'Nameserver of Domain' or check_type == 'Nameserver of Mail Server') %}
+                        {% if state.lower() == 'not-valid' %}
+                            {% set status = {'icon': 'question-circle', 'class': 'status-not-found', 'display': 'Not Valid'} %}
+                        {% else %}
+                            {% set status = status_mapping.get(state.lower(), {'icon': 'times-circle', 'class': 'status-not-valid', 'display': state|replace('-', ' ')|title}) %}
+                        {% endif %}
+                    {% else %}
+                        {% set status = status_mapping.get(state.lower(), {'icon': 'times-circle', 'class': 'status-not-valid', 'display': state|replace('-', ' ')|title}) %}
+                    {% endif %}
+                {% endif %}
 
-    <i class="fas fa-{{ status.icon }} status-icon {{ status.class }}"></i>
-    {{ status.display }}
-    </button>
+                <i class="fas fa-{{ status.icon }} status-icon {{ status.class }}"></i>
+                {{ status.display }}
+            </button>
 
-    {% set results_data = validations[validation_type].results[domain] %}
-    {% set data_mapping = {
+            {% set results_data = validations[validation_type].results[domain] %}
+            {% set data_mapping = {
         'Nameserver of Domain': 'domain_ns',
         'Mail Server of Domain': 'domain_mx',
         'Nameserver of Mail Server': 'mailserver_ns'
     } %}
-    {% set current_data_key = data_mapping[check_type] %}
+            {% set current_data_key = data_mapping[check_type] %}
 
-    {% if validation_type == 'RPKI' %}
-        {{ rpki_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) }}
-    {% elif validation_type == 'DANE' %}
-        {{ dane_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) }}
-    {% endif %}
-    {% else %}
-    <span class="status-not-found">
+            {% if validation_type == 'RPKI' %}
+                {{ rpki_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) }}
+            {% elif validation_type == 'DANE' %}
+                {{ dane_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) }}
+            {% endif %}
+        {% else %}
+            <span class="status-not-found">
         Not Available
     </span>
-    {% endif %}
-</td>
+        {% endif %}
+    </td>
 {% endfor %}
 
 
 {% if show_dnssec %}
-{% if loop.first %}
-<td rowspan="{{ check_types|length }}" class="text-center">
-    {% set root_dnssec_modal_id = 'root-dnssec-' ~ domain|replace('.', '-') %}
-    <button class="status-button" onclick="openModal('{{ root_dnssec_modal_id }}')">
-        {% if validations.DNSSEC.results[domain].dnssec_status.is_signed %}
-            <i class="fas fa-check-circle status-icon status-valid"></i>
-            Signed
-        {% else %}
-            <i class="fas fa-times-circle status-icon status-not-valid"></i>
-            Unsigned
-        {% endif %}
-    </button>
+    {% if loop.first %}
+        <td rowspan="{{ check_types|length }}" class="text-center">
+            {% set root_dnssec_modal_id = 'root-dnssec-' ~ domain|replace('.', '-') %}
+            <button class="status-button" onclick="openModal('{{ root_dnssec_modal_id }}')">
+                {% if validations.DNSSEC.results[domain].dnssec_status.is_signed %}
+                    <i class="fas fa-check-circle status-icon status-valid"></i>
+                    Signed
+                {% else %}
+                    <i class="fas fa-times-circle status-icon status-not-valid"></i>
+                    Unsigned
+                {% endif %}
+            </button>
 
-    {{ dnssec_modal(root_dnssec_modal_id, domain, 'Root Domain',
+            {{ dnssec_modal(root_dnssec_modal_id, domain, 'Root Domain',
        {'dnssec_status': validations.DNSSEC.results[domain].dnssec_status,
         'verification_chain': validations.DNSSEC.results[domain].verification_chain}) }}
-</td>
-{% endif %}
+        </td>
+    {% endif %}
 {% endif %}
 

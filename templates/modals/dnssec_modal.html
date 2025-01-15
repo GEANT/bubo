@@ -1,14 +1,14 @@
 {% macro dnssec_status_tab(results_data) %}
-<!-- Status Tab -->
-<table class="details-table">
-    <thead>
+    <!-- Status Tab -->
+    <table class="details-table">
+        <thead>
         <tr>
             <th><i class="fas fa-cube"></i> Component</th>
             <th><i class="fas fa-info-circle"></i> Status</th>
             <th><i class="fas fa-list-ul"></i> Details</th>
         </tr>
-    </thead>
-    <tbody>
+        </thead>
+        <tbody>
         <!-- Registrar Section -->
         <tr>
             <td>
@@ -28,34 +28,34 @@
             </td>
             <td>
                 {% if results_data.dnssec_status.registrar.ds_records %}
-                <div class="records-container">
-                    {% for record in results_data.dnssec_status.registrar.ds_records %}
-                    <div class="record-item">
-                        <div class="record-header">
-                            <i class="fas fa-key text-yellow-600"></i>
-                            <strong>DS Record</strong>
-                        </div>
-                        <div class="record-details">
-                            <div class="detail-row">
-                                <i class="fas fa-tag text-gray-500"></i>
-                                <span>Key Tag: {{ record.key_tag }}</span>
+                    <div class="records-container">
+                        {% for record in results_data.dnssec_status.registrar.ds_records %}
+                            <div class="record-item">
+                                <div class="record-header">
+                                    <i class="fas fa-key text-yellow-600"></i>
+                                    <strong>DS Record</strong>
+                                </div>
+                                <div class="record-details">
+                                    <div class="detail-row">
+                                        <i class="fas fa-tag text-gray-500"></i>
+                                        <span>Key Tag: {{ record.key_tag }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <i class="fas fa-cogs text-gray-500"></i>
+                                        <span>Algorithm: {{ record.algorithm }}</span>
+                                    </div>
+                                    <div class="detail-row">
+                                        <i class="fas fa-fingerprint text-gray-500"></i>
+                                        <span>Digest Type: {{ record.digest_type }}</span>
+                                    </div>
+                                    <div class="detail-row digest">
+                                        <i class="fas fa-hashtag text-gray-500"></i>
+                                        <span class="monospace">{{ record.digest }}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="detail-row">
-                                <i class="fas fa-cogs text-gray-500"></i>
-                                <span>Algorithm: {{ record.algorithm }}</span>
-                            </div>
-                            <div class="detail-row">
-                                <i class="fas fa-fingerprint text-gray-500"></i>
-                                <span>Digest Type: {{ record.digest_type }}</span>
-                            </div>
-                            <div class="detail-row digest">
-                                <i class="fas fa-hashtag text-gray-500"></i>
-                                <span class="monospace">{{ record.digest }}</span>
-                            </div>
-                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
                 {% endif %}
             </td>
         </tr>
@@ -78,478 +78,247 @@
             </td>
             <td>
                 {% if results_data.dnssec_status.nameservers.dnskey_records %}
-                <div class="records-section">
-                    <div class="section-header">
-                        <i class="fas fa-key text-yellow-600"></i>
-                        <strong>DNSKEY Records</strong>
-                    </div>
-                    <div class="records-container">
-                        {% for record in results_data.dnssec_status.nameservers.dnskey_records %}
-                        <div class="record-item">
-                            <div class="record-details">
-                                <div class="detail-row">
-                                    <i class="fas fa-flag text-gray-500"></i>
-                                    <span>Flags: {{ record.flags }}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <i class="fas fa-code-branch text-gray-500"></i>
-                                    <span>Protocol: {{ record.protocol }}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <i class="fas fa-cogs text-gray-500"></i>
-                                    <span>Algorithm: {{ record.algorithm }}</span>
-                                </div>
-                                <div class="detail-row key">
-                                    <i class="fas fa-key text-gray-500"></i>
-                                    <span class="monospace">{{ record.key }}</span>
-                                </div>
-                            </div>
+                    <div class="records-section">
+                        <div class="section-header">
+                            <i class="fas fa-key text-yellow-600"></i>
+                            <strong>DNSKEY Records</strong>
                         </div>
-                        {% endfor %}
+                        <div class="records-container">
+                            {% for record in results_data.dnssec_status.nameservers.dnskey_records %}
+                                <div class="record-item">
+                                    <div class="record-details">
+                                        <div class="detail-row">
+                                            <i class="fas fa-flag text-gray-500"></i>
+                                            <span>Flags: {{ record.flags }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <i class="fas fa-code-branch text-gray-500"></i>
+                                            <span>Protocol: {{ record.protocol }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <i class="fas fa-cogs text-gray-500"></i>
+                                            <span>Algorithm: {{ record.algorithm }}</span>
+                                        </div>
+                                        <div class="detail-row key">
+                                            <i class="fas fa-key text-gray-500"></i>
+                                            <span class="monospace">{{ record.key }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
                 {% endif %}
 
                 {% if results_data.dnssec_status.nameservers.rrsig_records %}
-                <div class="records-section">
-                    <div class="section-header">
-                        <i class="fas fa-signature text-green-600"></i>
-                        <strong>RRSIG Records</strong>
-                    </div>
-                    <div class="records-container">
-                        {% for record in results_data.dnssec_status.nameservers.rrsig_records %}
-                        <div class="record-item">
-                            <div class="record-details">
-                                <div class="detail-row">
-                                    <i class="fas fa-file-alt text-gray-500"></i>
-                                    <span>Type: {{ record.type_covered }}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <i class="fas fa-cogs text-gray-500"></i>
-                                    <span>Algorithm: {{ record.algorithm }}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <i class="fas fa-tag text-gray-500"></i>
-                                    <span>Key Tag: {{ record.key_tag }}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <i class="fas fa-user-shield text-gray-500"></i>
-                                    <span>Signer: {{ record.signer }}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <i class="fas fa-calendar-alt text-gray-500"></i>
-                                    <span>Valid: {{ record.inception }} - {{ record.expiration }}</span>
-                                </div>
-                            </div>
+                    <div class="records-section">
+                        <div class="section-header">
+                            <i class="fas fa-signature text-green-600"></i>
+                            <strong>RRSIG Records</strong>
                         </div>
-                        {% endfor %}
+                        <div class="records-container">
+                            {% for record in results_data.dnssec_status.nameservers.rrsig_records %}
+                                <div class="record-item">
+                                    <div class="record-details">
+                                        <div class="detail-row">
+                                            <i class="fas fa-file-alt text-gray-500"></i>
+                                            <span>Type: {{ record.type_covered }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <i class="fas fa-cogs text-gray-500"></i>
+                                            <span>Algorithm: {{ record.algorithm }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <i class="fas fa-tag text-gray-500"></i>
+                                            <span>Key Tag: {{ record.key_tag }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <i class="fas fa-user-shield text-gray-500"></i>
+                                            <span>Signer: {{ record.signer }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <i class="fas fa-calendar-alt text-gray-500"></i>
+                                            <span>Valid: {{ record.inception }} - {{ record.expiration }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
                 {% endif %}
             </td>
         </tr>
-    </tbody>
-</table>
+        </tbody>
+    </table>
 {% endmacro %}
 
 {% macro dnssec_chain_tab(results_data) %}
-<div class="verification-chain">
-    {% for step in results_data.verification_chain %}
-    <div class="chain-step">
-        <div class="step-header">
-            <i class="fas fa-link text-blue-600"></i>
-            <h4>{{ step.zone if step.zone != '.' else 'Root Zone' }}</h4>
-        </div>
-        <div class="step-content">
-            <table class="details-table">
-                <tbody>
-                    {% if step.dnskey_records %}
-                    <tr>
-                        <td class="record-type">
-                            <i class="fas fa-key text-yellow-600"></i>
-                            DNSKEY
-                        </td>
-                        <td>
-                            <ul class="record-list">
-                            {% for record in step.dnskey_records %}
-                                <li>
-                                    <i class="fas fa-angle-right text-gray-500"></i>
-                                    <span class="monospace">{{ record }}</span>
-                                </li>
-                            {% endfor %}
-                            </ul>
-                        </td>
-                    </tr>
-                    {% endif %}
+    <div class="verification-chain">
+        {% for step in results_data.verification_chain %}
+            <div class="chain-step">
+                <div class="step-header">
+                    <i class="fas fa-link text-blue-600"></i>
+                    <h4>{{ step.zone if step.zone != '.' else 'Root Zone' }}</h4>
+                </div>
+                <div class="step-content">
+                    <table class="details-table">
+                        <tbody>
+                            {% if step.dnskey_records %}
+                            <tr>
+                                <td class="record-type" rowspan="{{ step.dnskey_records|length }}">
+                                    <i class="fas fa-key text-yellow-600"></i>
+                                    DNSKEY
+                                </td>
+                                <td class="record-content">
+                                    <div class="record-list">
+                                    {% for record in step.dnskey_records %}
+                                        <div class="monospace">{{ record }}</div>
+                                    {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
 
-                    {% if step.ds_records %}
-                    <tr>
-                        <td class="record-type">
-                            <i class="fas fa-shield-alt text-green-600"></i>
-                            DS Records
-                        </td>
-                        <td>
-                            <ul class="record-list">
-                            {% for record in step.ds_records %}
-                                <li>
-                                    <i class="fas fa-angle-right text-gray-500"></i>
-                                    <span class="monospace">{{ record }}</span>
-                                </li>
-                            {% endfor %}
-                            </ul>
-                        </td>
-                    </tr>
-                    {% endif %}
+                            {% if step.ds_records %}
+                            <tr>
+                                <td class="record-type" rowspan="{{ step.ds_records|length }}">
+                                    <i class="fas fa-shield-alt text-green-600"></i>
+                                    DS Records
+                                </td>
+                                <td class="record-content">
+                                    <div class="record-list">
+                                    {% for record in step.ds_records %}
+                                        <div class="monospace">{{ record }}</div>
+                                    {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
 
-                    {% if step.rrsig_info %}
-                    <tr>
-                        <td class="record-type">
-                            <i class="fas fa-signature text-purple-600"></i>
-                            RRSIG
-                        </td>
-                        <td>
-                            <ul class="record-list">
-                            {% for info in step.rrsig_info %}
-                                <li>
-                                    <i class="fas fa-angle-right text-gray-500"></i>
-                                    <span class="monospace">{{ info }}</span>
-                                </li>
-                            {% endfor %}
-                            </ul>
-                        </td>
-                    </tr>
-                    {% endif %}
+                            {% if step.rrsig_info %}
+                            <tr>
+                                <td class="record-type" rowspan="{{ step.rrsig_info|length }}">
+                                    <i class="fas fa-signature text-purple-600"></i>
+                                    RRSIG
+                                </td>
+                                <td class="record-content">
+                                    <div class="record-list">
+                                    {% for info in step.rrsig_info %}
+                                        <div class="monospace">{{ info }}</div>
+                                    {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
 
-                    {% if step.nameserver %}
-                    <tr>
-                        <td class="record-type">
-                            <i class="fas fa-server text-blue-600"></i>
-                            Nameserver
-                        </td>
-                        <td>
-                            <span class="nameserver-value">{{ step.nameserver }}</span>
-                        </td>
-                    </tr>
-                    {% endif %}
+                            {% if step.nameserver %}
+                            <tr>
+                                <td class="record-type">
+                                    <i class="fas fa-server text-blue-600"></i>
+                                    Nameserver
+                                </td>
+                                <td class="record-content">
+                                    <span class="monospace">{{ step.nameserver }}</span>
+                                </td>
+                            </tr>
+                            {% endif %}
 
-                    {% if step.a_records %}
-                    <tr>
-                        <td class="record-type">
-                            <i class="fas fa-globe text-indigo-600"></i>
-                            A Records
-                        </td>
-                        <td>
-                            <ul class="record-list">
-                            {% for record in step.a_records %}
-                                <li>
-                                    <i class="fas fa-angle-right text-gray-500"></i>
-                                    <span class="ip-address">{{ record }}</span>
-                                </li>
-                            {% endfor %}
-                            </ul>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
+                            {% if step.a_records %}
+                            <tr>
+                                <td class="record-type" rowspan="{{ step.a_records|length }}">
+                                    <i class="fas fa-globe text-indigo-600"></i>
+                                    A Records
+                                </td>
+                                <td class="record-content">
+                                    <div class="record-list">
+                                    {% for record in step.a_records %}
+                                        <div class="monospace">{{ record }}</div>
+                                    {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% if not loop.last %}
+                <div class="chain-connector">
+                    <i class="fas fa-arrow-down text-gray-400"></i>
+                </div>
+            {% endif %}
+        {% endfor %}
     </div>
-    {% if not loop.last %}
-    <div class="chain-connector">
-        <i class="fas fa-arrow-down text-gray-400"></i>
-    </div>
-    {% endif %}
-    {% endfor %}
-</div>
 {% endmacro %}
-
-<style>
-.component-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
-}
-
-.status-valid {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-
-.status-invalid {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-
-.records-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.record-item {
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    padding: 1rem;
-}
-
-.record-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.record-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.detail-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.monospace {
-    font-family: monospace;
-    font-size: 0.875rem;
-    word-break: break-all;
-}
-
-.records-section {
-    margin-top: 1rem;
-    border-top: 1px solid #e2e8f0;
-    padding-top: 1rem;
-}
-
-.section-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-
-.verification-chain {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.chain-step {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    overflow: hidden;
-}
-
-.step-header {
-    background-color: #f8fafc;
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.step-header h4 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 500;
-}
-
-.step-content {
-    padding: 1rem;
-}
-
-.chain-connector {
-    display: flex;
-    justify-content: center;
-    padding: 0.5rem 0;
-}
-
-.record-type {
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.record-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.record-list li {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0;
-}
-
-.nameserver-value {
-    font-family: monospace;
-    font-size: 0.875rem;
-}
-
-.ip-address {
-    font-family: monospace;
-    font-size: 0.875rem;
-    color: #4b5563;
-}
-</style>
 
 
 {% macro dnssec_modal(modal_id, domain, check_type, results_data) %}
-<div id="{{ modal_id }}" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>
-                <i class="fas fa-shield-alt text-blue-600"></i>
-                DNSSEC Details - {{ domain }} ({{ check_type }})
-            </h3>
-            <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
-        </div>
-
-        <div class="tab-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab('{{ modal_id }}-status')">
-                    <i class="fas fa-info-circle"></i>
-                    Status
-                </button>
-                <button class="tab-button" onclick="showTab('{{ modal_id }}-chain')">
-                    <i class="fas fa-link"></i>
-                    Verification Chain
-                </button>
+    <div id="{{ modal_id }}" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-shield-alt text-blue-600"></i>
+                    DNSSEC Details - {{ domain }} ({{ check_type }})
+                </h3>
+                <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
             </div>
 
-            <div id="{{ modal_id }}-status" class="tab-content active">
-                {% set data_mapping = {
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('{{ modal_id }}-status')">
+                        <i class="fas fa-info-circle"></i>
+                        Status
+                    </button>
+                    <button class="tab-button" onclick="showTab('{{ modal_id }}-chain')">
+                        <i class="fas fa-link"></i>
+                        Verification Chain
+                    </button>
+                </div>
+
+                <div id="{{ modal_id }}-status" class="tab-content active">
+                    {% set data_mapping = {
                     'Nameserver of Domain': 'domain_ns',
                     'Mail Server of Domain': 'domain_mx',
                     'Nameserver of Mail Server': 'mailserver_ns'
                 } %}
-                {% set current_data_key = data_mapping[check_type] %}
+                    {% set current_data_key = data_mapping[check_type] %}
 
-                {% if current_data_key in results_data and results_data[current_data_key] %}
-                    {% for server, server_data in results_data[current_data_key].items() %}
-                        <div class="server-section">
-                            <div class="server-header">
-                                <i class="fas fa-server text-purple-600"></i>
-                                <h4>{{ server }} ({{ server_data.base_domain }})</h4>
+                    {% if current_data_key in results_data and results_data[current_data_key] %}
+                        {% for server, server_data in results_data[current_data_key].items() %}
+                            <div class="server-section">
+                                <div class="server-header">
+                                    <i class="fas fa-server text-purple-600"></i>
+                                    <h4>{{ server }} ({{ server_data.base_domain }})</h4>
+                                </div>
+                                {% set status_data = {'dnssec_status': server_data.dnssec_status, 'verification_chain': server_data.verification_chain} %}
+                                {{ dnssec_status_tab(status_data) }}
                             </div>
-                            {% set status_data = {'dnssec_status': server_data.dnssec_status, 'verification_chain': server_data.verification_chain} %}
-                            {{ dnssec_status_tab(status_data) }}
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    {% set root_data = {'dnssec_status': results_data.dnssec_status, 'verification_chain': results_data.verification_chain} %}
-                    {{ dnssec_status_tab(root_data) }}
-                {% endif %}
-            </div>
+                        {% endfor %}
+                    {% else %}
+                        {% set root_data = {'dnssec_status': results_data.dnssec_status, 'verification_chain': results_data.verification_chain} %}
+                        {{ dnssec_status_tab(root_data) }}
+                    {% endif %}
+                </div>
 
-            <div id="{{ modal_id }}-chain" class="tab-content">
-                {% if current_data_key in results_data and results_data[current_data_key] %}
-                    {% for server, server_data in results_data[current_data_key].items() %}
-                        <div class="chain-section">
-                            <div class="chain-header">
-                                <i class="fas fa-link text-blue-600"></i>
-                                <h4>Chain for {{ server }} ({{ server_data.base_domain }})</h4>
+                <div id="{{ modal_id }}-chain" class="tab-content">
+                    {% if current_data_key in results_data and results_data[current_data_key] %}
+                        {% for server, server_data in results_data[current_data_key].items() %}
+                            <div class="chain-section">
+                                <div class="chain-header">
+                                    <i class="fas fa-link text-blue-600"></i>
+                                    <h4>Chain for {{ server }} ({{ server_data.base_domain }})</h4>
+                                </div>
+                                {{ dnssec_chain_tab({'verification_chain': server_data.verification_chain}) }}
                             </div>
-                            {{ dnssec_chain_tab({'verification_chain': server_data.verification_chain}) }}
-                        </div>
-                        {% if not loop.last %}
-                        <hr class="chain-separator">
-                        {% endif %}
-                    {% endfor %}
-                {% else %}
-                    {{ dnssec_chain_tab(results_data) }}
-                {% endif %}
+                            {% if not loop.last %}
+                                <hr class="chain-separator">
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        {{ dnssec_chain_tab(results_data) }}
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<style>
-.modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.modal-header h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0;
-}
-
-.server-section, .chain-section {
-    margin-bottom: 2rem;
-}
-
-.server-header, .chain-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.server-header h4, .chain-header h4 {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 500;
-}
-
-.chain-separator {
-    margin: 2rem 0;
-    border: 0;
-    border-top: 2px dashed #e2e8f0;
-}
-
-.tab-buttons {
-    display: flex;
-    gap: 0.5rem;
-    padding: 1rem;
-    background-color: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-.tab-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid transparent;
-    border-radius: 0.375rem;
-    background-color: transparent;
-    color: #64748b;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tab-button:hover {
-    background-color: #f1f5f9;
-    color: #1e293b;
-}
-
-.tab-button.active {
-    background-color: #e0f2fe;
-    color: #0369a1;
-    border-color: #7dd3fc;
-}
-</style>
 {% endmacro %}

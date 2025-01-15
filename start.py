@@ -19,8 +19,7 @@ async def process_single_domain(domain_info):
     """Process a single domain and return its RPKI, DANE, and DNSSEC results."""
     domain = domain_info['Domain']
     domain_ns, domain_mx, mail_ns = await process_domain(domain)
-    # logger.info(f"Processing domain {domain} with nameservers: {domain_ns}, mailservers: {domain_mx}, mail nameservers: {mail_ns}")
-    if not domain_ns or domain_mx:  # Only check domain nameservers/mailservers are required
+    if not domain_ns:  # Only check domain nameservers/mailservers are required
         return None
 
     effective_mail_ns = None if not mail_ns or all(not ns for ns in mail_ns) else mail_ns
@@ -124,6 +123,8 @@ async def start(domains, check_mode, ignore_cache=False):
                 logger.info(f"Queueing domain for processing: {domain}")
                 tasks.append(process_single_domain(domain_info))
 
+
+        await asyncio.sleep(2)
         # Process domains that weren't in cache
         if tasks:
             logger.info(f"Processing {len(tasks)} uncached domains")
