@@ -28,14 +28,6 @@ body {
     margin-top: 20px;
 }
 
-.main-table th,
-.main-table td,
-.details-table th,
-.details-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-}
 
 .main-table th,
 .details-table th {
@@ -239,10 +231,14 @@ body {
 }
 
 .main-table th,
-.main-table td,
+.main-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+
 .details-table th,
 .details-table td {
-    border: 1px solid #ddd;
     padding: 12px;
     text-align: left;
 }
@@ -746,7 +742,6 @@ tr[data-show="false"] {
 
 .chain-step {
     background-color: #ffffff;
-    border: 1px solid #e2e8f0;
     border-radius: 0.5rem;
     overflow: hidden;
 }
@@ -876,3 +871,56 @@ tr[data-show="false"] {
     color: #0369a1;
     border-color: #7dd3fc;
 }
+
+
+/* Start of DNSSEC Verification chain table */
+.chain-view-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: auto;
+    overflow: hidden;
+}
+
+.chain-view-table td {
+    padding: 12px;
+}
+.chain-view-table tr {
+    display: grid;
+    grid-template-columns: 180px 1fr; /* Fixed width for record type */
+}
+
+.chain-view-table .record-type {
+    background-color: #f8f9fa;
+    vertical-align: middle;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+        border-radius: 4px 0 0 4px;
+
+
+}
+
+.chain-view-table .record-content {
+    vertical-align: top;
+        border-radius: 0 4px 4px 0;
+
+}
+
+.chain-view-table .record-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.chain-view-table .monospace {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+    line-height: 1.5;
+    margin: 4px 0;
+}
+
+.chain-view-table .record-content > div {
+    margin: 4px 0;
+}
+/* End of DNSSEC Verification chain table */
