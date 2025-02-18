@@ -1,3 +1,5 @@
+# start.py
+
 import argparse
 import asyncio
 import os
@@ -193,7 +195,8 @@ async def main():
         return
 
     domain = args.single if args.single else await process_file(args.batch)
-    await start(domain, check_mode, ignore_cache=args.ignore_cache)
+    if domain:
+        await start(domain, check_mode, ignore_cache=args.ignore_cache)
 
 
 if __name__ == "__main__":
