@@ -1,0 +1,10 @@
+[run]
+omit =
+    */__init__.py
+    core/generate_report.py
+    core/custom_logger/__init__.py
+    core/custom_logger/logger.py
+    tests/*
+    venv/*
+    .venv/*
+    setup.py
