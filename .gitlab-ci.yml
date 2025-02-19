@@ -6,15 +6,17 @@ stages:
   image: python:3.12
   variables:
     UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+    PATH: "/root/.local/bin:$PATH"  # Add this line to include uv in PATH
   tags:
     - shared-docker-runner
   before_script:
     - python -m venv .venv
     - source .venv/bin/activate
     - curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh | sh
+    - export PATH="/root/.local/bin:$PATH"  # Ensure PATH is updated in this shell session
     - uv pip install -r requirements.txt
   after_script:
-    - deactivate || true
+    - source .venv/bin/deactivate || true  # Use full path to deactivate
     - rm -rf .venv
 
 ruff-check:
