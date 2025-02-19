@@ -21,6 +21,10 @@ before_script:
 
 ruff-check:
   stage: linting
+  tags:
+    - shared-runner-4
+    - shared-runner-5
+    - shared-runner-6
   script:
     - ruff check .
     - ruff format --check .
@@ -30,6 +34,10 @@ ruff-check:
 
 pytest:
   stage: test
+  tags:
+    - shared-runner-4
+    - shared-runner-5
+    - shared-runner-6
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
   script:
     - pytest
