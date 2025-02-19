@@ -19,8 +19,7 @@ before_script:
   - python3 -V
   - python3 -m venv $VENV_PATH
   - source $VENV_PATH/bin/activate
-  - curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh | sh
-  - uv pip install -r requirements.txt
+  - python3 -m pip install -r requirements.txt
 
 after_script:
   - deactivate
