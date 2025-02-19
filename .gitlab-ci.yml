@@ -1,53 +1,60 @@
-image: python:3.12
-
-variables:
-  UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
-  VENV_PATH: "$CI_PROJECT_DIR/.venv"
-
-cache:
-  paths:
-    - .ruff_cache/
-    - .pytest_cache/
-    - htmlcov/
-
 stages:
   - linting
   - test
 
-before_script:
-  - python3.12 -V
-  - python3.12 -m venv $VENV_PATH
-  - source $VENV_PATH/bin/activate
-  - python3.12 -m pip install -r requirements.txt
-
-after_script:
-  - deactivate
-  - rm -rf $VENV_PATH
-
 ruff-check:
   stage: linting
+  image: python:3.12
+  variables:
+    UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+  cache:
+    paths:
+      - .uv-cache/
+      - .ruff_cache/
   tags:
     - shared-runner-4
     - shared-runner-5
     - shared-runner-6
+  before_script:
+    - python -m venv .venv
+    - source .venv/bin/activate
+    - curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh | sh
+    - uv pip install -r requirements.txt
   script:
-    - source $VENV_PATH/bin/activate
     - ruff check .
     - ruff format --check .
+  after_script:
+    - deactivate
+    - rm -rf .venv
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 pytest:
   stage: test
+  image: python:3.12
+  variables:
+    UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+  cache:
+    paths:
+      - .uv-cache/
+      - .pytest_cache/
+      - htmlcov/
   tags:
     - shared-runner-4
     - shared-runner-5
     - shared-runner-6
-  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
+  before_script:
+    - python -m venv .venv
+    - source .venv/bin/activate
+    - curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh | sh
+    - uv pip install -r requirements.txt
   script:
-    - source $VENV_PATH/bin/activate
     - pytest
+  after_script:
+    - deactivate
+    - rm -rf .venv
+  coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
   artifacts:
     paths:
       - htmlcov/
