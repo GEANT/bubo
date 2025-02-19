@@ -1,3 +1,5 @@
+# standards/dnssec.py
+
 from datetime import datetime
 from logging import getLogger
 
@@ -23,8 +25,8 @@ class DNSSECChecker:
     async def _get_ds_records(self):
         try:
             # Get the parent zone
-            name = dns.name.from_text(self.domain)
-            parent = dns.name.from_text(str(name.parent()))
+            # name = dns.name.from_text(self.domain)
+            # parent = dns.name.from_text(str(name.parent()))
 
             ds_records = []
             # Query the parent zone for DS records
@@ -175,7 +177,7 @@ class DNSSECChecker:
 
                 # Verify DNSKEY records with DS records if not root
                 if zone != '.':
-                    parent = str(dns.name.from_text(zone).parent())
+                    # parent = str(dns.name.from_text(zone).parent())
                     ds_response = self.resolver.resolve(zone, 'DS', raise_on_no_answer=False)
                     if ds_response.rrset:
                         for ds in ds_response:
@@ -222,13 +224,11 @@ class DNSSECChecker:
         }
 
         try:
-            # Get A records
             a_response = self.resolver.resolve(zone, 'A')
             ns_info["a_records"].append(f"{nameserver} is authoritative for {zone}")
             for rdata in a_response:
                 ns_info["a_records"].append(f"{zone} A RR has value {rdata.address}")
 
-            # Get RRSIG for A records
             for rrset in a_response.response.answer:
                 rrsigs = [rr for rr in rrset if rr.rdtype == dns.rdatatype.RRSIG]
                 if rrsigs:
@@ -262,7 +262,6 @@ async def run(domain):
         }
 
     except Exception as e:
-        # Handle any errors
         results[domain] = {
             "domain": domain,
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
