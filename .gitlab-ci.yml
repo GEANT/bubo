@@ -2,27 +2,29 @@ stages:
   - linting
   - test
 
-.python-base: &python-base
+default:
   image: python:3.12
-  variables:
-    UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
-    PATH: "/root/.local/bin:$PATH"  # Add this line to include uv in PATH
   tags:
     - shared-docker-runner
+
+.python-base: &python-base
+  variables:
+    UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
   before_script:
     - python -m venv .venv
-    - source .venv/bin/activate
-    - curl -LsSf https://github.com/astral-sh/uv/releases/latest/download/uv-installer.sh | sh
-    - export PATH="/root/.local/bin:$PATH"  # Ensure PATH is updated in this shell session
+    - . .venv/bin/activate
+    - pip install --upgrade pip
+    - pip install uv
     - uv pip install -r requirements.txt
   after_script:
-    - source .venv/bin/deactivate || true  # Use full path to deactivate
+    - if [ -f .venv/bin/activate ]; then . .venv/bin/deactivate; fi
     - rm -rf .venv
 
 ruff-check:
   <<: *python-base
   stage: linting
   cache:
+    key: "${CI_COMMIT_REF_SLUG}-ruff"
     paths:
       - .uv-cache/
       - .ruff_cache/
@@ -37,6 +39,7 @@ pytest:
   <<: *python-base
   stage: test
   cache:
+    key: "${CI_COMMIT_REF_SLUG}-pytest"
     paths:
       - .uv-cache/
       - .pytest_cache/
