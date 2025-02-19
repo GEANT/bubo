@@ -14,7 +14,7 @@ class CustomFormatter(logging.Formatter):
         logging.INFO: grey + format + reset,
         logging.WARNING: yellow + format + reset,
         logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset
+        logging.CRITICAL: bold_red + format + reset,
     }
 
     def format(self, record):
@@ -27,12 +27,7 @@ def setup_logger():
     ColorfulHandler = logging.StreamHandler()
     ColorfulHandler.setFormatter(CustomFormatter())
 
-    logging.addLevelName(logging.INFO, 'INFOR')
-    logging.addLevelName(logging.WARNING, 'ALERT')
+    logging.addLevelName(logging.INFO, "INFOR")
+    logging.addLevelName(logging.WARNING, "ALERT")
 
-    logging.basicConfig(
-        level=logging.INFO,
-        handlers=[
-            ColorfulHandler
-        ]
-    )
+    logging.basicConfig(level=logging.INFO, handlers=[ColorfulHandler])

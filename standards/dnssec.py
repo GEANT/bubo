@@ -18,7 +18,7 @@ class DNSSECChecker:
     def __init__(self, domain):
         self.domain = domain
         self.resolver = dns.resolver.Resolver()
-        self.resolver.nameservers = ['8.8.8.8', '8.8.4.4']
+        self.resolver.nameservers = ["8.8.8.8", "8.8.4.4"]
         self.resolver.use_edns(0, dns.flags.DO, 4096)
         self.verification_chain = []
 
@@ -30,16 +30,18 @@ class DNSSECChecker:
 
             ds_records = []
             # Query the parent zone for DS records
-            answers = self.resolver.resolve(self.domain, 'DS', raise_on_no_answer=False)
+            answers = self.resolver.resolve(self.domain, "DS", raise_on_no_answer=False)
 
             if answers.rrset is not None:
                 for rdata in answers.rrset:
-                    ds_records.append({
-                        "key_tag": rdata.key_tag,
-                        "algorithm": rdata.algorithm,
-                        "digest_type": rdata.digest_type,
-                        "digest": rdata.digest.hex()
-                    })
+                    ds_records.append(
+                        {
+                            "key_tag": rdata.key_tag,
+                            "algorithm": rdata.algorithm,
+                            "digest_type": rdata.digest_type,
+                            "digest": rdata.digest.hex(),
+                        }
+                    )
             return ds_records
         except Exception as e:
             raise Exception(f"Error getting DS records: {str(e)}")
@@ -47,16 +49,20 @@ class DNSSECChecker:
     async def _get_dnskey_records(self):
         try:
             dnskey_records = []
-            answers = self.resolver.resolve(self.domain, 'DNSKEY', raise_on_no_answer=False)
+            answers = self.resolver.resolve(
+                self.domain, "DNSKEY", raise_on_no_answer=False
+            )
 
             if answers.rrset is not None:
                 for rdata in answers.rrset:
-                    dnskey_records.append({
-                        "flags": rdata.flags,
-                        "protocol": rdata.protocol,
-                        "algorithm": rdata.algorithm,
-                        "key": rdata.to_text()
-                    })
+                    dnskey_records.append(
+                        {
+                            "flags": rdata.flags,
+                            "protocol": rdata.protocol,
+                            "algorithm": rdata.algorithm,
+                            "key": rdata.to_text(),
+                        }
+                    )
             return dnskey_records
         except Exception as e:
             raise Exception(f"Error getting DNSKEY records: {str(e)}")
@@ -65,25 +71,35 @@ class DNSSECChecker:
         try:
             rrsig_records = []
             # Query RRSIG records for the DNSKEY
-            answers = self.resolver.resolve(self.domain, 'DNSKEY', raise_on_no_answer=False)
+            answers = self.resolver.resolve(
+                self.domain, "DNSKEY", raise_on_no_answer=False
+            )
 
             if answers.rrset is not None and answers.response is not None:
-                for rrsig in answers.response.find_rrset(answers.response.answer,
-                                                         dns.name.from_text(self.domain),
-                                                         dns.rdataclass.IN,
-                                                         dns.rdatatype.RRSIG,
-                                                         dns.rdatatype.DNSKEY):
-                    rrsig_records.append({
-                        "type_covered": dns.rdatatype.to_text(rrsig.type_covered),
-                        "algorithm": rrsig.algorithm,
-                        "labels": rrsig.labels,
-                        "original_ttl": rrsig.original_ttl,
-                        "expiration": datetime.fromtimestamp(rrsig.expiration).strftime('%Y-%m-%d %H:%M:%S'),
-                        "inception": datetime.fromtimestamp(rrsig.inception).strftime('%Y-%m-%d %H:%M:%S'),
-                        "key_tag": rrsig.key_tag,
-                        "signer": str(rrsig.signer),
-                        "signature": rrsig.signature.hex()
-                    })
+                for rrsig in answers.response.find_rrset(
+                    answers.response.answer,
+                    dns.name.from_text(self.domain),
+                    dns.rdataclass.IN,
+                    dns.rdatatype.RRSIG,
+                    dns.rdatatype.DNSKEY,
+                ):
+                    rrsig_records.append(
+                        {
+                            "type_covered": dns.rdatatype.to_text(rrsig.type_covered),
+                            "algorithm": rrsig.algorithm,
+                            "labels": rrsig.labels,
+                            "original_ttl": rrsig.original_ttl,
+                            "expiration": datetime.fromtimestamp(
+                                rrsig.expiration
+                            ).strftime("%Y-%m-%d %H:%M:%S"),
+                            "inception": datetime.fromtimestamp(
+                                rrsig.inception
+                            ).strftime("%Y-%m-%d %H:%M:%S"),
+                            "key_tag": rrsig.key_tag,
+                            "signer": str(rrsig.signer),
+                            "signature": rrsig.signature.hex(),
+                        }
+                    )
             return rrsig_records
         except Exception as e:
             raise Exception(f"Error getting RRSIG records: {str(e)}")
@@ -91,20 +107,17 @@ class DNSSECChecker:
     async def check_dnssec(self):
         result = {
             "root_domain": self.domain,
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "dnssec_status": {
                 "is_signed": False,
-                "registrar": {
-                    "status": None,
-                    "ds_records": []
-                },
+                "registrar": {"status": None, "ds_records": []},
                 "nameservers": {
                     "status": None,
                     "dnskey_records": [],
-                    "rrsig_records": []
-                }
+                    "rrsig_records": [],
+                },
             },
-            "verification_chain": []
+            "verification_chain": [],
         }
 
         try:
@@ -121,7 +134,9 @@ class DNSSECChecker:
             dnskey_records = await self._get_dnskey_records()
             if dnskey_records:
                 result["dnssec_status"]["nameservers"]["status"] = "Signed"
-                result["dnssec_status"]["nameservers"]["dnskey_records"] = dnskey_records
+                result["dnssec_status"]["nameservers"]["dnskey_records"] = (
+                    dnskey_records
+                )
 
                 rrsig_records = await self._get_rrsig_records()
                 result["dnssec_status"]["nameservers"]["rrsig_records"] = rrsig_records
@@ -137,8 +152,8 @@ class DNSSECChecker:
 
     async def _verify_chain(self):
         # Split domain into labels
-        labels = self.domain.split('.')
-        current_zone = '.'
+        labels = self.domain.split(".")
+        current_zone = "."
 
         # Verify root zone
         root_info = await self._verify_zone(current_zone)
@@ -149,7 +164,7 @@ class DNSSECChecker:
             if i == len(labels) - 1:
                 current_zone = labels[i]
             else:
-                current_zone = labels[i] + '.' + current_zone
+                current_zone = labels[i] + "." + current_zone
 
             zone_info = await self._verify_zone(current_zone)
             self.verification_chain.append(zone_info)
@@ -166,19 +181,25 @@ class DNSSECChecker:
             "zone": zone,
             "dnskey_records": [],
             "ds_records": [],
-            "rrsig_info": []
+            "rrsig_info": [],
         }
 
         try:
             # Get DNSKEY records
-            dnskey_response = self.resolver.resolve(zone, 'DNSKEY', raise_on_no_answer=False)
+            dnskey_response = self.resolver.resolve(
+                zone, "DNSKEY", raise_on_no_answer=False
+            )
             if dnskey_response.rrset:
-                zone_info["dnskey_records"] = [f"Found {len(dnskey_response.rrset)} DNSKEY records for {zone}"]
+                zone_info["dnskey_records"] = [
+                    f"Found {len(dnskey_response.rrset)} DNSKEY records for {zone}"
+                ]
 
                 # Verify DNSKEY records with DS records if not root
-                if zone != '.':
+                if zone != ".":
                     # parent = str(dns.name.from_text(zone).parent())
-                    ds_response = self.resolver.resolve(zone, 'DS', raise_on_no_answer=False)
+                    ds_response = self.resolver.resolve(
+                        zone, "DS", raise_on_no_answer=False
+                    )
                     if ds_response.rrset:
                         for ds in ds_response:
                             zone_info["ds_records"].append(
@@ -210,7 +231,7 @@ class DNSSECChecker:
 
     async def _get_auth_nameservers(self, zone):
         try:
-            ns_response = self.resolver.resolve(zone, 'NS')
+            ns_response = self.resolver.resolve(zone, "NS")
             return [str(rdata.target) for rdata in ns_response]
         except Exception:
             return []
@@ -220,11 +241,11 @@ class DNSSECChecker:
             "zone": zone,
             "nameserver": nameserver,
             "a_records": [],
-            "rrsig_info": []
+            "rrsig_info": [],
         }
 
         try:
-            a_response = self.resolver.resolve(zone, 'A')
+            a_response = self.resolver.resolve(zone, "A")
             ns_info["a_records"].append(f"{nameserver} is authoritative for {zone}")
             for rdata in a_response:
                 ns_info["a_records"].append(f"{zone} A RR has value {rdata.address}")
@@ -257,24 +278,23 @@ async def run(domain):
         result = await checker.check_dnssec()
 
         results[domain] = result
-        state[domain] = {
-            "DNSSEC": result["dnssec_status"]["is_signed"]
-        }
+        state[domain] = {"DNSSEC": result["dnssec_status"]["is_signed"]}
 
     except Exception as e:
         results[domain] = {
             "domain": domain,
-            "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "dnssec_status": {
                 "is_signed": False,
                 "registrar": {"status": None, "ds_records": []},
-                "nameservers": {"status": None, "dnskey_records": [], "rrsig_records": []}
+                "nameservers": {
+                    "status": None,
+                    "dnskey_records": [],
+                    "rrsig_records": [],
+                },
             },
-            "error": str(e)
+            "error": str(e),
         }
-        state[domain] = {
-            "DNSSEC": False,
-            "error": str(e)
-        }
+        state[domain] = {"DNSSEC": False, "error": str(e)}
 
     return results, state
