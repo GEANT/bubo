@@ -1,3 +1,5 @@
+# core/utils.py
+
 import asyncio
 import ipaddress
 import re
@@ -6,26 +8,12 @@ from logging import getLogger
 
 import dns
 import dns.asyncresolver
-import whois
 from ipwhois import IPWhois
 
 from core.custom_logger.logger import setup_logger
 
 setup_logger()
 logger = getLogger(__name__)
-
-
-def check_domain(domain):
-    retries = 0
-    while retries <= 4:
-        try:
-            domain_info = whois.whois(domain)
-            registrar = domain_info.registrar
-            nameservers = [ns for ns in domain_info.name_servers if '.' in ns]
-            return registrar, nameservers
-        except whois.parser.PywhoisError:
-            logger.warning(f"Error checking {domain}. Retrying...")
-            retries += 1
 
 
 def is_valid_ip(ip_string):
@@ -53,8 +41,8 @@ async def resolve_nameservers(domain):
     while retries < 3:
         try:
             resolver = dns.asyncresolver.Resolver()
-            ns_records = await resolver.resolve(domain, 'NS')
-            return [str(record).strip('.') for record in ns_records]
+            ns_records = await resolver.resolve(domain, "NS")
+            return [str(record).strip(".") for record in ns_records]
         except dns.resolver.NoNameservers:
             logger.warning(f"No nameservers found for domain {domain}.")
             return []
@@ -65,7 +53,9 @@ async def resolve_nameservers(domain):
             logger.warning(f"No NS records for domain {domain}.")
             return []
         except Exception as e:
-            logger.warning(f"Error resolving nameservers: {e}. Retrying in 5 seconds...")
+            logger.warning(
+                f"Error resolving nameservers: {e}. Retrying in 5 seconds..."
+            )
             await asyncio.sleep(5)
             retries += 1
     return []
@@ -84,13 +74,15 @@ async def resolve_ips(nameserver):
     while retries <= 3:
         try:
             resolver = dns.asyncresolver.Resolver()
-            ipv4 = [str(record) for record in await resolver.resolve(nameserver, 'A')]
+            ipv4 = [str(record) for record in await resolver.resolve(nameserver, "A")]
             break
         except dns.resolver.NoAnswer:
             ipv4 = []
             break
         except Exception as e:
-            logger.error(f"Error resolving IPv4 for {nameserver}: {e}. Retrying in 5 seconds...")
+            logger.error(
+                f"Error resolving IPv4 for {nameserver}: {e}. Retrying in 5 seconds..."
+            )
             await asyncio.sleep(5)
             ipv4 = []
             retries += 1
@@ -98,13 +90,17 @@ async def resolve_ips(nameserver):
     retries = 0
     while retries <= 3:
         try:
-            ipv6 = [str(record) for record in await resolver.resolve(nameserver, 'AAAA')]
+            ipv6 = [
+                str(record) for record in await resolver.resolve(nameserver, "AAAA")
+            ]
             break
         except dns.resolver.NoAnswer:
             ipv6 = ["No IPv6"]
             break
         except Exception as e:
-            logger.error(f"Error resolving IPv6 for {nameserver}: {e}. Retrying in 5 seconds...")
+            logger.error(
+                f"Error resolving IPv6 for {nameserver}: {e}. Retrying in 5 seconds..."
+            )
             ipv6 = ["No IPv6"]
             await asyncio.sleep(5)
             retries += 1
@@ -141,7 +137,7 @@ async def get_mx_records(domain):
     retries = 0
     while retries < 3:
         try:
-            answers = dns.resolver.resolve(domain, 'MX')
+            answers = dns.resolver.resolve(domain, "MX")
             return sorted(r.exchange.to_text() for r in answers)
         except dns.resolver.NoAnswer:
             logger.info(f"No MX records found for domain {domain}.")
@@ -153,8 +149,10 @@ async def get_mx_records(domain):
             return None
 
         # Handle lifetime expired
-        except dns.resolver.LifetimeExceeded:
-            logger.error(f"DNS query lifetime exceeded for {domain}. Retrying in 5 seconds...")
+        except dns.resolver.Timeout:
+            logger.error(
+                f"DNS query lifetime exceeded for {domain}. Retrying in 5 seconds..."
+            )
             await asyncio.sleep(5)
             retries += 1
 
@@ -167,29 +165,17 @@ async def get_mx_records(domain):
 
 
 async def validate_hostname(hostname):
-    """
-    Validates that the provided string is a valid hostname.
-
-    Args:
-        hostname (str): The hostname to validate.
-
-    Returns:
-        bool: True if valid, False otherwise.
-    """
-    if len(hostname) > 255:
+    if not hostname or len(hostname) > 255:
         return False
+
     if hostname[-1] == ".":
         hostname = hostname[:-1]
-    domain_regex = re.compile(
-        r"^(?=.{1,253}$)"  # Total length of domain (1 to 253)
-        r"(?!-)([A-Za-z0-9-]{1,63})(?<!-)"  # First label cannot start or end with hyphen
-        r"(\.([A-Za-z0-9-]{1,63})(?<!-))+$"  # At least one dot and valid labels
-    )
 
-    # Check if domain matches the pattern
-    if domain_regex.fullmatch(hostname):
-        return True
-    return False
+    pattern = r"^(?!-)[A-Za-z0-9\u4e00-\u9fa5-]+(?<!-)(?:\.(?!-)[A-Za-z0-9\u4e00-\u9fa5-]+(?<!-))*\.(?!-)[A-Za-z\u4e00-\u9fa5]{2,}(?<!-)$"
+    return bool(
+        re.match(pattern, hostname)
+        and all(len(part) <= 63 for part in hostname.split("."))
+    )
 
 
 async def translate_server_type(server_type):
@@ -203,41 +189,50 @@ async def translate_server_type(server_type):
         return "Unknown Server Type"
 
 
-async def process_file(file_path, sort_by='Country'):
+async def process_file(file_path, sort_by="Country"):
     domains = []
 
     try:
-        if file_path.endswith('.txt'):
-            with open(file_path, 'r') as file:
-                domains = [{'Domain': line.strip(), 'Country': '', 'Institution': ''}
-                           for line in file if line.strip()]
-        elif file_path.endswith('.csv'):
-            with open(file_path, 'r') as file:
+        if file_path.endswith(".txt"):
+            with open(file_path, "r") as file:
+                domains = [
+                    {"Domain": line.strip(), "Country": "", "Institution": ""}
+                    for line in file
+                    if line.strip()
+                ]
+        elif file_path.endswith(".csv"):
+            with open(file_path, "r") as file:
                 reader = DictReader(file)
-                if 'Domain' not in reader.fieldnames:
+                if "Domain" not in reader.fieldnames:
                     logger.warning("CSV file must contain a 'Domain' column.")
                     return []
 
                 for row in reader:
-                    if row['Domain']:  # Only process rows with non-empty Domain
+                    if row["Domain"]:  # Only process rows with non-empty Domain
                         domain_info = {
-                            'Domain': row['Domain'],
-                            'Country': row.get('Country', ''),  # Use get() with default empty string
-                            'Institution': row.get('Institution', '')
+                            "Domain": row["Domain"],
+                            "Country": row.get(
+                                "Country", ""
+                            ),  # Use get() with default empty string
+                            "Institution": row.get("Institution", ""),
                         }
                         domains.append(domain_info)
 
                 logger.info(f"Found {len(domains)} domains in the CSV file")
 
+        else:
+            raise Exception(
+                "Invalid file format. Only .txt and .csv files are supported."
+            )
+
         # Sort the domains list if it's not empty and sort_by field exists
         if domains and sort_by:
             # Sort with None/empty values at the end
-            domains.sort(key=lambda x: (x[sort_by] == '', x[sort_by]))
+            domains.sort(key=lambda x: (x[sort_by] == "", x[sort_by]))
             logger.info(f"Sorted domains by {sort_by}")
 
     except Exception as e:
-        logger.error(f"Error processing file: {str(e)}")
-        return []
+        raise Exception(f"Error processing file: {e}")
 
     return domains
 
@@ -246,7 +241,7 @@ async def process_domain(domain):
     """
     Process a single domain to validate RPKI for its nameservers and mailservers.
     """
-    domain = domain.split('@')[1] if '@' in domain else domain
+    domain = domain.split("@")[1] if "@" in domain else domain
     domain_validated = await validate_hostname(domain) or is_valid_ip(domain)
 
     if domain_validated:
@@ -259,7 +254,7 @@ async def process_domain(domain):
         try:
             domain_mailservers = await get_mx_records(domain)
             if domain_mailservers:
-                domain_mailservers = [ms.rstrip('.') for ms in domain_mailservers]
+                domain_mailservers = [ms.rstrip(".") for ms in domain_mailservers]
         except Exception as e:
             logger.error(f"Error processing mailservers for {domain}: {e}")
             domain_mailservers = None
