@@ -17,7 +17,6 @@ default:
     - pip install uv
     - uv pip install -r requirements.txt
   after_script:
-    - if [ -f .venv/bin/activate ]; then . .venv/bin/deactivate; fi
     - rm -rf .venv
 
 ruff-check:
