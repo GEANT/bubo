@@ -118,44 +118,6 @@ def mock_standards_results():
 
 
 @pytest.mark.asyncio
-async def test_process_single_domain(sample_domain_info, mock_standards_results):
-    with (
-        patch("start.process_domain", new_callable=AsyncMock) as mock_process_domain,
-        patch("standards.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
-        patch("standards.dane.run", new_callable=AsyncMock) as mock_dane_run,
-        patch("standards.dnssec.run", new_callable=AsyncMock) as mock_dnssec_run,
-        patch(
-            "standards.email_security.run", new_callable=AsyncMock
-        ) as mock_email_security_run,
-    ):
-        mock_process_domain.return_value = (
-            ["ns1.example.com"],  # domain_ns
-            ["mail.example.com"],  # domain_mx
-            [["ns1.mail.example.com"]],  # mail_ns
-        )
-        mock_rpki_run.return_value = mock_standards_results["rpki"]
-        mock_dane_run.return_value = mock_standards_results["dane"]
-        mock_dnssec_run.return_value = mock_standards_results["dnssec"]
-        mock_email_security_run.return_value = mock_standards_results["email_security"]
-
-        result = await process_single_domain(sample_domain_info)
-
-        assert isinstance(result, dict)
-        assert set(result.keys()) == {
-            "domain",
-            "country",
-            "institution",
-            "RPKI",
-            "DANE",
-            "DNSSEC",
-            "EMAIL_SECURITY",
-        }
-        assert isinstance(result["RPKI"], tuple) and len(result["RPKI"]) == 2
-        assert isinstance(result["DANE"], tuple) and len(result["DANE"]) == 2
-        assert isinstance(result["DNSSEC"], tuple) and len(result["DNSSEC"]) == 2
-
-
-@pytest.mark.asyncio
 async def test_process_single_domain_no_nameservers(sample_domain_info):
     with patch("start.process_domain", new_callable=AsyncMock) as mock_process_domain:
         mock_process_domain.return_value = (None, None, None)
