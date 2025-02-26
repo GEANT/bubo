@@ -74,10 +74,10 @@ async def resolve_ips(nameserver):
     if is_valid_ip(nameserver):
         return [nameserver], ["No IPv6"]
 
+    resolver = dns.asyncresolver.Resolver()
     retries = 0
     while retries <= 3:
         try:
-            resolver = dns.asyncresolver.Resolver()
             ipv4 = [str(record) for record in await resolver.resolve(nameserver, "A")]
             break
         except dns.resolver.NoAnswer:
@@ -121,6 +121,7 @@ async def get_asn_and_prefix(ip, ignore_cache=False):
     if _ipwhois_cache is None:
         cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache")
         _ipwhois_cache = IPWhoisCache(cache_dir, timedelta(days=30))
+
 
     cached_result = _ipwhois_cache.get_result(ip, ignore_cache)
     if cached_result:
