@@ -73,7 +73,7 @@ async def test_get_asn_and_prefix_all_retries_fail():
         patch("asyncio.get_event_loop", return_value=loop_mock),
         patch("asyncio.sleep"),
     ):
-        asn, prefix = await get_asn_and_prefix("8.8.8.8")
+        asn, prefix = await get_asn_and_prefix("8.8.8.8", ignore_cache=True)
         assert asn is None
         assert prefix is None
 
