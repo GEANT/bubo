@@ -24,7 +24,7 @@ sudo docker rm --force routinator
 sudo docker run <your usual arguments> nlnetlabs/routinator
 ```
 
-
+___
 ### Troubleshooting
 In some networks, the routinator container can't connect to the known RPKI repositories on port 873 (`rsync error: error in socket IO (code 10) at clientserver.c(139) [Receiver=3.4.0]`) . In this case, you can try to use a different DNS server. For example, you can use Google's DNS server by adding the following argument to the docker run command:
 1. First you need to update the `/etc/docker/daemon.json` file. In case that it hasn't been created yet, you need to create it by following content:
