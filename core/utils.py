@@ -126,7 +126,6 @@ async def get_asn_and_prefix(ip, ignore_cache=False):
     if cached_result:
         return cached_result
 
-
     # If not in cache or cache ignored, perform lookup
     logger.debug(f"Getting ASN and prefix for IP {ip}...")
     retries = 0
@@ -192,6 +191,7 @@ async def validate_hostname(hostname):
         and all(len(part) <= 63 for part in hostname.split("."))
     )
 
+
 async def translate_server_type(server_type):
     if server_type == "domain_ns":
         return "Nameserver of Domain"
@@ -225,9 +225,7 @@ async def process_file(file_path, sort_by="Country"):
                     if row["Domain"]:  # Only process rows with non-empty Domain
                         domain_info = {
                             "Domain": row["Domain"],
-                            "Country": row.get(
-                                "Country", ""
-                            ),
+                            "Country": row.get("Country", ""),
                             "Institution": row.get("Institution", ""),
                         }
                         domains.append(domain_info)

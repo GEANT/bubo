@@ -59,6 +59,7 @@ class DomainResultsCache:
 
 class IPWhoisCache:
     """Caches IPWhois lookup results to reduce API calls and improve performance."""
+
     def __init__(self, cache_dir: str, cache_duration: timedelta = timedelta(days=30)):
         self.cache_dir = os.path.join(cache_dir, "ipwhois")
         self.cache_duration = cache_duration
@@ -75,7 +76,7 @@ class IPWhoisCache:
         cache_data = {
             "timestamp": datetime.now().isoformat(),
             "asn": asn,
-            "prefix": prefix
+            "prefix": prefix,
         }
 
         try:
@@ -85,7 +86,9 @@ class IPWhoisCache:
         except Exception as e:
             logger.error(f"Failed to save IPWhois cache for {ip}: {e}")
 
-    def get_result(self, ip: str, ignore_cache: bool = False) -> Optional[Tuple[str, str]]:
+    def get_result(
+        self, ip: str, ignore_cache: bool = False
+    ) -> Optional[Tuple[str, str]]:
         """Retrieve IPWhois result from cache if available and not expired."""
         if ignore_cache:
             return None
