@@ -1,7 +1,6 @@
 import aiohttp
 import pytest
-import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock, call
+from unittest.mock import AsyncMock, patch, MagicMock
 from standards import rpki
 
 
@@ -240,7 +239,7 @@ async def test_rpki_process_domain_no_servers():
 async def test_rpki_process_domain_handles_server_errors():
     with (
         patch("standards.rpki.process_domain", new_callable=AsyncMock) as mock_process_domain,
-        patch("standards.rpki.process_server", new_callable=AsyncMock) as mock_process_server,
+        patch("standards.rpki.process_server", new_callable=AsyncMock),
         patch("asyncio.gather", new_callable=AsyncMock) as mock_gather
     ):
         mock_process_domain.return_value = (["ns1.example.com"], None, None)
@@ -281,7 +280,7 @@ async def test_process_batch_mode_with_errors():
         for task in tasks:
             try:
                 results.append(await task)
-            except Exception as e:
+            except Exception:
                 if domains[len(results)] == "example.org":
                     results.append(Exception("Failed to process example.org"))
                 else:
