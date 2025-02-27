@@ -21,6 +21,104 @@ logger = getLogger(__name__)
 _ipwhois_cache = None
 
 
+class DNSResolverManager:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(DNSResolverManager, cls).__new__(cls)
+            cls._instance._initialize()
+        return cls._instance
+
+    def _initialize(self):
+        self.resolver = dns.asyncresolver.Resolver()
+        self.resolver.timeout = 8
+        self.resolver.lifetime = 10
+        self.resolver.nameservers = [
+            "8.8.8.8",
+            "8.8.4.4",
+            "1.1.1.1",
+        ]
+
+        self.semaphore = asyncio.Semaphore(20)
+
+    async def resolve(self, domain, record_type, retries=3):
+        backoff_factor = 1.5
+        current_retry = 0
+
+        while current_retry <= retries:
+            try:
+                async with self.semaphore:
+                    return await self.resolver.resolve(domain, record_type)
+            except dns.resolver.NoNameservers:
+                # Don't retry on these specific errors
+                raise
+            except dns.resolver.NXDOMAIN:
+                raise
+            except dns.resolver.NoAnswer:
+                raise
+            except Exception as e:
+                if current_retry >= retries:
+                    raise
+
+                wait_time = (backoff_factor**current_retry) * (1 + random())
+                logger.warning(
+                    f"DNS resolution error ({domain}, {record_type}): {e}. "
+                    f"Retry {current_retry + 1}/{retries} in {wait_time:.2f} seconds..."
+                )
+                await asyncio.sleep(wait_time)
+                current_retry += 1
+
+        raise Exception(f"Failed to resolve {domain} after {retries} retries")
+
+    async def resolve_dnssec(self, domain, record_type, raise_on_no_answer=False):
+        """
+        Specialized method for DNSSEC-enabled DNS resolution.
+        """
+        resolver = dns.asyncresolver.Resolver()
+        resolver.nameservers = ["8.8.8.8", "8.8.4.4"]
+        resolver.timeout = 5
+        resolver.lifetime = 10
+        resolver.use_edns(0, dns.flags.DO, 4096)
+
+        backoff_factor = 1.5
+        retries = 3
+        current_retry = 0
+
+        while current_retry <= retries:
+            try:
+                async with self.semaphore:
+                    return await resolver.resolve(
+                        domain, record_type, raise_on_no_answer=raise_on_no_answer
+                    )
+            except dns.resolver.NoNameservers:
+                raise
+            except dns.resolver.NXDOMAIN:
+                raise
+            except dns.resolver.NoAnswer:
+                if raise_on_no_answer:
+                    raise
+                return None
+            except Exception as e:
+                if current_retry >= retries:
+                    raise
+
+                wait_time = (backoff_factor**current_retry) * (1 + random())
+                logger.warning(
+                    f"DNSSEC resolution error ({domain}, {record_type}): {e}. "
+                    f"Retry {current_retry + 1}/{retries} in {wait_time:.2f} seconds..."
+                )
+                await asyncio.sleep(wait_time)
+                current_retry += 1
+
+        raise Exception(
+            f"Failed to resolve DNSSEC for {domain} after {retries} retries"
+        )
+
+
+dns_manager = DNSResolverManager()
+
+
 def is_valid_ip(ip_string):
     try:
         ipaddress.ip_address(ip_string)
@@ -30,7 +128,6 @@ def is_valid_ip(ip_string):
 
 
 async def resolve_nameservers(domain, ignore_cache=False):
-    # First check if the domain is actually an IP address
     if is_valid_ip(domain):
         try:
             asn, prefix = await get_asn_and_prefix(domain, ignore_cache=ignore_cache)
@@ -41,29 +138,21 @@ async def resolve_nameservers(domain, ignore_cache=False):
             logger.error(f"Error processing IP address {domain}: {e}")
             return []
 
-    # If not an IP, proceed with normal NS resolution
-    retries = 0
-    while retries < 3:
-        try:
-            resolver = dns.asyncresolver.Resolver()
-            ns_records = await resolver.resolve(domain, "NS")
-            return [str(record).strip(".") for record in ns_records]
-        except dns.resolver.NoNameservers:
-            logger.warning(f"No nameservers found for domain {domain}.")
-            return []
-        except dns.asyncresolver.NXDOMAIN:
-            logger.warning(f"[NS] Domain {domain} does not exist.")
-            return []
-        except dns.asyncresolver.NoAnswer:
-            logger.warning(f"No NS records for domain {domain}.")
-            return []
-        except Exception as e:
-            logger.warning(
-                f"Error resolving nameservers: {e}. Retrying in 5 seconds..."
-            )
-            await asyncio.sleep(1 + 7 * random())
-            retries += 1
-    return []
+    try:
+        ns_records = await dns_manager.resolve(domain, "NS")
+        return [str(record).strip(".") for record in ns_records]
+    except dns.resolver.NoNameservers:
+        logger.warning(f"No nameservers found for domain {domain}.")
+        return []
+    except dns.resolver.NXDOMAIN:
+        logger.warning(f"[NS] Domain {domain} does not exist.")
+        return []
+    except dns.resolver.NoAnswer:
+        logger.info(f"No NS records for domain {domain}.")
+        return []
+    except Exception as e:
+        logger.error(f"Failed to resolve nameservers for {domain} after retries: {e}")
+        return []
 
 
 async def resolve_ips(nameserver):
@@ -74,42 +163,22 @@ async def resolve_ips(nameserver):
     if is_valid_ip(nameserver):
         return [nameserver], ["No IPv6"]
 
-    resolver = dns.asyncresolver.Resolver()
-
-    ipv4 = ["No IPv4"]
+    ipv4 = []
     ipv6 = ["No IPv6"]
 
-    retries = 0
-    while retries <= 3:
-        try:
-            ipv4 = [str(record) for record in await resolver.resolve(nameserver, "A")]
-            break
-        except dns.resolver.NoAnswer:
-            ipv4 = []
-            break
-        except Exception as e:
-            logger.error(
-                f"Error resolving IPv4 for {nameserver}: {e}. Retrying in 5 seconds..."
-            )
-            await asyncio.sleep(1 + 7 * random())
-            retries += 1
+    try:
+        ipv4 = [str(record) for record in await dns_manager.resolve(nameserver, "A")]
+    except dns.resolver.NoAnswer:
+        pass
+    except Exception as e:
+        logger.error(f"Error resolving IPv4 for {nameserver}: {e}")
 
-    retries = 0
-    while retries <= 3:
-        try:
-            ipv6 = [
-                str(record) for record in await resolver.resolve(nameserver, "AAAA")
-            ]
-            break
-        except dns.asyncresolver.NoAnswer:
-            ipv6 = []
-            break
-        except Exception as e:
-            logger.error(
-                f"Error resolving IPv6 for {nameserver}: {e}. Retrying in 5 seconds..."
-            )
-            await asyncio.sleep(1 + 7 * random())
-            retries += 1
+    try:
+        ipv6 = [str(record) for record in await dns_manager.resolve(nameserver, "AAAA")]
+    except dns.resolver.NoAnswer:
+        pass
+    except Exception as e:
+        logger.error(f"Error resolving IPv6 for {nameserver}: {e}")
 
     return ipv4, ipv6
 
@@ -145,39 +214,28 @@ async def get_asn_and_prefix(ip, ignore_cache=False):
         except Exception as e:
             logger.error(f"Error retrieving ASN and prefix for IP {ip}: {e}")
             logger.info(f"Retrying to get ASN for {ip}...")
-            await asyncio.sleep(1 + 7 * random())
+            await asyncio.sleep(4 + 7 * random())
             retries += 1
     return None, None
 
 
 async def get_mx_records(domain):
     """Retrieve MX records for the given domain."""
-    retries = 0
-    while retries < 3:
-        try:
-            answers = dns.resolver.resolve(domain, "MX")
-            return sorted(r.exchange.to_text() for r in answers)
-        except dns.asyncresolver.NoAnswer:
-            logger.info(f"No MX records found for domain {domain}.")
-            return None
-
-        except dns.asyncresolver.NXDOMAIN:
-            logger.warning(f"[MX] Domain {domain} does not exist.")
-            return None
-
-        except dns.resolver.Timeout:
-            logger.error(
-                f"DNS query lifetime exceeded for {domain}. Retrying in 5 seconds..."
-            )
-            await asyncio.sleep(1 + 7 * random())
-            retries += 1
-
-        except Exception as e:
-            logger.error(f"Error retrieving MX records for {domain}: {e}")
-            await asyncio.sleep(1 + 7 * random())
-            retries += 1
-
-    return None
+    try:
+        answers = await dns_manager.resolve(domain, "MX")
+        return sorted(r.exchange.to_text() for r in answers)
+    except dns.resolver.NoAnswer:
+        logger.info(f"No MX records found for domain {domain}.")
+        return None
+    except dns.resolver.NXDOMAIN:
+        logger.warning(f"[MX] Domain {domain} does not exist.")
+        return None
+    except dns.resolver.Timeout:
+        logger.error(f"DNS query lifetime exceeded for {domain}.")
+        return None
+    except Exception as e:
+        logger.error(f"Error retrieving MX records for {domain}: {e}")
+        return None
 
 
 async def validate_hostname(hostname):
