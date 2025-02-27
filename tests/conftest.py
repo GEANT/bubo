@@ -118,10 +118,16 @@ def mock_ipv6_records():
 
 @pytest.fixture
 def mock_mx_records():
-    return [
-        MagicMock(exchange=MagicMock(to_text=lambda: "mail1.example.com")),
-        MagicMock(exchange=MagicMock(to_text=lambda: "mail2.example.com")),
-    ]
+    records = []
+    for hostname in ["mail1.example.com", "mail2.example.com"]:
+        record = MagicMock()
+        record.exchange = MagicMock()
+        record.exchange.to_text.return_value = hostname
+        records.append(record)
+
+    result = MagicMock()
+    result.__iter__.return_value = records
+    return result
 
 
 @pytest.fixture

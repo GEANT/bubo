@@ -41,7 +41,7 @@ async def process_server(server, domain, results, stype):
     """
     Process a server (e.g., nameserver or mail server) to validate RPKI for its associated IPs.
     """
-    logger.info(f"Processing {stype}: {server}")
+    # logger.info(f"Processing {stype}: {server}")
     ipv4, ipv6 = await resolve_ips(server)
 
     # Initialize server entry with "No IPv4 addresses found" by default
@@ -245,6 +245,7 @@ async def run(domain, check_mode, domain_ns=None, domain_mx=None, mail_ns=None):
     """
     results = {domain: {}}  # Initialize with just the domain
 
+    logger.info(f"Processing RPKI for domain: {domain}")
     # Process domain nameservers
     if domain_ns:
         nameserver_tasks = [
