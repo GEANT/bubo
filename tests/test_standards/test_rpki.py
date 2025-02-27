@@ -6,7 +6,7 @@ from standards import rpki
 
 @pytest.mark.asyncio
 async def test_rpki_validation_structure(
-        sample_domain, sample_servers, mock_rpki_valid
+    sample_domain, sample_servers, mock_rpki_valid
 ):
     with (
         patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
@@ -37,7 +37,7 @@ async def test_rpki_validation_structure(
 
 @pytest.mark.asyncio
 async def test_rpki_dns_resolution_failure(
-        sample_domain, sample_servers, mock_rpki_valid_response
+    sample_domain, sample_servers, mock_rpki_valid_response
 ):
     with (
         patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
@@ -64,7 +64,7 @@ async def test_rpki_dns_resolution_failure(
 
 @pytest.mark.asyncio
 async def test_rpki_asn_lookup_failure(
-        sample_domain, sample_servers, mock_rpki_valid_response
+    sample_domain, sample_servers, mock_rpki_valid_response
 ):
     with (
         patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
@@ -101,11 +101,11 @@ async def test_rpki_mixed_validation_states(sample_domain, sample_servers):
 
         # Create enough responses for all servers (ns1, ns2, mail, and mail_ns)
         mock_validate.side_effect = [
-                                        {"validated_route": {"validity": {"state": "valid"}}},  # ns1
-                                        {"validated_route": {"validity": {"state": "invalid"}}},  # ns2
-                                        {"validated_route": {"validity": {"state": "valid"}}},  # mail
-                                        {"validated_route": {"validity": {"state": "valid"}}},  # mail_ns
-                                    ] * 3  # Multiply to ensure enough responses
+            {"validated_route": {"validity": {"state": "valid"}}},  # ns1
+            {"validated_route": {"validity": {"state": "invalid"}}},  # ns2
+            {"validated_route": {"validity": {"state": "valid"}}},  # mail
+            {"validated_route": {"validity": {"state": "valid"}}},  # mail_ns
+        ] * 3  # Multiply to ensure enough responses
 
         results, state = await rpki.run(
             sample_domain,
@@ -165,6 +165,7 @@ async def test_validate_rpki_connection_error():
         side_effect=aiohttp.ClientError("Connection error")
     )
     mock_response.json = AsyncMock()  # Should not be called
+
     class ResponseContextManager:
         async def __aenter__(self):
             return mock_response
@@ -217,7 +218,7 @@ async def test_type_validity_no_prefix_data():
             "domain_ns": {
                 "ns1.example.com": {
                     "ipv6": ["2001:db8::1"],
-                    "message": "No valid RPKI information found"
+                    "message": "No valid RPKI information found",
                 }
             }
         }
@@ -229,7 +230,9 @@ async def test_type_validity_no_prefix_data():
 
 @pytest.mark.asyncio
 async def test_rpki_process_domain_no_servers():
-    with patch("standards.rpki.process_domain", new_callable=AsyncMock) as mock_process_domain:
+    with patch(
+        "standards.rpki.process_domain", new_callable=AsyncMock
+    ) as mock_process_domain:
         mock_process_domain.return_value = ([], None, None)
         result = await rpki.rpki_process_domain("example.com")
         assert result == {}
@@ -238,9 +241,11 @@ async def test_rpki_process_domain_no_servers():
 @pytest.mark.asyncio
 async def test_rpki_process_domain_handles_server_errors():
     with (
-        patch("standards.rpki.process_domain", new_callable=AsyncMock) as mock_process_domain,
+        patch(
+            "standards.rpki.process_domain", new_callable=AsyncMock
+        ) as mock_process_domain,
         patch("standards.rpki.process_server", new_callable=AsyncMock),
-        patch("asyncio.gather", new_callable=AsyncMock) as mock_gather
+        patch("asyncio.gather", new_callable=AsyncMock) as mock_gather,
     ):
         mock_process_domain.return_value = (["ns1.example.com"], None, None)
         mock_gather.return_value = []  # Empty result from gather
@@ -256,11 +261,28 @@ async def test_rpki_process_domain_handles_server_errors():
 async def test_process_batch_mode_success():
     domains = ["example.com", "example.org"]
 
-    with patch("standards.rpki.rpki_process_domain", new_callable=AsyncMock) as mock_process:
+    with patch(
+        "standards.rpki.rpki_process_domain", new_callable=AsyncMock
+    ) as mock_process:
         mock_process.side_effect = [
-            {"example.com": {"domain_ns": {"ns1.example.com": {"prefix": {"192.0.2.0/24": {"rpki_state": "Valid"}}}}}},
-            {"example.org": {
-                "domain_ns": {"ns1.example.org": {"prefix": {"198.51.100.0/24": {"rpki_state": "Valid"}}}}}}
+            {
+                "example.com": {
+                    "domain_ns": {
+                        "ns1.example.com": {
+                            "prefix": {"192.0.2.0/24": {"rpki_state": "Valid"}}
+                        }
+                    }
+                }
+            },
+            {
+                "example.org": {
+                    "domain_ns": {
+                        "ns1.example.org": {
+                            "prefix": {"198.51.100.0/24": {"rpki_state": "Valid"}}
+                        }
+                    }
+                }
+            },
         ]
 
         results, state = await rpki.process_batch_mode(domains)
@@ -275,6 +297,7 @@ async def test_process_batch_mode_success():
 @pytest.mark.asyncio
 async def test_process_batch_mode_with_errors():
     domains = ["example.com", "example.org", "example.net"]
+
     async def mock_gather_implementation(*tasks, **kwargs):
         results = []
         for task in tasks:
@@ -288,18 +311,35 @@ async def test_process_batch_mode_with_errors():
         return results
 
     with (
-        patch("standards.rpki.rpki_process_domain", new_callable=AsyncMock) as mock_process,
-        patch("asyncio.gather", side_effect=mock_gather_implementation) as mock_gather
+        patch(
+            "standards.rpki.rpki_process_domain", new_callable=AsyncMock
+        ) as mock_process,
+        patch("asyncio.gather", side_effect=mock_gather_implementation) as mock_gather,
     ):
+
         def side_effect(domain):
             if domain == "example.org":
                 raise Exception("Failed to process example.org")
             elif domain == "example.com":
-                return {"example.com": {
-                    "domain_ns": {"ns1.example.com": {"prefix": {"192.0.2.0/24": {"rpki_state": "Valid"}}}}}}
+                return {
+                    "example.com": {
+                        "domain_ns": {
+                            "ns1.example.com": {
+                                "prefix": {"192.0.2.0/24": {"rpki_state": "Valid"}}
+                            }
+                        }
+                    }
+                }
             else:
-                return {"example.net": {
-                    "domain_ns": {"ns1.example.net": {"prefix": {"203.0.113.0/24": {"rpki_state": "Valid"}}}}}}
+                return {
+                    "example.net": {
+                        "domain_ns": {
+                            "ns1.example.net": {
+                                "prefix": {"203.0.113.0/24": {"rpki_state": "Valid"}}
+                            }
+                        }
+                    }
+                }
 
         mock_process.side_effect = side_effect
 
@@ -316,13 +356,15 @@ async def test_process_batch_mode_with_errors():
 @pytest.mark.asyncio
 async def test_multiple_servers_with_mixed_results(sample_domain):
     with (
-        patch("standards.rpki.process_domain", new_callable=AsyncMock) as mock_process_domain,
-        patch("asyncio.gather") as mock_gather
+        patch(
+            "standards.rpki.process_domain", new_callable=AsyncMock
+        ) as mock_process_domain,
+        patch("asyncio.gather") as mock_gather,
     ):
         mock_process_domain.return_value = (
             ["ns1.example.com", "ns2.example.com"],
             ["mail.example.com"],
-            [["mail-ns1.example.com"]]
+            [["mail-ns1.example.com"]],
         )
 
         expected_result = {
@@ -334,9 +376,9 @@ async def test_multiple_servers_with_mixed_results(sample_domain):
                             "192.0.2.0/24": {
                                 "rpki_state": "Valid",
                                 "ipv4": ["192.0.2.1"],
-                                "asn": "AS64496"
+                                "asn": "AS64496",
                             }
-                        }
+                        },
                     },
                     "ns2.example.com": {
                         "ipv6": ["No IPv6"],
@@ -344,10 +386,10 @@ async def test_multiple_servers_with_mixed_results(sample_domain):
                             "198.51.100.0/24": {
                                 "rpki_state": "Invalid",
                                 "ipv4": ["198.51.100.1"],
-                                "asn": "AS64497"
+                                "asn": "AS64497",
                             }
-                        }
-                    }
+                        },
+                    },
                 },
                 "domain_mx": {
                     "mail.example.com": {
@@ -356,9 +398,9 @@ async def test_multiple_servers_with_mixed_results(sample_domain):
                             "203.0.113.0/24": {
                                 "rpki_state": "Valid",
                                 "ipv4": ["203.0.113.1"],
-                                "asn": "AS64498"
+                                "asn": "AS64498",
                             }
-                        }
+                        },
                     }
                 },
                 "mailserver_ns": {
@@ -368,11 +410,11 @@ async def test_multiple_servers_with_mixed_results(sample_domain):
                             "192.0.2.0/24": {
                                 "rpki_state": "Valid",
                                 "ipv4": ["192.0.2.2"],
-                                "asn": "AS64496"
+                                "asn": "AS64496",
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         }
 
@@ -380,7 +422,9 @@ async def test_multiple_servers_with_mixed_results(sample_domain):
             return []
 
         mock_gather.side_effect = gather_side_effect
-        with patch.dict("standards.rpki.__dict__", {"process_server": AsyncMock(return_value=None)}):
+        with patch.dict(
+            "standards.rpki.__dict__", {"process_server": AsyncMock(return_value=None)}
+        ):
             result = await rpki.rpki_process_domain(sample_domain)
 
             result.update(expected_result)
