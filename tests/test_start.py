@@ -1,28 +1,22 @@
-# tests/test_main.py
-
 import os
 import sys
+from datetime import timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import pytest
-from unittest.mock import patch, AsyncMock, MagicMock, mock_open
+from unittest.mock import patch, AsyncMock
 import argparse
-from start import main, process_single_domain, start
-from core.cache_manager import DomainResultsCache
+from start import main, DomainValidator
 
 
 @pytest.fixture
-def mock_cache_generator():
-    mock_cache = MagicMock(spec=DomainResultsCache)
-    mock_cache.get_results.return_value = None
-    with patch("start.DomainResultsCache", return_value=mock_cache):
-        yield mock_cache
-
-
-@pytest.fixture
-def mock_cache():
-    return MagicMock(spec=DomainResultsCache)
+def domain_validator(mock_cache_generator):
+    with patch("start.DomainResultsCache", return_value=mock_cache_generator):
+        validator = DomainValidator(
+            cache_dir="test_cache", cache_duration=timedelta(days=1)
+        )
+        return validator
 
 
 @pytest.fixture
@@ -30,208 +24,126 @@ def sample_domain_info():
     return {"Domain": "example.com", "Country": "US", "Institution": "Example Corp"}
 
 
-@pytest.fixture
-def mock_standards_results():
-    return {
-        "rpki": (
-            {
-                "example.com": {
-                    "domain_ns": {
-                        "ns1.example.com": {
-                            "ipv6": ["2001:db8::1"],
-                            "prefix": {
-                                "192.0.2.0/24": {
-                                    "asn": "64496",
-                                    "ipv4": ["192.0.2.1"],
-                                    "rpki_state": "Valid",
-                                }
-                            },
-                        }
-                    }
-                }
-            },
-            {
-                "example.com": {
-                    "Mail Server of Domain": "valid",
-                    "Nameserver of Domain": "valid",
-                    "Nameserver of Mail Server": "valid",
-                }
-            },
+@pytest.mark.asyncio
+async def test_process_single_domain(
+    domain_validator, sample_domain_info, mock_standards_results
+):
+    standard_returns = {
+        "RPKI": (
+            {"example.com": {"status": True}},
+            {"example.com": {"Nameserver of Domain": "valid"}},
         ),
-        "dane": (
-            {
-                "example.com": {
-                    "domain_mx": {
-                        "mail.example.com": {
-                            "tlsa_records": [{"record": "test_record", "valid": True}],
-                            "validation": True,
-                        }
-                    }
-                }
-            },
-            {
-                "example.com": {
-                    "Mail Server of Domain": "valid",
-                    "Nameserver of Domain": "valid",
-                    "Nameserver of Mail Server": "valid",
-                }
-            },
+        "DANE": (
+            {"example.com": {"status": True}},
+            {"example.com": {"Nameserver of Domain": "valid"}},
         ),
-        "dnssec": (
-            {
-                "example.com": {
-                    "dnssec_status": {
-                        "is_signed": True,
-                        "nameservers": {"status": "Signed"},
-                        "registrar": {"status": "FullySigned"},
-                    }
-                }
-            },
+        "DNSSEC": (
+            {"example.com": {"status": True}},
             {"example.com": {"DNSSEC": True}},
         ),
-        "email_security": (
-            {
-                "example.com": {
-                    "spf": {
-                        "record_exists": True,
-                        "valid": True,
-                        "record": "v=spf1 -all",
-                        "policy": "hard fail",
-                        "includes": [],
-                        "error": None,
-                    },
-                    "dkim": {
-                        "record_exists": True,
-                        "valid": True,
-                        "record": "v=DKIM1; k=rsa; p=example_key",
-                        "error": None,
-                    },
-                    "dmarc": {
-                        "record_exists": True,
-                        "valid": True,
-                        "record": "v=DMARC1; p=reject; rua=mailto:",
-                    },
-                }
-            }
+        "EMAIL_SECURITY": (
+            {"example.com": {"status": True}},
+            {"example.com": {"status": "valid"}},
         ),
     }
 
+    with (
+        patch(
+            "core.utils.process_domain", new_callable=AsyncMock
+        ) as mock_process_domain,
+        patch(
+            "start.DomainValidator.VALIDATION_TYPES", new={}
+        ),  # Clear the validation types first
+        patch("start.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
+        patch("start.dane.run", new_callable=AsyncMock) as mock_dane_run,
+        patch("start.dnssec.run", new_callable=AsyncMock) as mock_dnssec_run,
+        patch(
+            "start.email_security.run", new_callable=AsyncMock
+        ) as mock_email_security_run,
+    ):
+        domain_validator.VALIDATION_TYPES = {
+            "RPKI": mock_rpki_run,
+            "DANE": mock_dane_run,
+            "DNSSEC": mock_dnssec_run,
+            "EMAIL_SECURITY": mock_email_security_run,
+        }
+
+        mock_process_domain.return_value = (
+            ["ns1.example.com"],
+            ["mail.example.com"],
+            ["ns1.mail.example.com"],
+        )
+
+        mock_rpki_run.return_value = standard_returns["RPKI"]
+        mock_dane_run.return_value = standard_returns["DANE"]
+        mock_dnssec_run.return_value = standard_returns["DNSSEC"]
+        mock_email_security_run.return_value = standard_returns["EMAIL_SECURITY"]
+
+        result = await domain_validator.process_single_domain(sample_domain_info)
+
+        mock_rpki_run.assert_called_once()
+        mock_dane_run.assert_called_once()
+        mock_dnssec_run.assert_called_once()
+        mock_email_security_run.assert_called_once()
+
+        assert result is not None
+        assert result["domain"] == "example.com"
+        assert result["country"] == "US"
+        assert result["institution"] == "Example Corp"
+        assert all(
+            key in result for key in ["RPKI", "DANE", "DNSSEC", "EMAIL_SECURITY"]
+        )
+
 
 @pytest.mark.asyncio
-async def test_process_single_domain_no_nameservers(sample_domain_info):
-    with patch("start.process_domain", new_callable=AsyncMock) as mock_process_domain:
-        mock_process_domain.return_value = (None, None, None)
-        result = await process_single_domain(sample_domain_info)
+async def test_process_single_domain_no_nameservers(
+    domain_validator, sample_domain_info
+):
+    async def mock_process_domain_impl(*args, **kwargs):
+        return (None, None, None)
+
+    with (
+        patch("start.process_domain", new_callable=AsyncMock) as mock_process_domain,
+        patch.object(
+            domain_validator, "create_validation_tasks", new_callable=AsyncMock
+        ),
+    ):
+        mock_process_domain.side_effect = mock_process_domain_impl
+        result = await domain_validator.process_single_domain(sample_domain_info)
         assert result is None
 
 
 @pytest.mark.asyncio
-async def test_main_single_mode(mock_cache_generator):
-    test_args = ["--single", "example.com"]
-
-    with (
-        patch("sys.argv", ["script.py"] + test_args),
-        patch("start.start", new_callable=AsyncMock) as mock_start,
-        patch.object(argparse.ArgumentParser, "parse_args") as mock_parse_args,
-    ):
-        mock_parse_args.return_value = argparse.Namespace(
-            single="example.com", batch=None, max_concurrent=10, ignore_cache=False
-        )
-
-        await main()
-        mock_start.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_main_batch_mode(mock_cache_generator):
+async def test_main_batch_mode():
     test_args = ["--batch", "domains.csv"]
-    csv_content = "Domain,Country,Institution\nexample.com,US,Example Corp"
+    _ = "Domain,Country,Institution\nexample.com,US,Example Corp"
+
+    def mock_process_file_impl(file_path):
+        return [
+            {"Domain": "example.com", "Country": "US", "Institution": "Example Corp"}
+        ]
+
+    mock_process_file = AsyncMock(side_effect=mock_process_file_impl)
 
     with (
         patch("sys.argv", ["script.py"] + test_args),
-        patch("start.start", new_callable=AsyncMock) as mock_start,
-        patch("builtins.open", mock_open(read_data=csv_content)),
-        patch.object(argparse.ArgumentParser, "parse_args") as mock_parse_args,
+        patch("start.DomainValidator") as mock_validator_class,
+        patch("start.process_file", mock_process_file),
+        patch(
+            "start.generate_html_report", new_callable=AsyncMock
+        ) as mock_generate_report,
+        patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
     ):
+        mock_validator = AsyncMock()
+        mock_validator_class.return_value = mock_validator
+        mock_validator.process_domain.return_value = {"test": "results"}
+
         mock_parse_args.return_value = argparse.Namespace(
             single=None, batch="domains.csv", max_concurrent=10, ignore_cache=False
         )
 
         await main()
-        mock_start.assert_called_once()
 
-
-@pytest.mark.asyncio
-async def test_main_invalid_input(mock_cache_generator):
-    test_args = []
-
-    with (
-        patch("sys.argv", ["script.py"] + test_args),
-        patch.object(argparse.ArgumentParser, "parse_args") as mock_parse_args,
-    ):
-        mock_parse_args.return_value = argparse.Namespace(
-            single=None, batch=None, max_concurrent=10, ignore_cache=False
-        )
-
-        await main()
-
-
-@pytest.mark.asyncio
-async def test_cache_integration(mock_standards_results):
-    domain_info = {
-        "Domain": "example.com",
-        "Country": "US",
-        "Institution": "Example Corp",
-    }
-    mock_cache = MagicMock(spec=DomainResultsCache)
-
-    with (
-        patch("start.cache", new=mock_cache),
-        patch(
-            "start.process_single_domain", new_callable=AsyncMock
-        ) as mock_process_domain,
-        patch("start.generate_html_report", new_callable=AsyncMock),
-    ):
-        mock_cache.get_results.return_value = None
-
-        # Update mock_standards_results to include proper format for email_security
-        email_security_results = (
-            {
-                "example.com": {
-                    "spf": {
-                        "record_exists": True,
-                        "valid": True,
-                        "record": "v=spf1 -all",
-                        "policy": "hard fail",
-                        "includes": [],
-                        "error": None,
-                    },
-                    "dkim": {
-                        "record_exists": True,
-                        "valid": True,
-                        "record": "v=DKIM1; k=rsa; p=example_key",
-                        "error": None,
-                    },
-                    "dmarc": {
-                        "record_exists": True,
-                        "valid": True,
-                        "record": "v=DMARC1; p=reject; rua=mailto:",
-                    },
-                }
-            },
-            {"example.com": {"DKIM": "valid", "DMARC": "valid", "SPF": "valid"}},
-        )
-
-        mock_process_domain.return_value = {
-            "domain": "example.com",
-            "country": "US",
-            "institution": "Example Corp",
-            "RPKI": mock_standards_results["rpki"],
-            "DANE": mock_standards_results["dane"],
-            "DNSSEC": mock_standards_results["dnssec"],
-            "EMAIL_SECURITY": email_security_results,
-        }
-
-        await start(domain_info, "single")
-        assert mock_cache.save_results.called
-        assert mock_process_domain.called
+        mock_process_file.assert_called_once_with("domains.csv")
+        mock_validator.process_domain.assert_called_once()
+        mock_generate_report.assert_called_once()

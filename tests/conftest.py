@@ -216,6 +216,8 @@ def mock_rpki_valid():
         mock_resolve.return_value = (["192.0.2.1"], ["2001:db8::1"])
         mock_asn.return_value = ("AS64496", "192.0.2.0/24")
 
+        return None
+
     return setup_mock
 
 
@@ -224,5 +226,7 @@ def mock_dane_valid():
     async def setup_mock(mock_tlsa, mock_validate):
         mock_tlsa.return_value = ["3 1 1 hash_value"]
         mock_validate.return_value = True
+
+        return None
 
     return setup_mock

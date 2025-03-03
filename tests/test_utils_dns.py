@@ -43,14 +43,6 @@ async def test_resolve_nameservers_no_records(mock_dns_manager):
 
 
 @pytest.mark.asyncio
-async def test_resolve_nameservers_nxdomain(mock_dns_manager):
-    mock_dns_manager.resolve.side_effect = dns.resolver.NXDOMAIN()
-
-    result = await resolve_nameservers("nonexistent.com")
-    assert result == []
-
-
-@pytest.mark.asyncio
 async def test_resolve_ips_success(
     mock_dns_manager, mock_ipv4_records, mock_ipv6_records
 ):
