@@ -924,3 +924,78 @@ tr[data-show="false"] {
     margin: 4px 0;
 }
 /* End of DNSSEC Verification chain table */
+
+
+/* Start of Email security checks */
+.email-security-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.25rem 0;
+}
+
+.status-label {
+    min-width: 50px;
+    text-align: left;
+}
+
+.status-warning {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.record-item {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.record-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.monospace {
+    font-family: monospace;
+    font-size: 0.875rem;
+    background-color: #f1f5f9;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+.email-status-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.email-security-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.status-detail {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.status-detail span {
+    font-size: 0.875rem;
+    min-width: 45px;
+}
+
+.status-detail i {
+    font-size: 0.875rem;
+}

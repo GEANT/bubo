@@ -1,4 +1,4 @@
-{% for validation_type in validations if validation_type != 'DNSSEC' %}
+{% for validation_type in validations if validation_type != 'DNSSEC' and validation_type != 'EMAIL_SECURITY' %}
     <td class="text-center">
         {% set state = validations[validation_type].state[domain][check_type] %}
         {% set modal_id = tab_id ~ '-' ~ validation_type|lower ~ '-' ~ domain|replace('.', '-') ~ '-' ~ check_type|replace(' ', '-')|lower %}
@@ -69,6 +69,41 @@
        {'dnssec_status': validations.DNSSEC.results[domain].dnssec_status,
         'verification_chain': validations.DNSSEC.results[domain].verification_chain}) }}
         </td>
+
+        {# Add Email Security Column #}
+        <td rowspan="{{ check_types|length }}" class="text-center">
+            {% set email_security_modal_id = 'email-security-' ~ domain|replace('.', '-') %}
+            <button class="status-button" onclick="openModal('{{ email_security_modal_id }}')">
+                {% set email_security_state = validations.EMAIL_SECURITY.state[domain] %}
+                {% if email_security_state %}
+                    <div class="email-status-group">
+                        <i class="fas fa-envelope status-icon
+                            {{- ' status-valid' if email_security_state.SPF == 'valid'
+                            and email_security_state.DKIM == 'valid'
+                            and email_security_state.DMARC == 'valid'
+                            else ' status-not-valid' -}}"></i>
+                        <div class="email-security-details">
+                            <div class="status-detail">
+                                <span>SPF</span>
+                                <i class="fas fa-{{ 'check-circle status-valid' if email_security_state.SPF == 'valid' else 'times-circle status-not-valid' }}"></i>
+                            </div>
+                            <div class="status-detail">
+                                <span>DKIM</span>
+                                <i class="fas fa-{{ 'check-circle status-valid' if email_security_state.DKIM == 'valid' else 'times-circle status-not-valid' }}"></i>
+                            </div>
+                            <div class="status-detail">
+                                <span>DMARC</span>
+                                <i class="fas fa-{{ 'check-circle status-valid' if email_security_state.DMARC == 'valid' else 'times-circle status-not-valid' }}"></i>
+                            </div>
+                        </div>
+                    </div>
+                </button>
+
+                {{ email_security_modal(email_security_modal_id, domain, validations.EMAIL_SECURITY.results[domain]) }}
+            {% else %}
+                <i class="fas fa-times-circle status-icon status-not-valid"></i>
+                Not Configured
+            {% endif %}
+        </td>
     {% endif %}
 {% endif %}
-
