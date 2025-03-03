@@ -83,10 +83,10 @@ async def test_rpki_mixed_validation_states(sample_domain, sample_servers):
         mock_asn.return_value = ("AS64496", "192.0.2.0/24")
 
         mock_validate.side_effect = [
-            {"validated_route": {"validity": {"state": "valid"}}},  # ns1
-            {"validated_route": {"validity": {"state": "invalid"}}},  # ns2
-            {"validated_route": {"validity": {"state": "valid"}}},  # mail
-            {"validated_route": {"validity": {"state": "valid"}}},  # mail_ns
+            {"validated_route": {"validity": {"state": "valid"}}},
+            {"validated_route": {"validity": {"state": "invalid"}}},
+            {"validated_route": {"validity": {"state": "valid"}}},
+            {"validated_route": {"validity": {"state": "valid"}}},
         ] * 3
 
         results, state = await rpki.run(
@@ -105,7 +105,7 @@ async def test_validate_rpki_successful_response():
     mock_json_result = {"validated_route": {"validity": {"state": "valid"}}}
 
     mock_response = MagicMock()
-    mock_response.raise_for_status = MagicMock()  # Not awaited in actual code
+    mock_response.raise_for_status = MagicMock()
     mock_response.json = AsyncMock(return_value=mock_json_result)
 
     class ResponseContextManager:
@@ -126,12 +126,9 @@ async def test_validate_rpki_successful_response():
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
-    # Patch aiohttp.ClientSession to return our custom context manager
     with patch("aiohttp.ClientSession", return_value=SessionContextManager()):
-        # Call the function under test
         result = await rpki.validate_rpki("AS1234", "192.0.2.0/24")
 
-        # Verify results
         assert result == mock_json_result
         mock_response.raise_for_status.assert_called_once()
         mock_response.json.assert_awaited_once()
@@ -143,7 +140,7 @@ async def test_validate_rpki_connection_error():
     mock_response.raise_for_status = MagicMock(
         side_effect=aiohttp.ClientError("Connection error")
     )
-    mock_response.json = AsyncMock()  # Should not be called
+    mock_response.json = AsyncMock()
 
     class ResponseContextManager:
         async def __aenter__(self):
@@ -163,12 +160,9 @@ async def test_validate_rpki_connection_error():
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
-    # Patch aiohttp.ClientSession to return our custom context manager
     with patch("aiohttp.ClientSession", return_value=SessionContextManager()):
-        # Call the function under test
         result = await rpki.validate_rpki("AS1234", "192.0.2.0/24")
 
-        # Verify results
         assert result is None
         mock_response.raise_for_status.assert_called_once()
         mock_response.json.assert_not_called()
@@ -321,24 +315,19 @@ def event_loop():
     loop.close()
 
 
-# Tests for process_server function (lines 66-67, 72-75, 89-90, 100)
 @pytest.mark.asyncio
 async def test_process_server_no_ipv4():
     """Test process_server when no IPv4 addresses are found."""
     with patch("standards.rpki.resolve_ips") as mock_resolve:
-        # Set up mock to return no IPv4 addresses
         mock_resolve.return_value = ([], ["2001:db8::1"])
 
-        # Prepare test data
         server = "test.example.com"
         domain = "example.com"
         results = {}
         stype = "domain_ns"
 
-        # Call the function
         await process_server(server, domain, results, stype)
 
-        # Verify results
         assert domain in results
         assert stype in results[domain]
         assert server in results[domain][stype]
@@ -353,20 +342,16 @@ async def test_process_server_no_asn_prefix():
         patch("standards.rpki.resolve_ips") as mock_resolve,
         patch("standards.rpki.get_asn_and_prefix") as mock_get_asn,
     ):
-        # Set up mocks
         mock_resolve.return_value = (["192.168.1.1"], [])
-        mock_get_asn.return_value = (None, None)  # No ASN and prefix
+        mock_get_asn.return_value = (None, None)
 
-        # Prepare test data
         server = "test.example.com"
         domain = "example.com"
         results = {}
         stype = "domain_ns"
 
-        # Call the function
         await process_server(server, domain, results, stype)
 
-        # Verify results show no valid RPKI info
         assert domain in results
         assert stype in results[domain]
         assert server in results[domain][stype]
@@ -384,21 +369,17 @@ async def test_process_server_rpki_validation_failure():
         patch("standards.rpki.get_asn_and_prefix") as mock_get_asn,
         patch("standards.rpki.validate_rpki") as mock_validate,
     ):
-        # Set up mocks
         mock_resolve.return_value = (["192.168.1.1"], [])
         mock_get_asn.return_value = ("AS12345", "192.168.1.0/24")
-        mock_validate.return_value = None  # Validation failed
+        mock_validate.return_value = None
 
-        # Prepare test data
         server = "test.example.com"
         domain = "example.com"
         results = {}
         stype = "domain_ns"
 
-        # Call the function
         await process_server(server, domain, results, stype)
 
-        # Verify results
         assert domain in results
         assert stype in results[domain]
         assert server in results[domain][stype]
@@ -408,31 +389,21 @@ async def test_process_server_rpki_validation_failure():
         )
 
 
-# Tests for type_validity function (line 146)
 @pytest.mark.asyncio
 async def test_type_validity_no_servers():
     """Test type_validity when no servers are found for a type."""
     with patch("standards.rpki.translate_server_type") as mock_translate:
-        # Set up mock
         mock_translate.return_value = "Domain Nameservers"
 
-        # Prepare test data - empty servers
-        domain_results = {
-            "example.com": {
-                "domain_ns": {}  # No servers in this type
-            }
-        }
+        domain_results = {"example.com": {"domain_ns": {}}}
 
-        # Call the function
         result = await type_validity(domain_results)
 
-        # Verify result has null state for the type
         assert "example.com" in result
         assert "Domain Nameservers" in result["example.com"]
         assert result["example.com"]["Domain Nameservers"] is None
 
 
-# Tests for rpki_process_domain function (lines 169, 177, 185, 197)
 @pytest.mark.asyncio
 async def test_rpki_process_domain_no_nameservers():
     """Test rpki_process_domain when no domain nameservers exist."""
@@ -440,14 +411,12 @@ async def test_rpki_process_domain_no_nameservers():
         patch("standards.rpki.process_domain") as mock_process_domain,
         patch("standards.rpki.process_server") as mock_process_server,
     ):
-        # Set up mocks
         mock_process_domain.return_value = (
-            [],  # No domain nameservers
-            ["mail.example.com"],  # Mail servers exist
-            [["ns1.mail.example.com"]],  # Mail nameservers exist
+            [],
+            ["mail.example.com"],
+            [["ns1.mail.example.com"]],
         )
 
-        # Make process_server actually update the results dict
         async def side_effect(server, domain, results, stype):
             if domain not in results:
                 results[domain] = {}
@@ -457,10 +426,8 @@ async def test_rpki_process_domain_no_nameservers():
 
         mock_process_server.side_effect = side_effect
 
-        # Call the function
         result = await rpki_process_domain("example.com")
 
-        # Verify result has no domain_ns entries
         assert "example.com" in result
         assert "domain_ns" not in result["example.com"]
         assert "domain_mx" in result["example.com"]
@@ -474,14 +441,12 @@ async def test_rpki_process_domain_no_mailservers():
         patch("standards.rpki.process_domain") as mock_process_domain,
         patch("standards.rpki.process_server") as mock_process_server,
     ):
-        # Set up mocks
         mock_process_domain.return_value = (
-            ["ns1.example.com"],  # Domain nameservers exist
-            [],  # No mail servers
-            [["ns1.mail.example.com"]],  # Mail nameservers exist
+            ["ns1.example.com"],
+            [],
+            [["ns1.mail.example.com"]],
         )
 
-        # Make process_server actually update the results dict
         async def side_effect(server, domain, results, stype):
             if domain not in results:
                 results[domain] = {}
@@ -491,10 +456,8 @@ async def test_rpki_process_domain_no_mailservers():
 
         mock_process_server.side_effect = side_effect
 
-        # Call the function
         result = await rpki_process_domain("example.com")
 
-        # Verify result has no domain_mx entries
         assert "example.com" in result
         assert "domain_ns" in result["example.com"]
         assert "domain_mx" not in result["example.com"]
@@ -508,14 +471,12 @@ async def test_rpki_process_domain_no_mail_nameservers():
         patch("standards.rpki.process_domain") as mock_process_domain,
         patch("standards.rpki.process_server") as mock_process_server,
     ):
-        # Set up mocks
         mock_process_domain.return_value = (
-            ["ns1.example.com"],  # Domain nameservers exist
-            ["mail.example.com"],  # Mail servers exist
-            [],  # No mail nameservers
+            ["ns1.example.com"],
+            ["mail.example.com"],
+            [],
         )
 
-        # Make process_server actually update the results dict
         async def side_effect(server, domain, results, stype):
             if domain not in results:
                 results[domain] = {}
@@ -525,10 +486,8 @@ async def test_rpki_process_domain_no_mail_nameservers():
 
         mock_process_server.side_effect = side_effect
 
-        # Call the function
         result = await rpki_process_domain("example.com")
 
-        # Verify result has no mailserver_ns entries
         assert "example.com" in result
         assert "domain_ns" in result["example.com"]
         assert "domain_mx" in result["example.com"]
@@ -542,24 +501,19 @@ async def test_rpki_process_domain_no_results():
         patch("standards.rpki.process_domain") as mock_process_domain,
         patch("standards.rpki.process_server") as mock_process_server,
     ):
-        # Set up mocks
         mock_process_domain.return_value = (
-            ["ns1.example.com"],  # Servers exist
+            ["ns1.example.com"],
             ["mail.example.com"],
             [["ns1.mail.example.com"]],
         )
 
-        # But process_server doesn't add any data
         mock_process_server.return_value = None
 
-        # Call the function
         result = await rpki_process_domain("example.com")
 
-        # Verify result is empty
         assert result == {}
 
 
-# Tests for process_single_mode function (lines 204-211)
 @pytest.mark.asyncio
 async def test_process_single_mode_with_results():
     """Test process_single_mode when results are found."""
@@ -567,17 +521,14 @@ async def test_process_single_mode_with_results():
         patch("standards.rpki.rpki_process_domain") as mock_rpki,
         patch("standards.rpki.type_validity") as mock_validity,
     ):
-        # Set up mocks
         test_results = {"example.com": {"domain_ns": {"ns1.example.com": {}}}}
         test_state = {"example.com": {"Domain Nameservers": "valid"}}
 
         mock_rpki.return_value = test_results
         mock_validity.return_value = test_state
 
-        # Call the function
         results, state = await process_single_mode("example.com")
 
-        # Verify results
         assert results == test_results
         assert state == test_state
         mock_rpki.assert_called_once_with("example.com")
@@ -588,13 +539,10 @@ async def test_process_single_mode_with_results():
 async def test_process_single_mode_no_results():
     """Test process_single_mode when no results are found."""
     with patch("standards.rpki.rpki_process_domain") as mock_rpki:
-        # Set up mock to return empty results
         mock_rpki.return_value = {}
 
-        # Call the function
         results, state = await process_single_mode("example.com")
 
-        # Verify results and state are empty
         assert results == {}
         assert state == {}
 
@@ -603,18 +551,14 @@ async def test_process_single_mode_no_results():
 async def test_process_batch_mode_no_results():
     """Test process_batch_mode when no results are found."""
     with patch("standards.rpki.rpki_process_domain") as mock_rpki:
-        # Set up mock to return empty results
         mock_rpki.return_value = {}
 
-        # Call the function
         results, state = await process_batch_mode(["example.com"])
 
-        # Verify results and state are empty
         assert results == {}
         assert state == {}
 
 
-# Tests for run function (lines 269, 281, 287)
 @pytest.mark.asyncio
 async def test_run_no_domain_ns():
     """Test run when no domain nameservers are provided."""
@@ -622,7 +566,7 @@ async def test_run_no_domain_ns():
         patch("standards.rpki.process_server") as mock_process_server,
         patch("standards.rpki.type_validity") as mock_validity,
     ):
-        # Set up mocks
+
         async def side_effect(server, domain, results, stype):
             if domain not in results:
                 results[domain] = {}
@@ -633,16 +577,14 @@ async def test_run_no_domain_ns():
         mock_process_server.side_effect = side_effect
         mock_validity.return_value = {"example.com": {"Mail Servers": "valid"}}
 
-        # Call with no domain nameservers
         results, state = await run(
             "example.com",
             "single",
-            domain_ns=None,  # No domain nameservers
+            domain_ns=None,
             domain_mx=["mail.example.com"],
             mail_ns=[["ns1.mail.example.com"]],
         )
 
-        # Verify domain_ns is not in results
         assert "example.com" in results
         assert "domain_ns" not in results["example.com"]
         assert "domain_mx" in results["example.com"]
@@ -656,7 +598,7 @@ async def test_run_no_domain_mx():
         patch("standards.rpki.process_server") as mock_process_server,
         patch("standards.rpki.type_validity") as mock_validity,
     ):
-        # Set up mocks
+
         async def side_effect(server, domain, results, stype):
             if domain not in results:
                 results[domain] = {}
@@ -667,16 +609,14 @@ async def test_run_no_domain_mx():
         mock_process_server.side_effect = side_effect
         mock_validity.return_value = {"example.com": {"Domain Nameservers": "valid"}}
 
-        # Call with no mail servers
         results, state = await run(
             "example.com",
             "single",
             domain_ns=["ns1.example.com"],
-            domain_mx=None,  # No mail servers
+            domain_mx=None,
             mail_ns=[["ns1.mail.example.com"]],
         )
 
-        # Verify domain_mx is not in results
         assert "example.com" in results
         assert "domain_ns" in results["example.com"]
         assert "domain_mx" not in results["example.com"]
@@ -690,7 +630,7 @@ async def test_run_no_mail_ns():
         patch("standards.rpki.process_server") as mock_process_server,
         patch("standards.rpki.type_validity") as mock_validity,
     ):
-        # Set up mocks
+
         async def side_effect(server, domain, results, stype):
             if domain not in results:
                 results[domain] = {}
@@ -701,23 +641,20 @@ async def test_run_no_mail_ns():
         mock_process_server.side_effect = side_effect
         mock_validity.return_value = {"example.com": {"Domain Nameservers": "valid"}}
 
-        # Call with no mail nameservers
         results, state = await run(
             "example.com",
             "single",
             domain_ns=["ns1.example.com"],
             domain_mx=["mail.example.com"],
-            mail_ns=None,  # No mail nameservers
+            mail_ns=None,
         )
 
-        # Verify mailserver_ns is not in results
         assert "example.com" in results
         assert "domain_ns" in results["example.com"]
         assert "domain_mx" in results["example.com"]
         assert "mailserver_ns" not in results["example.com"]
 
 
-# Tests for main function (lines 293-306, 312)
 @pytest.mark.asyncio
 async def test_main_single_mode():
     """Test main function with single mode."""
@@ -725,40 +662,31 @@ async def test_main_single_mode():
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
         patch("standards.rpki.process_single_mode") as mock_single_mode,
     ):
-        # Set up mock args
         mock_args = MagicMock()
         mock_args.single = "example.com"
         mock_args.batch = None
         mock_parse_args.return_value = mock_args
 
-        # Set up mock for process_single_mode
         mock_single_mode.return_value = ({}, {})
 
-        # Call main function
         await main()
 
-        # Verify process_single_mode was called with correct domain
         mock_single_mode.assert_called_once_with("example.com")
 
 
 @pytest.mark.asyncio
 async def test_main_batch_mode():
-    """Test main function with batch mode."""
     with (
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
         patch("standards.rpki.process_batch_mode") as mock_batch_mode,
     ):
-        # Set up mock args
         mock_args = MagicMock()
         mock_args.single = None
         mock_args.batch = "domains.txt"
         mock_parse_args.return_value = mock_args
 
-        # Set up mock for process_batch_mode
         mock_batch_mode.return_value = ({}, {})
 
-        # Call main function
         await main()
 
-        # Verify process_batch_mode was called with correct file
         mock_batch_mode.assert_called_once_with("domains.txt")
