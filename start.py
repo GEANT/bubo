@@ -1,224 +1,295 @@
-# start.py
-
 import argparse
 import asyncio
 import os
-from datetime import datetime
-from datetime import timedelta
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from logging import getLogger
+from typing import Dict, List, Optional, Any
 
 from core.cache_manager import DomainResultsCache
 from core.custom_logger.logger import setup_logger
 from core.generate_report import generate_html_report
 from core.utils import process_domain, process_file
-from standards import rpki, dane, dnssec
+from standards import rpki, dane, dnssec, email_security
 
 setup_logger()
 logger = getLogger(__name__)
 
 
-async def process_single_domain(domain_info):
-    """Process a single domain and return its RPKI, DANE, and DNSSEC results."""
-    domain = domain_info["Domain"]
-    domain_ns, domain_mx, mail_ns = await process_domain(domain)
-    if not domain_ns:  # Only check domain nameservers/mailservers are required
-        return None
+class DomainValidator:
+    """
+    Handles domain validation operations including RPKI, DANE, DNSSEC, and email security checks.
+    """
 
-    effective_mail_ns = (
-        None if not mail_ns or all(not ns for ns in mail_ns) else mail_ns
-    )
-
-    rpki_task = asyncio.create_task(
-        rpki.run(domain, "single", domain_ns, domain_mx, effective_mail_ns or [])
-    )
-    dane_task = asyncio.create_task(
-        dane.run(domain, "single", domain_ns, domain_mx, effective_mail_ns or [])
-    )
-    dnssec_task = asyncio.create_task(dnssec.run(domain))
-
-    try:
-        rpki_results = await rpki_task
-        dane_results = await dane_task
-        dnssec_results = await dnssec_task
-
-        return {
-            "domain": domain,
-            "country": domain_info["Country"],
-            "institution": domain_info["Institution"],
-            "RPKI": rpki_results,
-            "DANE": dane_results,
-            "DNSSEC": dnssec_results,
-        }
-    except Exception as e:
-        logger.error(f"Error processing domain {domain}: {str(e)}")
-        return None
-
-
-async def start(domains, check_mode, ignore_cache=False):
-    all_results = {
-        "validations": {
-            "RPKI": {"results": {}, "state": {}},
-            "DANE": {"results": {}, "state": {}},
-            "DNSSEC": {"results": {}, "state": {}},
-        },
-        "domain_metadata": {},
+    VALIDATION_TYPES = {
+        "RPKI": rpki.run,
+        "DANE": dane.run,
+        "DNSSEC": dnssec.run,
+        "EMAIL_SECURITY": email_security.run,
     }
 
-    if check_mode == "single":
-        domain_info = (
-            domains
-            if isinstance(domains, dict)
-            else {"Domain": domains, "Country": "", "Institution": ""}
+    def __init__(
+        self, cache_dir: str, cache_duration: timedelta, max_concurrent: int = 64
+    ):
+        self.cache = DomainResultsCache(
+            cache_dir=cache_dir, cache_duration=cache_duration
         )
+        self.domain_semaphore = asyncio.Semaphore(max_concurrent)
+
+    def create_validation_tasks(
+        self,
+        domain: str,
+        mode: str,
+        domain_ns: List[str],
+        domain_mx: List[str],
+        mail_ns: List[str],
+    ) -> Dict[str, asyncio.Task]:
+        """
+        Creates async tasks for each validation type (RPKI, DANE, DNSSEC, EMAIL_SECURITY).
+        Returns a dictionary of validation tasks.
+        """
+        effective_mail_ns = (
+            None if not mail_ns or all(not ns for ns in mail_ns) else mail_ns
+        )
+
+        return {
+            v_type: asyncio.create_task(
+                v_func(domain, mode, domain_ns, domain_mx, effective_mail_ns or [])
+                if v_type in ("RPKI", "DANE")
+                else v_func(domain)
+            )
+            for v_type, v_func in self.VALIDATION_TYPES.items()
+        }
+
+    async def process_single_domain(
+        self, domain_info: Dict[str, str]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Processes a single domain by running all validations and returning combined results.
+        Returns None if domain processing fails.
+        """
         domain = domain_info["Domain"]
 
-        # Check cache first unless ignore_cache is True
-        cached_results = cache.get_results(domain, ignore_cache=ignore_cache)
-        if cached_results:
-            # logger.info(f"Using cached results for domain: {domain}")
-            output_file = f"standards_single_{domain}_cached_report_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.html"
-            await generate_html_report(cached_results, output_file)
-            return
+        async with self.domain_semaphore:  # Limit concurrent domain processing
+            domain_ns, domain_mx, mail_ns = await process_domain(domain)
 
-        logger.info(f"Processing domain: {domain}")
-        result = await process_single_domain(domain_info)
-        if result:
-            rpki_results, rpki_state = result["RPKI"]
-            dane_results, dane_state = result["DANE"]
-            dnssec_results, dnssec_state = result["DNSSEC"]
+            if not (domain_ns and domain_mx):
+                logger.warning(f"No nameservers found for domain: {domain}")
+                return None
 
-            all_results["domain_metadata"][result["domain"]] = {
-                "country": result["country"],
-                "institution": result["institution"],
-            }
+            try:
+                validation_tasks = self.create_validation_tasks(
+                    domain, "single", domain_ns, domain_mx, mail_ns
+                )
 
-            all_results["validations"]["RPKI"]["results"].update(rpki_results)
-            all_results["validations"]["RPKI"]["state"].update(rpki_state)
-            all_results["validations"]["DANE"]["results"].update(dane_results)
-            all_results["validations"]["DANE"]["state"].update(dane_state)
-            all_results["validations"]["DNSSEC"]["results"].update(dnssec_results)
-            all_results["validations"]["DNSSEC"]["state"].update(dnssec_state)
+                task_keys = list(validation_tasks.keys())
+                task_values = list(validation_tasks.values())
+                task_results = await asyncio.gather(*task_values)
 
-            cache.save_results(domain, all_results)
+                validation_results = dict(zip(task_keys, task_results))
 
-    else:
-        # Handle batch mode
-        processed_domains = set()
+                return {
+                    "domain": domain,
+                    "country": domain_info.get("Country", ""),
+                    "institution": domain_info.get("Institution", ""),
+                    **validation_results,
+                }
+            except Exception as e:
+                logger.error(f"Error processing domain {domain}: {str(e)}")
+                return None
+
+    def initialize_results_structure(self) -> Dict[str, Any]:
+        """
+        Creates the initial structure for storing validation results.
+        """
+        return {
+            "validations": {
+                v_type: {"results": {}, "state": {}} for v_type in self.VALIDATION_TYPES
+            },
+            "domain_metadata": {},
+        }
+
+    async def process_cached_domain(
+        self, domain: str, all_results: Dict[str, Any], cached_results: Dict[str, Any]
+    ) -> None:
+        """
+        Processes and merges cached domain results into the overall results structure.
+        """
+        all_results["domain_metadata"].update(cached_results["domain_metadata"])
+        for v_type in self.VALIDATION_TYPES:
+            v_type_result = cached_results["validations"][v_type]["results"]
+            v_type_state = cached_results["validations"][v_type]["state"]
+
+            all_results["validations"][v_type]["results"].update(
+                v_type_result if v_type_result else {}
+            )
+            all_results["validations"][v_type]["state"].update(v_type_state)
+
+    async def process_domain(
+        self, domains: List[Dict[str, str]], ignore_cache: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Processes a single domain or multiple domains in batch, handling both cached and uncached domains.
+        Returns combined results of standards checks.
+        """
+        all_results = self.initialize_results_structure()
+        cached_domains = []
         tasks = []
 
         for domain_info in domains:
             domain = domain_info["Domain"]
-            cached_results = cache.get_results(domain, ignore_cache=ignore_cache)
+            cached_results = self.cache.get_results(domain, ignore_cache=ignore_cache)
 
             if cached_results:
-                # logger.info(f"Using cached results for domain: {domain}")
-                # Merge cached results into all_results
-                all_results["domain_metadata"].update(cached_results["domain_metadata"])
-                for validation_type in all_results["validations"]:
-                    all_results["validations"][validation_type]["results"].update(
-                        cached_results["validations"][validation_type]["results"]
-                    )
-                    all_results["validations"][validation_type]["state"].update(
-                        cached_results["validations"][validation_type]["state"]
-                    )
-                processed_domains.add(domain)
+                cached_domains.append((domain, cached_results))
             else:
-                logger.info(f"Queueing domain for processing: {domain}")
-                tasks.append(process_single_domain(domain_info))
+                tasks.append(self.process_single_domain(domain_info))
 
-        await asyncio.sleep(2)
-        # Process domains that weren't in cache
+        if cached_domains:
+            await asyncio.gather(
+                *[
+                    self.process_cached_domain(domain, all_results, cached_results)
+                    for domain, cached_results in cached_domains
+                ]
+            )
+
         if tasks:
-            logger.info(f"Processing {len(tasks)} uncached domains")
             results = await asyncio.gather(*tasks)
+            await self.merge_batch_results(results, all_results)
 
-            for result in results:
-                if result:
-                    domain = result["domain"]
-                    rpki_results, rpki_state = result["RPKI"]
-                    dane_results, dane_state = result["DANE"]
-                    dnssec_results, dnssec_state = result["DNSSEC"]
+        return all_results
 
-                    all_results["domain_metadata"][domain] = {
-                        "country": result["country"],
-                        "institution": result["institution"],
-                    }
+    async def merge_batch_results(
+        self, results: List[Dict[str, Any]], all_results: Dict[str, Any]
+    ) -> None:
+        """
+        Merges batch processing results into the overall results structure and updates cache.
+        """
+        for result in results:
+            if result:
+                domain = result["domain"]
+                all_results["domain_metadata"][domain] = {
+                    "country": result["country"],
+                    "institution": result["institution"],
+                }
 
-                    all_results["validations"]["RPKI"]["results"].update(rpki_results)
-                    all_results["validations"]["RPKI"]["state"].update(rpki_state)
-                    all_results["validations"]["DANE"]["results"].update(dane_results)
-                    all_results["validations"]["DANE"]["state"].update(dane_state)
-                    all_results["validations"]["DNSSEC"]["results"].update(
-                        dnssec_results
-                    )
-                    all_results["validations"]["DNSSEC"]["state"].update(dnssec_state)
+                for v_type in self.VALIDATION_TYPES:
+                    results_data, state_data = result[v_type]
+                    all_results["validations"][v_type]["results"].update(results_data)
+                    all_results["validations"][v_type]["state"].update(state_data)
 
-                    # Create individual domain results for caching
-                    domain_results = {
-                        "validations": {
-                            vtype: {
-                                "results": {
-                                    k: v
-                                    for k, v in all_results["validations"][vtype][
-                                        "results"
-                                    ].items()
-                                    if domain in k
-                                },
-                                "state": {
-                                    k: v
-                                    for k, v in all_results["validations"][vtype][
-                                        "state"
-                                    ].items()
-                                    if domain in k
-                                },
-                            }
-                            for vtype in ["RPKI", "DANE", "DNSSEC"]
-                        },
-                        "domain_metadata": {
-                            domain: all_results["domain_metadata"][domain]
-                        },
-                    }
-                    cache.save_results(domain, domain_results)
+                # Cache individual domain results
+                domain_results = self.extract_domain_results(domain, all_results)
+                self.cache.save_results(domain, domain_results)
 
-    output_file = f"standards_{check_mode + f'_{domains if isinstance(domains, str) else domains["Domain"]}' if check_mode == 'single' else check_mode}_report_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.html"
-    await generate_html_report(all_results, output_file)
+    def extract_domain_results(
+        self, domain: str, all_results: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Extracts results for a specific domain from the combined results.
+        """
+        return {
+            "validations": {
+                v_type: {
+                    "results": {
+                        k: v
+                        for k, v in all_results["validations"][v_type][
+                            "results"
+                        ].items()
+                        if domain in k
+                    },
+                    "state": {
+                        k: v
+                        for k, v in all_results["validations"][v_type]["state"].items()
+                        if domain in k
+                    },
+                }
+                for v_type in self.VALIDATION_TYPES
+            },
+            "domain_metadata": {domain: all_results["domain_metadata"][domain]},
+        }
+
+
+@dataclass
+class CLIOptions:
+    single: Optional[str] = None
+    batch: Optional[str] = None
+    max_concurrent: int = 48
+    ignore_cache: bool = False
+
+
+class CLIHandler:
+    """Handles CLI argument parsing and validation"""
+
+    @staticmethod
+    def parse_args() -> CLIOptions:
+        parser = argparse.ArgumentParser(
+            description="Domain Validation Tool",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
+
+        input_group = parser.add_mutually_exclusive_group(required=True)
+        input_group.add_argument("--single", help="Single domain to validate")
+        input_group.add_argument("--batch", help="Path to file containing domains")
+
+        parser.add_argument(
+            "--max-concurrent",
+            type=int,
+            default=48,
+            help="Maximum concurrent validations",
+        )
+
+        parser.add_argument(
+            "--ignore-cache", action="store_true", help="Force fresh validation"
+        )
+
+        args = parser.parse_args()
+        return CLIOptions(**vars(args))
 
 
 async def main():
-    parser = argparse.ArgumentParser(
-        description="Check/Validate RPKI, DANE and DNSSEC for domains."
-    )
-    parser.add_argument("--single", type=str, help="Single domain name to check.")
-    parser.add_argument(
-        "--batch", type=str, help="Path to a file (txt/csv) containing domains."
-    )
-    parser.add_argument(
-        "--max-concurrent",
-        type=int,
-        default=10,
-        help="Maximum number of concurrent domain checks (default: 10)",
-    )
-    parser.add_argument(
-        "--ignore-cache",
-        action="store_true",
-        help="Force refresh of results ignoring cache",
-    )
-    args = parser.parse_args()
+    """
+    Main entry point for the domain validation tool.
+    Handles command line arguments and initiates domain processing.
+    """
+    cli_options = CLIHandler.parse_args()
 
     cache_dir = os.path.join(os.path.dirname(__file__), "cache")
-    global cache
-    cache = DomainResultsCache(cache_dir=cache_dir, cache_duration=timedelta(days=1))
+    validator = DomainValidator(
+        cache_dir,
+        cache_duration=timedelta(days=1),
+        max_concurrent=cli_options.max_concurrent,
+    )
 
-    check_mode = "single" if args.single else "batch"
-    if not args.single and not args.batch:
-        logger.error(
-            "Invalid input. Please provide [--single DOMAIN.tld] or --batch [file_path.txt]."
-        )
+    check_mode = "single" if cli_options.single else "batch"
+    domains = (
+        cli_options.single
+        if cli_options.single
+        else await process_file(cli_options.batch)
+    )
+
+    if not domains:
+        logger.error("No domains to process")
         return
 
-    domain = args.single if args.single else await process_file(args.batch)
-    if domain:
-        await start(domain, check_mode, ignore_cache=args.ignore_cache)
+    try:
+        results = await validator.process_domain(
+            [{"Domain": domains, "Country": "", "Institution": ""}]
+            if isinstance(domains, str)
+            else domains,
+            ignore_cache=cli_options.ignore_cache,
+        )
+
+        output_file = (
+            f"standards_{check_mode}"
+            f"{'_' + domains if isinstance(domains, str) else '_' + domains['Domain'] if check_mode == 'single' else ''}"
+            f"_report_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.html"
+        )
+
+        await generate_html_report(results, output_file)
+
+    except Exception as e:
+        logger.error(f"Error processing domains: {str(e)}")
 
 
 if __name__ == "__main__":
