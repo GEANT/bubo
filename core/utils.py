@@ -299,7 +299,7 @@ async def process_file(file_path, sort_by="Country"):
 
         if domains and sort_by:
             domains.sort(key=lambda x: (x[sort_by] == "", x[sort_by]))
-            logger.info(f"Sorted domains by {sort_by}")
+            logger.debug(f"Sorted domains by {sort_by}")
 
     except Exception as e:
         raise Exception(f"Error processing file: {e}")

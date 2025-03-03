@@ -4,12 +4,14 @@ import asyncio
 import os
 from logging import getLogger
 from typing import List, Dict, Tuple
-
+from datetime import datetime
 import aiofiles
 import dns.asyncresolver
-from dns.exception import DNSException
+from random import random
 
 from core.custom_logger.logger import setup_logger
+from core.utils import dns_manager
+
 
 setup_logger()
 logger = getLogger(__name__)
@@ -27,14 +29,11 @@ async def check_tlsa_record(domain: str, port: int) -> List[str]:
     """
     try:
         tlsa_query = f"_{port}._tcp.{domain}"
-        resolver = dns.asyncresolver.Resolver()
-        resolver.timeout = 10  # Set timeout for DNS queries
-        resolver.lifetime = 10  # Set maximum time for resolution
 
-        answers = await resolver.resolve(tlsa_query, "TLSA")
+        answers = await dns_manager.resolve(tlsa_query, "TLSA")
         logger.debug(f"TLSA records found for {domain} on port {port}")
         return [answer.to_text() for answer in answers]
-    except DNSException as e:
+    except dns.exception.DNSException as e:
         logger.debug(f"No TLSA records found for {domain} on port {port}: {e}")
         return []
     except Exception as e:
@@ -76,9 +75,15 @@ async def validate_tlsa_hash(
                 )
                 output = stdout.decode()
 
-                # Save output
-                base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-                output_dir = os.path.join(base_dir, "results", domain)
+                base_dir = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..")
+                )
+                output_dir = os.path.join(
+                    base_dir,
+                    "results",
+                    datetime.now().strftime("%Y-%m-%d"),
+                    "dane_results",
+                )
                 os.makedirs(output_dir, exist_ok=True)
 
                 async with aiofiles.open(
@@ -94,7 +99,7 @@ async def validate_tlsa_hash(
                 )
                 if proc:
                     proc.kill()
-                await asyncio.sleep(6)
+                await asyncio.sleep(1 + 7 * random())
                 retries += 1
 
         return False
@@ -165,6 +170,8 @@ async def run(
     domain_mx: List[str],
     mail_ns: List[str],
 ) -> Tuple[Dict, Dict]:
+    logger.info(f"Processing DANE for domain: {domain}")
+
     try:
         results = {domain: {}}
 
