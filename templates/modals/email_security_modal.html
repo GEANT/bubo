@@ -1,0 +1,179 @@
+{# modals/email_security_modal.html #}
+{% macro email_security_modal(modal_id, domain, results) %}
+<div id="{{ modal_id }}" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
+        <div class="modal-header">
+            <h3>
+                <i class="fas fa-envelope-open-text"></i>
+                Email Security Details - {{ domain }}
+            </h3>
+        </div>
+
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showTab('{{ modal_id }}-spf')">
+                    <i class="fas fa-shield-alt"></i> SPF
+                </button>
+                <button class="tab-button" onclick="showTab('{{ modal_id }}-dkim')">
+                    <i class="fas fa-signature"></i> DKIM
+                </button>
+                <button class="tab-button" onclick="showTab('{{ modal_id }}-dmarc')">
+                    <i class="fas fa-lock"></i> DMARC
+                </button>
+            </div>
+
+            {# SPF Tab #}
+            <div id="{{ modal_id }}-spf" class="tab-content active">
+                <div class="component-header">
+                    <h4>SPF Configuration</h4>
+                    {% if results.spf.valid %}
+                        <span class="status-badge status-valid">
+                            <i class="fas fa-check-circle"></i> Valid
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-invalid">
+                            <i class="fas fa-times-circle"></i> Invalid
+                        </span>
+                    {% endif %}
+                </div>
+
+                <div class="record-item">
+                    <div class="record-header">
+                        <i class="fas fa-file-alt"></i>
+                        <strong>Record:</strong>
+                    </div>
+                    {% if results.spf.record %}
+                        <code class="monospace">{{ results.spf.record }}</code>
+                    {% else %}
+                        <span class="status-badge status-invalid">
+                            <i class="fas fa-exclamation-triangle"></i> No SPF record found
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if results.spf.includes %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-link"></i>
+                            <strong>Includes:</strong>
+                        </div>
+                        <ul class="record-list">
+                            {% for include in results.spf.includes %}
+                                <li>{{ include }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <div class="record-item">
+                    <div class="record-header">
+                        <i class="fas fa-shield-alt"></i>
+                        <strong>Policy:</strong>
+                    </div>
+                    <span class="status-badge {{ 'status-valid' if results.spf.policy == 'hard fail' else 'status-warning' }}">
+                        {{ results.spf.policy }}
+                    </span>
+                </div>
+            </div>
+
+            {# DKIM Tab #}
+            <div id="{{ modal_id }}-dkim" class="tab-content">
+                <div class="component-header">
+                    <h4>DKIM Configuration</h4>
+                    {% if results.dkim.valid %}
+                        <span class="status-badge status-valid">
+                            <i class="fas fa-check-circle"></i> Valid
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-invalid">
+                            <i class="fas fa-times-circle"></i> Invalid
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if results.dkim.selectors_found %}
+                    {% for selector in results.dkim.selectors_found %}
+                        <div class="record-item">
+                            <div class="record-header">
+                                <i class="fas fa-key"></i>
+                                <strong>Selector: {{ selector }}</strong>
+                            </div>
+                            <code class="monospace">{{ results.dkim.records[selector].record }}</code>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>No DKIM selectors found</strong>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            {# DMARC Tab #}
+            <div id="{{ modal_id }}-dmarc" class="tab-content">
+                <div class="component-header">
+                    <h4>DMARC Configuration</h4>
+                    {% if results.dmarc.valid %}
+                        <span class="status-badge status-valid">
+                            <i class="fas fa-check-circle"></i> Valid
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-invalid">
+                            <i class="fas fa-times-circle"></i> Invalid
+                            {% if results.dmarc.error %}
+                                - {{ results.dmarc.error }}
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if results.dmarc.record %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-file-alt"></i>
+                            <strong>Record:</strong>
+                        </div>
+                        <code class="monospace">{{ results.dmarc.record }}</code>
+                    </div>
+
+                    <div class="record-item">
+                        <div class="record-details">
+                            <div class="detail-row">
+                                <i class="fas fa-shield-alt"></i>
+                                <strong>Policy:</strong>
+                                <span class="status-badge {{ 'status-valid' if results.dmarc.policy in ['quarantine', 'reject'] else 'status-warning' }}">
+                                    {{ results.dmarc.policy }}
+                                </span>
+                            </div>
+                            {% if results.dmarc.sub_policy %}
+                                <div class="detail-row">
+                                    <i class="fas fa-sitemap"></i>
+                                    <strong>Subdomain Policy:</strong>
+                                    <span class="status-badge {{ 'status-valid' if results.dmarc.sub_policy in ['quarantine', 'reject'] else 'status-warning' }}">
+                                        {{ results.dmarc.sub_policy }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                            <div class="detail-row">
+                                <i class="fas fa-percent"></i>
+                                <strong>Enforcement Percentage:</strong>
+                                {{ results.dmarc.percentage }}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>No DMARC record found</strong>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
