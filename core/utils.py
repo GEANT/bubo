@@ -277,18 +277,21 @@ async def process_file(file_path, sort_by="Country"):
         elif file_path.endswith(".csv"):
             with open(file_path, "r") as file:
                 reader = DictReader(file)
-                if "Domain" not in reader.fieldnames:
-                    logger.warning("CSV file must contain a 'Domain' column.")
-                    return []
+                try:
+                    if "Domain" not in reader.fieldnames:
+                        raise Exception("CSV file must contain a 'Domain' column.")
 
-                for row in reader:
-                    if row["Domain"]:  # Only process rows with non-empty Domain
-                        domain_info = {
-                            "Domain": row["Domain"],
-                            "Country": row.get("Country", ""),
-                            "Institution": row.get("Institution", ""),
-                        }
-                        domains.append(domain_info)
+                    for row in reader:
+                        if row["Domain"]:  # Only process rows with non-empty Domain
+                            domain_info = {
+                                "Domain": row["Domain"],
+                                "Country": row.get("Country", ""),
+                                "Institution": row.get("Institution", ""),
+                            }
+                            domains.append(domain_info)
+
+                except Exception as e:
+                    raise Exception(f"Error processing CSV file: {e}")
 
                 logger.info(f"Found {len(domains)} domains in the CSV file")
 
@@ -297,12 +300,15 @@ async def process_file(file_path, sort_by="Country"):
                 "Invalid file format. Only .txt and .csv files are supported."
             )
 
+    except Exception as e:
+        raise Exception(f"Error processing file: {e}")
+
+    try:
         if domains and sort_by:
             domains.sort(key=lambda x: (x[sort_by] == "", x[sort_by]))
             logger.debug(f"Sorted domains by {sort_by}")
-
-    except Exception as e:
-        raise Exception(f"Error processing file: {e}")
+    except KeyError:
+        logger.warning(f"Column {sort_by} not found in the file. Skipping sorting.")
 
     return domains
 
