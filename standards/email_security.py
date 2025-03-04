@@ -5,18 +5,34 @@ from logging import getLogger
 from typing import Dict, List, Tuple, Optional
 import re
 from core.utils import dns_manager
+from core.custom_logger.logger import setup_logger
+from standards.spf import check_spf
 
 
+setup_logger()
 logger = getLogger(__name__)
-
-# Common DKIM selector patterns
-COMMON_DKIM_SELECTORS = ["default", "selector1", "selector2", "dkim", "mail"]
+COMMON_DKIM_SELECTORS = [
+    "default",
+    "selector1",
+    "selector2",
+    "dkim",
+    "mail",
+    "s1",
+    "s2",
+    "google",
+    "k1",
+    "k2",
+    "m1",
+    "m2",
+    "mail",
+    "email",
+    "dkim",
+    "smtp",
+    "domainkey",
+]
 
 
 async def get_txt_records(domain: str, record_type: str = None) -> List[str]:
-    """
-    Fetch TXT records for a given domain.
-    """
     try:
         answers = await dns_manager.resolve(domain, "TXT")
         return [record.strings[0].decode("utf-8") for record in answers]
@@ -34,62 +50,7 @@ async def get_txt_records(domain: str, record_type: str = None) -> List[str]:
         return []
 
 
-async def check_spf(domain: str) -> Dict:
-    """Check SPF record for a domain."""
-    results = {
-        "record_exists": False,
-        "valid": False,
-        "record": None,
-        "policy": None,
-        "includes": [],
-        "error": None,
-    }
-
-    try:
-        txt_records = await get_txt_records(domain, "spf")
-        spf_records = [r for r in txt_records if r.startswith("v=spf1")]
-
-        if not spf_records:
-            results["error"] = "No SPF record found"
-            return results
-
-        if len(spf_records) > 1:
-            results["error"] = "Multiple SPF records found"
-            results["record_exists"] = True
-            results["valid"] = False
-            return results
-
-        spf_record = spf_records[0]
-        results["record_exists"] = True
-        results["record"] = spf_record
-
-        # Extract policy
-        if " -all" in spf_record:
-            results["policy"] = "hard fail"
-        elif " ~all" in spf_record:
-            results["policy"] = "soft fail"
-        elif " ?all" in spf_record:
-            results["policy"] = "neutral"
-        elif " +all" in spf_record:
-            results["policy"] = "pass"
-        else:
-            results["policy"] = "none"
-
-        # Extract includes
-        includes = re.findall(r"include:(\S+)", spf_record)
-        results["includes"] = includes
-
-        results["valid"] = True
-
-    except Exception as e:
-        results["error"] = str(e)
-        logger.error(f"Error checking SPF for {domain}: {str(e)}")
-
-    return results
-
-
 async def check_dkim_selector(domain: str, selector: str) -> Optional[Dict]:
-    """Check a specific DKIM selector."""
     dkim_domain = f"{selector}._domainkey.{domain}"
     txt_records = await get_txt_records(dkim_domain, "dkim")
 
@@ -100,17 +61,13 @@ async def check_dkim_selector(domain: str, selector: str) -> Optional[Dict]:
 
 
 async def check_dkim(domain: str) -> Dict:
-    """Check DKIM records for a domain."""
     results = {"selectors_found": [], "records": {}, "valid": False, "error": None}
 
     try:
-        # Check all selectors concurrently
         tasks = [
             check_dkim_selector(domain, selector) for selector in COMMON_DKIM_SELECTORS
         ]
         selector_results = await asyncio.gather(*tasks)
-
-        # Process results
         valid_records = [r for r in selector_results if r is not None]
 
         if valid_records:
@@ -219,7 +176,6 @@ async def check_dmarc(domain: str) -> Dict:
         else:
             results["percentage"] = 100  # Default value
 
-        # Set final validity based on all checks passing
         results["valid"] = (
             results["record_exists"]
             and results["policy"] in ["quarantine", "reject"]
@@ -234,19 +190,16 @@ async def check_dmarc(domain: str) -> Dict:
 
 
 async def run(domain: str) -> Tuple[Dict, Dict]:
-    """Main function to run email security checks."""
     results = {}
     state = {}
 
     logger.info(f"Running email security checks for {domain}")
 
     try:
-        # Create tasks for all checks concurrently
         spf_task = asyncio.create_task(check_spf(domain))
         dkim_task = asyncio.create_task(check_dkim(domain))
         dmarc_task = asyncio.create_task(check_dmarc(domain))
 
-        # Execute all tasks concurrently
         spf_results, dkim_results, dmarc_results = await asyncio.gather(
             spf_task, dkim_task, dmarc_task
         )
@@ -257,7 +210,6 @@ async def run(domain: str) -> Tuple[Dict, Dict]:
             "dmarc": dmarc_results,
         }
 
-        # Determine overall state
         state[domain] = {
             "SPF": "valid" if spf_results["valid"] else "not-valid",
             "DKIM": "valid" if dkim_results["valid"] else "not-valid",
