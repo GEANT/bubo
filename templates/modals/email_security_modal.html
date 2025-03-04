@@ -6,7 +6,7 @@
         <div class="modal-header">
             <h3>
                 <i class="fas fa-envelope-open-text"></i>
-                Email Security Details - {{ domain }}
+                Email Security Details for domain {{ domain }}
             </h3>
         </div>
 
@@ -38,43 +38,113 @@
                     {% endif %}
                 </div>
 
-                <div class="record-item">
-                    <div class="record-header">
-                        <i class="fas fa-file-alt"></i>
-                        <strong>Record:</strong>
-                    </div>
-                    {% if results.spf.record %}
-                        <code class="monospace">{{ results.spf.record }}</code>
-                    {% else %}
-                        <span class="status-badge status-invalid">
-                            <i class="fas fa-exclamation-triangle"></i> No SPF record found
-                        </span>
-                    {% endif %}
-                </div>
-
-                {% if results.spf.includes %}
+                {% if results.spf.record %}
                     <div class="record-item">
                         <div class="record-header">
-                            <i class="fas fa-link"></i>
-                            <strong>Includes:</strong>
+                            <i class="fas fa-file-alt"></i>
+                            <strong>Record:</strong>
                         </div>
-                        <ul class="record-list">
-                            {% for include in results.spf.includes %}
-                                <li>{{ include }}</li>
-                            {% endfor %}
-                        </ul>
+                            <code class="monospace">{{ results.spf.record }}</code>
+                    </div>
+                {% else %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>No SPF record found</strong>
+                        </div>
                     </div>
                 {% endif %}
 
+                {% if results.spf.policy %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <strong>Policy:</strong>
+                            <div class="detail-row">
+                                <span class="status-badge {{ 'spf-valid' if results.spf.policy in ['-all', '~all'] else 'status-warning' }}">
+                                    {{ results.spf.policy }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="record-details">
+                            {% if results.spf.policy_sufficiently_strict and results.spf.policy_explanation %}
+                                <div class="detail-row">
+                                    <i class="fas fa-check-circle status-valid"></i>
+                                    <span>{{ results.spf.policy_explanation }}</span>
+                                </div>
+                            {% elif not results.spf.policy_sufficiently_strict and results.spf.policy_explanation %}
+                                <div class="detail-row">
+                                    <i class="fas fa-exclamation-triangle status-warning"></i>
+                                    <span>{{ results.spf.policy_explanation }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if results.spf.dns_lookups %}
+                    <div class="record-item">
+                        <div class="record-header">
+                            <i class="fas fa-search"></i>
+                            <strong>DNS Lookups:</strong>
+                        </div>
+                        <div class="record-details">
+                            <div class="detail-row">
+                                    <span>{{ results.spf.dns_lookups }} lookup{{ 's' if results.spf.dns_lookups != 1 }}</span>
+                            </div>
+                            <div class="detail-row">
+                                <i class="{{ 'fas fa-check-circle status-valid' if not results.spf.exceeds_lookup_limit else 'fas fa-exclamation-triangle status-warning' }}"></i>
+                                <span>{{ 'Within' if not results.spf.exceeds_lookup_limit else 'Exceeds' }} recommended lookup limit (10)</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if results.spf.includes %}
                 <div class="record-item">
                     <div class="record-header">
-                        <i class="fas fa-shield-alt"></i>
-                        <strong>Policy:</strong>
+                        <i class="fas fa-link"></i>
+                        <strong>Included Domains:</strong>
                     </div>
-                    <span class="status-badge {{ 'status-valid' if results.spf.policy == 'hard fail' else 'status-warning' }}">
-                        {{ results.spf.policy }}
-                    </span>
+                    <ul class="record-list">
+                        {% for include in results.spf.includes %}
+                            <li>{{ include }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
+                {% endif %}
+
+                {% if results.spf.record and 'ip4:' in results.spf.record %}
+                <div class="record-item">
+                    <div class="record-header">
+                        <i class="fas fa-network-wired"></i>
+                        <strong>IPv4 Addresses:</strong>
+                    </div>
+                    <ul class="record-list">
+                        {% for part in results.spf.record.split(' ') %}
+                            {% if part.startswith('ip4:') %}
+                                <li><code class="ip-address">{{ part[4:] }}</code></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if results.spf.record and 'ip6:' in results.spf.record %}
+                <div class="record-item">
+                    <div class="record-header">
+                        <i class="fas fa-network-wired"></i>
+                        <strong>IPv6 Addresses:</strong>
+                    </div>
+                    <ul class="record-list">
+                        {% for part in results.spf.record.split(' ') %}
+                            {% if part.startswith('ip6:') %}
+                                <li><code class="ip-address">{{ part[4:] }}</code></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
 
             {# DKIM Tab #}
@@ -123,9 +193,6 @@
                     {% else %}
                         <span class="status-badge status-invalid">
                             <i class="fas fa-times-circle"></i> Invalid
-                            {% if results.dmarc.error %}
-                                - {{ results.dmarc.error }}
-                            {% endif %}
                         </span>
                     {% endif %}
                 </div>

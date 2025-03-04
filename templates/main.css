@@ -999,3 +999,8 @@ tr[data-show="false"] {
 .status-detail i {
     font-size: 0.875rem;
 }
+
+.spf-valid {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--valid-color);
+}
