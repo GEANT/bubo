@@ -47,7 +47,6 @@ def sample_email():
 
 @pytest.mark.asyncio
 async def test_process_file_txt(temp_txt_file):
-
     result = await process_file(temp_txt_file)
 
     assert len(result) == 3
@@ -62,7 +61,6 @@ async def test_process_file_txt(temp_txt_file):
 
 @pytest.mark.asyncio
 async def test_process_file_csv(temp_csv_file):
-
     result = await process_file(temp_csv_file)
 
     assert len(result) == 3  # Should skip the empty row
@@ -79,7 +77,6 @@ async def test_process_file_csv(temp_csv_file):
 
 @pytest.mark.asyncio
 async def test_process_file_invalid_format():
-
     with pytest.raises(Exception) as excinfo:
         await process_file("file.docx")
 
@@ -88,7 +85,6 @@ async def test_process_file_invalid_format():
 
 @pytest.mark.asyncio
 async def test_process_file_file_not_found():
-
     with pytest.raises(Exception) as excinfo:
         await process_file("nonexistent_file.txt")
 
@@ -97,7 +93,6 @@ async def test_process_file_file_not_found():
 
 @pytest.mark.asyncio
 async def test_dns_resolver_manager_resolve_exception_handling():
-
     manager = DNSResolverManager()
 
     # Test handling of NoNameservers exception
@@ -124,7 +119,6 @@ async def test_dns_resolver_manager_resolve_exception_handling():
 
 @pytest.mark.asyncio
 async def test_process_domain_email_extraction(sample_email):
-
     with (
         patch("core.utils.validate_hostname", return_value=True),
         patch(
@@ -141,7 +135,6 @@ async def test_process_domain_email_extraction(sample_email):
 
 @pytest.mark.asyncio
 async def test_process_domain_mail_nameservers():
-
     with (
         patch("core.utils.validate_hostname", return_value=True),
         patch(
@@ -166,7 +159,6 @@ async def test_process_domain_mail_nameservers():
 
 @pytest.mark.asyncio
 async def test_process_domain_all_empty_mail_nameservers():
-
     with (
         patch("core.utils.validate_hostname", return_value=True),
         patch(
@@ -192,7 +184,6 @@ async def test_process_domain_all_empty_mail_nameservers():
 
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_mail_nameservers():
-
     with (
         patch("core.utils.validate_hostname", return_value=True),
         patch(
@@ -217,7 +208,6 @@ async def test_process_domain_exception_in_mail_nameservers():
 
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_domain_nameservers():
-
     with (
         patch("core.utils.validate_hostname", return_value=True),
         patch("core.utils.resolve_nameservers", side_effect=Exception("DNS error")),
@@ -235,7 +225,6 @@ async def test_process_domain_exception_in_domain_nameservers():
 
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_mx_records():
-
     with (
         patch("core.utils.validate_hostname", return_value=True),
         patch(
