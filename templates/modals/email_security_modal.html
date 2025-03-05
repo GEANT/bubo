@@ -46,7 +46,7 @@
                     <div class="record-details">
                         <div class="detail-row">
                             <i class="fas {{ 'fa-check-circle status-valid' if results.spf.has_spf else 'fa-times-circle status-invalid' }}"></i>
-                            <span>SPF Record {{ 'found' if results.spf.has_spf else 'not found' }} for this domain.</span>
+                            <span>{{ '' if results.spf.has_spf else 'No' }} SPF Record has been found for this domain.</span>
                         </div>
                         {% if results.spf.has_spf %}
                         <div class="detail-row">
@@ -186,9 +186,9 @@
                     {% endfor %}
                 {% else %}
                     <div class="record-item">
-                        <div class="record-header">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>No DKIM selectors found</strong>
+                        <div class="detail-row">
+                            <i class="fas fa-times-circle status-invalid"></i>
+                            <span>No DKIM Selector has been found for this domain.</span>
                         </div>
                     </div>
                 {% endif %}
@@ -217,7 +217,7 @@
                     <div class="record-details">
                         <div class="detail-row">
                             <i class="fas {{ 'fa-check-circle status-valid' if results.dmarc.record_exists else 'fa-times-circle status-invalid' }}"></i>
-                            <span>DMARC Record {{ 'found' if results.dmarc.record_exists else 'not found' }} for this domain.</span>
+                            <span>{{ '' if results.dmarc.record_exists else 'No' }} DMARC Record has been found for this domain.</span>
                         </div>
                         {% if results.dmarc.record_exists %}
                         <div class="detail-row">
