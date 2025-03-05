@@ -139,7 +139,9 @@ async def check_dmarc(domain: str) -> Dict:
 
         # Validate policy strictness
         if policy == "none":
-            results["error"] = "Policy 'none' is insufficient to prevent domain abuse"
+            results["error"] = (
+                "Policy 'none' is insufficient to prevent domain abuse. It should be 'reject' or 'quarantine' to be effective and strict."
+            )
             results["valid"] = False
             return results
         elif policy not in ["quarantine", "reject"]:

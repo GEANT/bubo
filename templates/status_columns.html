@@ -85,7 +85,14 @@
                         <div class="email-security-details">
                             <div class="status-detail">
                                 <span>SPF</span>
-                                <i class="fas fa-{{ 'check-circle status-valid' if email_security_state.SPF == 'valid' else 'times-circle status-not-valid' }}"></i>
+                                {% set spf_results = validations.EMAIL_SECURITY.results[domain].spf %}
+                                {% if spf_results.has_spf and spf_results.policy_sufficiently_strict %}
+                                    <i class="fas fa-check-circle status-valid"></i>
+                                {% elif spf_results.has_spf and not spf_results.policy_sufficiently_strict %}
+                                    <i class="fas fa-exclamation-triangle status-partially-valid"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle status-not-valid"></i>
+                                {% endif %}
                             </div>
                             <div class="status-detail">
                                 <span>DKIM</span>
@@ -93,11 +100,18 @@
                             </div>
                             <div class="status-detail">
                                 <span>DMARC</span>
-                                <i class="fas fa-{{ 'check-circle status-valid' if email_security_state.DMARC == 'valid' else 'times-circle status-not-valid' }}"></i>
+                                {% set dmarc_results = validations.EMAIL_SECURITY.results[domain].dmarc %}
+                                {% if dmarc_results.record_exists and dmarc_results.valid %}
+                                    <i class="fas fa-check-circle status-valid"></i>
+                                {% elif dmarc_results.record_exists and not dmarc_results.valid %}
+                                    <i class="fas fa-exclamation-triangle status-partially-valid"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle status-not-valid"></i>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-                </button>
+            </button>
 
                 {{ email_security_modal(email_security_modal_id, domain, validations.EMAIL_SECURITY.results[domain]) }}
             {% else %}
