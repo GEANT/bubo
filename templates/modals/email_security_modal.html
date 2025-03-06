@@ -58,35 +58,135 @@
                 </div>
 
                 {% if results.spf.record %}
-                    <div class="record-item">
-                        <div class="record-header">
+                    <div class="record-card">
+                        <div class="record-card-header">
                             <i class="fas fa-file-alt"></i>
-                            <strong>Record:</strong>
+                            <span>Record</span>
                         </div>
-                            <code class="monospace">{{ results.spf.record }}</code>
+                        <div class="record-card-body">
+                            <code class="spf-record">{{ results.spf.record }}</code>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if results.spf.redirect_info %}
+                    <div class="record-card redirect-card">
+                        <div class="record-card-header collapsible" onclick="toggleCollapse(this)">
+                            <i class="fas fa-forward"></i>
+                            <span>Redirect Information ({{ results.spf.redirect_domain }})</span>
+                            <i class="fas fa-chevron-down collapse-icon"></i>
+                        </div>
+                        <div class="record-card-body">
+                            <div class="redirect-record-container">
+                                <div class="redirect-section">
+                                    <div class="section-label">
+                                        <i class="fas fa-file-alt"></i>
+                                        <span>Record:</span>
+                                    </div>
+                                    <div class="section-content">
+                                        <code class="spf-record">{{ results.spf.redirect_info.record }}</code>
+                                    </div>
+                                </div>
+
+                                <div class="redirect-section">
+                                    <div class="section-label">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>Policy:</span>
+                                    </div>
+                                    <div class="section-content">
+                                        <span class="policy-badge {{ 'policy-strict' if results.spf.redirect_info.policy in ['-all', '~all'] else 'policy-neutral' }}">
+                                            {{ results.spf.redirect_info.policy }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {% if results.spf.redirect_info.includes %}
+                                    <div class="redirect-section">
+                                        <div class="section-label">
+                                            <i class="fas fa-link"></i>
+                                            <span>Includes:</span>
+                                        </div>
+                                        <div class="section-content">
+                                            <div class="tag-container">
+                                                {% for include in results.spf.redirect_info.includes %}
+                                                    <span class="tag include-tag">{{ include }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if results.spf.redirect_info.a_records %}
+                                    <div class="redirect-section">
+                                        <div class="section-label">
+                                            <i class="fas fa-server"></i>
+                                            <span>A Records:</span>
+                                        </div>
+                                        <div class="section-content">
+                                            <div class="tag-container">
+                                                {% for record in results.spf.redirect_info.a_records %}
+                                                    <span class="tag a-record-tag">{{ record }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if results.spf.redirect_info.mx_records %}
+                                    <div class="redirect-section">
+                                        <div class="section-label">
+                                            <i class="fas fa-mail-bulk"></i>
+                                            <span>MX Records:</span>
+                                        </div>
+                                        <div class="section-content">
+                                            <div class="tag-container">
+                                                {% for record in results.spf.redirect_info.mx_records %}
+                                                    <span class="tag mx-record-tag">{{ record }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if results.spf.redirect_info.ptr_records %}
+                                    <div class="redirect-section">
+                                        <div class="section-label">
+                                            <i class="fas fa-exchange-alt"></i>
+                                            <span>PTR Records:</span>
+                                        </div>
+                                        <div class="section-content">
+                                            <div class="tag-container">
+                                                {% for record in results.spf.redirect_info.ptr_records %}
+                                                    <span class="tag ptr-record-tag">{{ record }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
 
                 {% if results.spf.policy %}
-                    <div class="record-item">
-                        <div class="record-header">
+                    <div class="record-card">
+                        <div class="record-card-header">
                             <i class="fas fa-shield-alt"></i>
-                            <strong>Policy:</strong>
-                            <div class="detail-row">
-                                <span class="status-badge {{ 'spf-valid' if results.spf.policy in ['-all', '~all'] else 'status-warning' }}">
-                                    {{ results.spf.policy }}
-                                </span>
-                            </div>
+                            <span>Policy</span>
                         </div>
-                        <div class="record-details">
+                        <div class="record-card-body policy-container">
+                            <span class="policy-badge {{ 'policy-strict' if results.spf.policy in ['-all', '~all'] else 'policy-neutral' }}">
+                                {{ results.spf.policy }}
+                            </span>
+
                             {% if results.spf.policy_sufficiently_strict and results.spf.policy_explanation %}
-                                <div class="detail-row">
-                                    <i class="fas fa-check-circle status-valid"></i>
+                                <div class="policy-explanation valid">
+                                    <i class="fas fa-check-circle"></i>
                                     <span>{{ results.spf.policy_explanation }}</span>
                                 </div>
                             {% elif not results.spf.policy_sufficiently_strict and results.spf.policy_explanation %}
-                                <div class="detail-row">
-                                    <i class="fas fa-exclamation-triangle status-warning"></i>
+                                <div class="policy-explanation warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
                                     <span>{{ results.spf.policy_explanation }}</span>
                                 </div>
                             {% endif %}
@@ -290,4 +390,21 @@
         </div>
     </div>
 </div>
+
+<script>
+/* JavaScript for Collapsible Function */
+function toggleCollapse(element) {
+    element.classList.toggle('collapsed');
+    const content = element.nextElementSibling;
+    if (element.classList.contains('collapsed')) {
+        content.style.maxHeight = '0';
+        content.style.padding = '0 16px';
+        content.style.overflow = 'hidden';
+    } else {
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.padding = '16px';
+        content.style.overflow = 'visible';
+    }
+}
+</script>
 {% endmacro %}

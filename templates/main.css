@@ -925,7 +925,6 @@ tr[data-show="false"] {
 }
 /* End of DNSSEC Verification chain table */
 
-
 /* Start of Email security checks */
 .email-security-status {
     display: flex;
@@ -1003,4 +1002,167 @@ tr[data-show="false"] {
 .spf-valid {
     background-color: rgba(76, 175, 80, 0.1);
     color: var(--valid-color);
+}
+
+/* SPF Record Cards Styling */
+.record-card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+.record-card-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+}
+
+.record-card-header i {
+    margin-right: 8px;
+    color: #495057;
+}
+
+.record-card-header.collapsible {
+    cursor: pointer;
+}
+
+.record-card-header.collapsible .collapse-icon {
+    margin-left: auto;
+    transition: transform 0.3s ease;
+}
+
+.record-card-header.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.record-card-body {
+    padding: 16px;
+}
+
+/* SPF Record Code Styling */
+.spf-record {
+    display: block;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #212529;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Redirect Container Styling */
+.redirect-card {
+    border-left: 4px solid #007bff;
+}
+
+.redirect-record-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.redirect-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.section-content {
+    padding-left: 24px;
+}
+
+/* Tag Styling */
+.tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    background-color: #e9ecef;
+}
+
+.include-tag {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+}
+
+.a-record-tag {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+}
+
+.mx-record-tag {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.ptr-record-tag {
+    background-color: #f3e5f5;
+    color: #4a148c;
+}
+
+/* Policy Styling */
+.policy-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.policy-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.policy-strict {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.policy-soft {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.policy-neutral {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.policy-explanation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.policy-explanation.valid {
+    color: #155724;
+}
+
+.policy-explanation.warning {
+    color: #856404;
 }
