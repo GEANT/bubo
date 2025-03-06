@@ -134,12 +134,12 @@ async def count_dns_lookups(
     domain: str,
     visited: Optional[Set[str]] = None,
     lookup_count: int = 0,
-) -> Tuple[int, str]:
+) -> Tuple[int, str, Optional[Dict]]:
     if visited is None:
         visited = set()
 
     if not spf_info.get("valid", False):
-        return lookup_count, spf_info.get("policy", "?")
+        return lookup_count, spf_info.get("policy", "?"), None
 
     lookup_count += len(spf_info["includes"])
     lookup_count += len(spf_info["a_records"])
@@ -148,7 +148,7 @@ async def count_dns_lookups(
     lookup_count += len(spf_info["exists"])
 
     if lookup_count > MAX_DNS_LOOKUPS:
-        return lookup_count, spf_info["policy"]
+        return lookup_count, spf_info["policy"], None
 
     # Follow includes if they don't contain macros
     for include_domain in spf_info["includes"]:
@@ -162,7 +162,7 @@ async def count_dns_lookups(
         include_record = await get_spf_record(include_domain)
         if include_record:
             include_info = await parse_spf_record(include_record, include_domain)
-            lookup_count, _ = await count_dns_lookups(
+            lookup_count, _, _ = await count_dns_lookups(
                 include_info, include_domain, visited, lookup_count
             )
 
@@ -171,6 +171,7 @@ async def count_dns_lookups(
 
     # Follow redirect if it exists and doesn't contain macros
     policy = spf_info["policy"]
+    redirect_info = None
     if (
         spf_info["redirect"]
         and "%" not in spf_info["redirect"]
@@ -183,11 +184,11 @@ async def count_dns_lookups(
             redirect_record = await get_spf_record(redirect_domain)
             if redirect_record:
                 redirect_info = await parse_spf_record(redirect_record, redirect_domain)
-                lookup_count, policy = await count_dns_lookups(
+                lookup_count, policy, _ = await count_dns_lookups(
                     redirect_info, redirect_domain, visited, lookup_count
                 )
 
-    return lookup_count, policy
+    return lookup_count, policy, redirect_info
 
 
 def check_policy_strictness(policy: str) -> bool:
@@ -216,7 +217,7 @@ async def check_spf(domain: str) -> Dict:
             "record": spf_record,
         }
 
-    lookup_count, policy = await count_dns_lookups(spf_info, domain)
+    lookup_count, policy, redirect_info = await count_dns_lookups(spf_info, domain)
 
     if policy == "?all" and not spf_info["redirect"]:
         policy_explanation = (
@@ -241,6 +242,11 @@ async def check_spf(domain: str) -> Dict:
         "dns_lookups": lookup_count,
         "exceeds_lookup_limit": lookup_count > MAX_DNS_LOOKUPS,
     }
+
+    # Add redirect information if present
+    if spf_info["redirect"] and redirect_info:
+        result["redirect_domain"] = spf_info["redirect"]
+        result["redirect_info"] = redirect_info
 
     if not is_valid:
         if not is_strict:
