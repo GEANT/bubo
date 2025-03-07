@@ -1,0 +1,46 @@
+{% macro tooltip_header(header_text, tooltip_type, tab_id='all') %}
+    {% set tooltip_id = tab_id ~ '-' ~ tooltip_type %}
+    <th>
+        <div class="header-with-tooltip">
+            {{ header_text }}
+            <span class="info-icon" onmouseover="showTooltip('{{ tooltip_id }}')" onmouseout="hideTooltip('{{ tooltip_id }}')">
+                <i class="fas fa-info-circle"></i>
+                <div id="{{ tooltip_id }}" class="tooltip-content">
+                    {% if tooltip_type == 'rpki-tooltip' %}
+                        <h4>Resource Public Key Infrastructure (RPKI)</h4>
+                        <p>RPKI is a security framework that verifies IP address ownership and ensures proper routing.</p>
+                        <ul>
+                            <li>Prevents BGP hijacking and route leaks</li>
+                            <li>Validates that IP prefixes are announced by authorized networks</li>
+                            <li>Improves overall internet routing security</li>
+                        </ul>
+                    {% elif tooltip_type == 'dane-tooltip' %}
+                        <h4>DNS-based Authentication of Named Entities (DANE)</h4>
+                        <p>DANE binds TLS certificates to domains using DNSSEC, providing an additional layer of validation.</p>
+                        <ul>
+                            <li>Reduces reliance on traditional certificate authorities</li>
+                            <li>Helps prevent man-in-the-middle attacks</li>
+                            <li>Enables stronger verification of encrypted connections</li>
+                        </ul>
+                    {% elif tooltip_type == 'dnssec-tooltip' %}
+                        <h4>Domain Name System Security Extensions (DNSSEC)</h4>
+                        <p>DNSSEC adds cryptographic signatures to DNS records to ensure their authenticity.</p>
+                        <ul>
+                            <li>Protects against DNS cache poisoning</li>
+                            <li>Verifies DNS responses come from legitimate sources</li>
+                            <li>Provides a chain of trust from the root zone to subdomains</li>
+                        </ul>
+                    {% elif tooltip_type == 'email-security-tooltip' %}
+                        <h4>Email Security Standards</h4>
+                        <p>A combination of protocols that protect email from spoofing and phishing.</p>
+                        <ul>
+                            <li><strong>SPF:</strong> Specifies which servers can send email from your domain</li>
+                            <li><strong>DKIM:</strong> Digitally signs emails to verify they haven't been tampered with</li>
+                            <li><strong>DMARC:</strong> Policies for handling emails that fail SPF or DKIM checks</li>
+                        </ul>
+                    {% endif %}
+                </div>
+            </span>
+        </div>
+    </th>
+{% endmacro %}

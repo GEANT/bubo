@@ -2,6 +2,8 @@
 {% from 'modals/dane_modal.html' import dane_modal %}
 {% from 'modals/dnssec_modal.html' import dnssec_modal %}
 {% from 'modals/email_security_modal.html' import email_security_modal %}
+{% from 'tooltips/column_tooltips.html' import tooltip_header %}
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -35,11 +37,10 @@
                             <th>Institution</th>
                             <th>Domain</th>
                             <th>Service Type</th>
-                            <th>RPKI Status</th>
-                            <th>DANE Status</th>
-                            <th>DNSSEC Status</th>
-                            <th>Email Security</th>
-
+                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'all-services') }}
+                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'all-services') }}
+                            {{ tooltip_header('DNSSEC Status', 'dnssec-tooltip', 'all-services') }}
+                            {{ tooltip_header('Email Security Status', 'email-security-tooltip', 'all-services') }}
                         </tr>
                         </thead>
                         <tbody>
@@ -70,10 +71,8 @@
                             <th>Country</th>
                             <th>Institution</th>
                             <th>Domain</th>
-                            <th>RPKI Status</th>
-                            <th>DANE Status</th>
-
-
+                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'nameservers') }}
+                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'nameservers') }}
                         </tr>
                         </thead>
                         <tbody>
@@ -99,8 +98,8 @@
                             <th>Country</th>
                             <th>Institution</th>
                             <th>Domain</th>
-                            <th>RPKI Status</th>
-                            <th>DANE Status</th>
+                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'mail-servers') }}
+                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'mail-servers') }}
                         </tr>
                         </thead>
                         <tbody>
@@ -126,8 +125,8 @@
                             <th>Country</th>
                             <th>Institution</th>
                             <th>Domain</th>
-                            <th>RPKI Status</th>
-                            <th>DANE Status</th>
+                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'mailserver-ns') }}
+                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'mailserver-ns') }}
                         </tr>
                         </thead>
                         <tbody>
