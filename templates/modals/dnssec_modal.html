@@ -21,7 +21,7 @@
                 <div class="status-indicator">
                     {% set is_valid = results_data.dnssec_status.registrar.status == 'FullySigned' %}
                     <span class="status-badge {{ 'status-valid' if is_valid else 'status-invalid' }}">
-                        <i class="fas fa-{{ 'shield-check' if is_valid else 'shield-exclamation' }}"></i>
+                        <i class="fas fa-{{ 'lock' if is_valid else 'lock-open' }}"></i>
                         {{ results_data.dnssec_status.registrar.status }}
                     </span>
                 </div>
