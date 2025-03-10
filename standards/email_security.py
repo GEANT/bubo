@@ -105,9 +105,37 @@ async def check_dmarc(domain: str) -> Dict:
 
     try:
         dmarc_domain = f"_dmarc.{domain}"
-        txt_records = await get_txt_records(dmarc_domain, "dmarc")
+        dmarc_records = []
 
-        dmarc_records = [r for r in txt_records if r.startswith("v=DMARC1")]
+        try:
+            answers = await dns_manager.resolve(dmarc_domain, "TXT")
+            for record in answers:
+                try:
+                    decoded_strings = []
+                    for string in record.strings:
+                        if isinstance(string, bytes):
+                            decoded_strings.append(string.decode("utf-8"))
+                        else:
+                            decoded_strings.append(string)
+
+                    txt = "".join(decoded_strings)
+                    if txt.startswith("v=DMARC1"):
+                        dmarc_records.append(txt)
+                except (UnicodeDecodeError, AttributeError):
+                    logger.error(f"Error decoding DMARC record for {dmarc_domain}")
+                    continue
+        except dns.resolver.NXDOMAIN:
+            logger.debug(f"No DMARC record found for {dmarc_domain} (NXDOMAIN)")
+        except dns.resolver.NoAnswer:
+            logger.debug(f"No DMARC record found for {dmarc_domain} (NoAnswer)")
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout when fetching DMARC record for {dmarc_domain}")
+            results["error"] = f"DNS lookup timeout for {dmarc_domain}"
+            return results
+        except Exception as e:
+            logger.debug(f"Error fetching DMARC records for {dmarc_domain}: {str(e)}")
+            results["error"] = f"Error fetching DMARC records: {str(e)}"
+            return results
 
         if not dmarc_records:
             results["error"] = "No DMARC record found"
