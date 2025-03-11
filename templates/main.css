@@ -1385,5 +1385,4 @@ tr[data-show="false"] {
     /* Higher z-index than tab containers to ensure visibility */
     z-index: 1010;
 }
-
 /* End of Tooltips */
