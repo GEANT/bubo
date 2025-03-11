@@ -42,6 +42,20 @@ class DNSSECChecker:
         except Exception as e:
             raise Exception(f"Error getting DS records: {str(e)}")
 
+    def get_algorithm_name(self, algorithm_id):
+        """Convert numeric algorithm ID to human-readable name"""
+        algorithm_names = {
+            1: "RSA/MD5",
+            5: "RSA/SHA-1",
+            8: "RSA/SHA-256",
+            10: "RSA/SHA-512",
+            13: "ECDSAP256SHA256",
+            14: "ECDSAP384SHA384",
+            15: "ED25519",
+            16: "ED448",
+        }
+        return algorithm_names.get(algorithm_id, f"Unknown ({algorithm_id})")
+
     async def _get_dnskey_records(self):
         try:
             dnskey_records = []
@@ -50,12 +64,24 @@ class DNSSECChecker:
             )
 
             if answers and answers.rrset is not None:
+                ttl = (
+                    getattr(answers.rrset, "ttl", None)
+                    if not isinstance(answers.rrset, list)
+                    else None
+                )
+
                 for rdata in answers.rrset:
+                    # KSK has SEP bit set (bit 15, values 256 or 257)
+                    key_type = "KSK" if (rdata.flags & 0x0001) else "ZSK"
+
                     dnskey_records.append(
                         {
                             "flags": rdata.flags,
                             "protocol": rdata.protocol,
                             "algorithm": rdata.algorithm,
+                            "algorithm_name": self.get_algorithm_name(rdata.algorithm),
+                            "key_type": key_type,
+                            "ttl": ttl,
                             "key": rdata.to_text(),
                         }
                     )
@@ -66,13 +92,17 @@ class DNSSECChecker:
     async def _get_rrsig_records(self):
         try:
             rrsig_records = []
-            # Query RRSIG records for the DNSKEY
             answers = await dns_manager.resolve_dnssec(
                 self.domain, "DNSKEY", raise_on_no_answer=False
             )
 
-            # Rest of the function remains the same
             if answers and answers.rrset is not None and answers.response is not None:
+                ttl = (
+                    getattr(answers.rrset, "ttl", None)
+                    if not isinstance(answers.rrset, list)
+                    else None
+                )
+
                 for rrsig in answers.response.find_rrset(
                     answers.response.answer,
                     dns.name.from_text(self.domain),
@@ -80,12 +110,27 @@ class DNSSECChecker:
                     dns.rdatatype.RRSIG,
                     dns.rdatatype.DNSKEY,
                 ):
-                    # Existing code for processing RRSIG records
+                    inception_str = datetime.utcfromtimestamp(rrsig.inception).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
+                    expiration_str = datetime.utcfromtimestamp(
+                        rrsig.expiration
+                    ).strftime("%Y-%m-%d %H:%M:%S")
+                    expiration_date = datetime.utcfromtimestamp(rrsig.expiration)
+                    days_until_expiry = (expiration_date - datetime.now()).days
+
                     rrsig_records.append(
                         {
                             "type_covered": dns.rdatatype.to_text(rrsig.type_covered),
                             "algorithm": rrsig.algorithm,
-                            # Rest of the fields...
+                            "algorithm_name": self.get_algorithm_name(rrsig.algorithm),
+                            "key_tag": rrsig.key_tag,
+                            "signer": str(rrsig.signer),
+                            "inception": inception_str,
+                            "expiration": expiration_str,
+                            "days_until_expiry": days_until_expiry,
+                            "expiring_soon": days_until_expiry < 7,
+                            "ttl": ttl,
                         }
                     )
             return rrsig_records
@@ -132,6 +177,22 @@ class DNSSECChecker:
                 result["dnssec_status"]["is_signed"] = True
             else:
                 result["dnssec_status"]["nameservers"]["status"] = "Unsigned"
+
+            result["summary"] = {
+                "is_valid": result["dnssec_status"]["is_signed"],
+                "chain_fully_verified": all(
+                    "error" not in zone_info for zone_info in self.verification_chain
+                ),
+                "expiring_soon": any(
+                    r.get("expiring_soon", False)
+                    for r in result["dnssec_status"]["nameservers"]["rrsig_records"]
+                ),
+                "algorithm": result["dnssec_status"]["nameservers"]["dnskey_records"][
+                    0
+                ]["algorithm_name"]
+                if result["dnssec_status"]["nameservers"]["dnskey_records"]
+                else None,
+            }
 
         except Exception as e:
             result["error"] = str(e)
