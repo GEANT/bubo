@@ -1,4 +1,52 @@
 {% macro dnssec_status_tab(results_data) %}
+    <!-- Summary Section (NEW) -->
+    {% if results_data.summary %}
+    <div class="summary-section mb-4">
+        <div class="section-header">
+            <i class="fas fa-clipboard-check text-blue-600"></i>
+            <strong>DNSSEC Summary</strong>
+        </div>
+        <div class="summary-content p-3 bg-gray-50 rounded-lg">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="summary-item">
+                    <div class="flex items-center">
+                        <i class="fas fa-shield-alt mr-2 {% if results_data.summary.is_valid %}text-green-600{% else %}text-red-600{% endif %}"></i>
+                        <span class="font-medium">Status:</span>
+                        <span class="ml-2 {% if results_data.summary.is_valid %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ 'Valid' if results_data.summary.is_valid else 'Invalid' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="flex items-center">
+                        <i class="fas fa-link mr-2 {% if results_data.summary.chain_fully_verified %}text-green-600{% else %}text-red-600{% endif %}"></i>
+                        <span class="font-medium">Chain Verification:</span>
+                        <span class="ml-2 {% if results_data.summary.chain_fully_verified %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ 'Complete' if results_data.summary.chain_fully_verified else 'Incomplete' }}
+                        </span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="flex items-center">
+                        <i class="fas fa-cogs mr-2 text-blue-600"></i>
+                        <span class="font-medium">Algorithm:</span>
+                        <span class="ml-2">{{ results_data.summary.algorithm }}</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt mr-2 {% if results_data.summary.expiring_soon %}text-yellow-600{% else %}text-green-600{% endif %}"></i>
+                        <span class="font-medium">Expiration:</span>
+                        <span class="ml-2 {% if results_data.summary.expiring_soon %}text-yellow-600 font-medium{% else %}text-green-600{% endif %}">
+                            {{ 'Expiring Soon!' if results_data.summary.expiring_soon else 'Valid' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Status Tab -->
     <table class="details-table">
         <thead>
@@ -43,6 +91,10 @@
                                     <div class="detail-row">
                                         <i class="fas fa-cogs text-gray-500"></i>
                                         <span>Algorithm: {{ record.algorithm }}</span>
+                                        <!-- Add algorithm name if available -->
+                                        {% if record.algorithm_name %}
+                                        <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
+                                        {% endif %}
                                     </div>
                                     <div class="detail-row">
                                         <i class="fas fa-fingerprint text-gray-500"></i>
@@ -90,6 +142,11 @@
                                         <div class="detail-row">
                                             <i class="fas fa-flag text-gray-500"></i>
                                             <span>Flags: {{ record.flags }}</span>
+                                            {% if record.key_type %}
+                                            <span class="badge ml-2 {{ 'bg-orange-500' if record.key_type == 'KSK' else 'bg-blue-500' }}">
+                                                {{ record.key_type }}
+                                            </span>
+                                            {% endif %}
                                         </div>
                                         <div class="detail-row">
                                             <i class="fas fa-code-branch text-gray-500"></i>
@@ -98,7 +155,16 @@
                                         <div class="detail-row">
                                             <i class="fas fa-cogs text-gray-500"></i>
                                             <span>Algorithm: {{ record.algorithm }}</span>
+                                            {% if record.algorithm_name %}
+                                            <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
+                                            {% endif %}
                                         </div>
+                                        {% if record.ttl is defined %}
+                                        <div class="detail-row">
+                                            <i class="fas fa-clock text-gray-500"></i>
+                                            <span>TTL: {{ record.ttl }} seconds</span>
+                                        </div>
+                                        {% endif %}
                                         <div class="detail-row key">
                                             <i class="fas fa-key text-gray-500"></i>
                                             <span class="monospace">{{ record.key }}</span>
@@ -127,6 +193,9 @@
                                         <div class="detail-row">
                                             <i class="fas fa-cogs text-gray-500"></i>
                                             <span>Algorithm: {{ record.algorithm }}</span>
+                                            {% if record.algorithm_name %}
+                                            <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
+                                            {% endif %}
                                         </div>
                                         <div class="detail-row">
                                             <i class="fas fa-tag text-gray-500"></i>
@@ -139,7 +208,18 @@
                                         <div class="detail-row">
                                             <i class="fas fa-calendar-alt text-gray-500"></i>
                                             <span>Valid: {{ record.inception }} - {{ record.expiration }}</span>
+                                            {% if record.days_until_expiry is defined %}
+                                            <span class="ml-2 {{ 'text-yellow-600 font-medium' if record.expiring_soon else 'text-green-600' }}">
+                                                ({{ record.days_until_expiry }} days remaining)
+                                            </span>
+                                            {% endif %}
                                         </div>
+                                        {% if record.ttl is defined %}
+                                        <div class="detail-row">
+                                            <i class="fas fa-clock text-gray-500"></i>
+                                            <span>TTL: {{ record.ttl }} seconds</span>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
@@ -290,12 +370,12 @@
                                     <i class="fas fa-server text-purple-600"></i>
                                     <h4>{{ server }} ({{ server_data.base_domain }})</h4>
                                 </div>
-                                {% set status_data = {'dnssec_status': server_data.dnssec_status, 'verification_chain': server_data.verification_chain} %}
+                                {% set status_data = {'dnssec_status': server_data.dnssec_status, 'verification_chain': server_data.verification_chain, 'summary': server_data.summary} %}
                                 {{ dnssec_status_tab(status_data) }}
                             </div>
                         {% endfor %}
                     {% else %}
-                        {% set root_data = {'dnssec_status': results_data.dnssec_status, 'verification_chain': results_data.verification_chain} %}
+                        {% set root_data = {'dnssec_status': results_data.dnssec_status, 'verification_chain': results_data.verification_chain, 'summary': results_data.summary} %}
                         {{ dnssec_status_tab(root_data) }}
                     {% endif %}
                 </div>
