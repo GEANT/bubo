@@ -30,11 +30,14 @@ class DNSSECChecker:
 
             if answers and answers.rrset is not None:
                 for rdata in answers.rrset:
+                    algorithm = int(rdata.algorithm)
+                    digest_type = int(rdata.digest_type)
+
                     ds_records.append(
                         {
                             "key_tag": rdata.key_tag,
-                            "algorithm": rdata.algorithm,
-                            "digest_type": rdata.digest_type,
+                            "algorithm": algorithm,
+                            "digest_type": digest_type,
                             "digest": rdata.digest.hex(),
                         }
                     )
@@ -71,20 +74,26 @@ class DNSSECChecker:
                 )
 
                 for rdata in answers.rrset:
+                    # Force enum values to integers
+                    flags = int(rdata.flags)
+                    protocol = int(rdata.protocol)
+                    algorithm = int(rdata.algorithm)
+
                     # KSK has SEP bit set (bit 15, values 256 or 257)
-                    key_type = "KSK" if (rdata.flags & 0x0001) else "ZSK"
+                    key_type = "KSK" if (flags & 0x0001) else "ZSK"
 
                     dnskey_records.append(
                         {
-                            "flags": rdata.flags,
-                            "protocol": rdata.protocol,
-                            "algorithm": rdata.algorithm,
-                            "algorithm_name": self.get_algorithm_name(rdata.algorithm),
+                            "flags": flags,
+                            "protocol": protocol,
+                            "algorithm": algorithm,
+                            "algorithm_name": self.get_algorithm_name(algorithm),
                             "key_type": key_type,
                             "ttl": ttl,
                             "key": rdata.to_text(),
                         }
                     )
+
             return dnskey_records
         except Exception as e:
             raise Exception(f"Error getting DNSKEY records: {str(e)}")
@@ -110,6 +119,9 @@ class DNSSECChecker:
                     dns.rdatatype.RRSIG,
                     dns.rdatatype.DNSKEY,
                 ):
+                    # Force enum value to integer
+                    algorithm = int(rrsig.algorithm)
+
                     inception_str = datetime.utcfromtimestamp(rrsig.inception).strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
@@ -122,8 +134,8 @@ class DNSSECChecker:
                     rrsig_records.append(
                         {
                             "type_covered": dns.rdatatype.to_text(rrsig.type_covered),
-                            "algorithm": rrsig.algorithm,
-                            "algorithm_name": self.get_algorithm_name(rrsig.algorithm),
+                            "algorithm": algorithm,
+                            "algorithm_name": self.get_algorithm_name(algorithm),
                             "key_tag": rrsig.key_tag,
                             "signer": str(rrsig.signer),
                             "inception": inception_str,
@@ -133,6 +145,7 @@ class DNSSECChecker:
                             "ttl": ttl,
                         }
                     )
+
             return rrsig_records
         except Exception as e:
             raise Exception(f"Error getting RRSIG records: {str(e)}")
@@ -177,22 +190,6 @@ class DNSSECChecker:
                 result["dnssec_status"]["is_signed"] = True
             else:
                 result["dnssec_status"]["nameservers"]["status"] = "Unsigned"
-
-            result["summary"] = {
-                "is_valid": result["dnssec_status"]["is_signed"],
-                "chain_fully_verified": all(
-                    "error" not in zone_info for zone_info in self.verification_chain
-                ),
-                "expiring_soon": any(
-                    r.get("expiring_soon", False)
-                    for r in result["dnssec_status"]["nameservers"]["rrsig_records"]
-                ),
-                "algorithm": result["dnssec_status"]["nameservers"]["dnskey_records"][
-                    0
-                ]["algorithm_name"]
-                if result["dnssec_status"]["nameservers"]["dnskey_records"]
-                else None,
-            }
 
         except Exception as e:
             result["error"] = str(e)
