@@ -99,6 +99,8 @@ async def check_dmarc(domain: str) -> Dict:
         "policy": None,
         "sub_policy": None,
         "percentage": None,
+        "rua": None,  # Aggregate reports URI
+        "ruf": None,  # Forensic reports URI
         "error": None,
         "warnings": [],
     }
@@ -124,6 +126,7 @@ async def check_dmarc(domain: str) -> Dict:
                 except (UnicodeDecodeError, AttributeError):
                     logger.error(f"Error decoding DMARC record for {dmarc_domain}")
                     continue
+
         except dns.resolver.NXDOMAIN:
             logger.debug(f"No DMARC record found for {dmarc_domain} (NXDOMAIN)")
         except dns.resolver.NoAnswer:
@@ -150,6 +153,15 @@ async def check_dmarc(domain: str) -> Dict:
         dmarc_record = dmarc_records[0]
         results["record_exists"] = True
         results["record"] = dmarc_record
+
+        # Extract reporting URIs
+        rua_match = re.search(r"rua=([^;\s]+)", dmarc_record)
+        if rua_match:
+            results["rua"] = rua_match.group(1)
+
+        ruf_match = re.search(r"ruf=([^;\s]+)", dmarc_record)
+        if ruf_match:
+            results["ruf"] = ruf_match.group(1)
 
         # Basic syntax check
         if not re.match(r"^v=DMARC1;(\s*[a-zA-Z]+=[^;\s]+[;\s]*)*$", dmarc_record):

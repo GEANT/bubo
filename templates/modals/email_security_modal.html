@@ -360,6 +360,7 @@
                                     </span>
                                 </div>
                             {% endif %}
+
                         {%  if results.dmarc.percentage %}
                             <div class="detail-row">
                                 <i class="fas fa-percent"></i>
@@ -367,6 +368,21 @@
                                 {{ results.dmarc.percentage }}
                             </div>
                         {% endif %}
+                        {% if results.dmarc.rua %}
+                            <div class="detail-row">
+                                <i class="fas fa-envelope"></i>
+                                <strong>Aggregate Reports (rua):</strong>
+                                {{ results.dmarc.rua }}
+                            </div>
+                        {% endif %}
+                        {% if results.dmarc.ruf %}
+                            <div class="detail-row">
+                                <i class="fas fa-file-alt"></i>
+                                <strong>Forensic Reports (ruf):</strong>
+                                {{ results.dmarc.ruf }}
+                            </div>
+                        {% endif %}
+
                         {% if results.dmarc.warnings %}
                             <div class="record-item">
                                 <div class="record-header">
