@@ -33,9 +33,27 @@ COMMON_DKIM_SELECTORS = [
 
 
 async def get_txt_records(domain: str, record_type: str = None) -> List[str]:
+    """
+    Fetch TXT records for a domain and properly reassemble multi-part records.
+    Returns:
+        List of complete TXT records as strings
+    """
     try:
         answers = await dns_manager.resolve(domain, "TXT")
-        return [record.strings[0].decode("utf-8") for record in answers]
+
+        complete_records = []
+        for record in answers:
+            segments = []
+            for segment in record.strings:
+                if isinstance(segment, bytes):
+                    segments.append(segment.decode("utf-8"))
+                else:
+                    segments.append(segment)
+
+            complete_record = "".join(segments)
+            complete_records.append(complete_record)
+
+        return complete_records
     except dns.resolver.NXDOMAIN:
         if record_type:
             logger.debug(f"No {record_type} record found for {domain} (NXDOMAIN)")
@@ -107,38 +125,14 @@ async def check_dmarc(domain: str) -> Dict:
 
     try:
         dmarc_domain = f"_dmarc.{domain}"
-        dmarc_records = []
 
-        try:
-            answers = await dns_manager.resolve(dmarc_domain, "TXT")
-            for record in answers:
-                try:
-                    decoded_strings = []
-                    for string in record.strings:
-                        if isinstance(string, bytes):
-                            decoded_strings.append(string.decode("utf-8"))
-                        else:
-                            decoded_strings.append(string)
+        # Use get_txt_records to fetch properly assembled TXT records
+        txt_records = await get_txt_records(dmarc_domain, "dmarc")
 
-                    txt = "".join(decoded_strings)
-                    if txt.startswith("v=DMARC1"):
-                        dmarc_records.append(txt)
-                except (UnicodeDecodeError, AttributeError):
-                    logger.error(f"Error decoding DMARC record for {dmarc_domain}")
-                    continue
-
-        except dns.resolver.NXDOMAIN:
-            logger.debug(f"No DMARC record found for {dmarc_domain} (NXDOMAIN)")
-        except dns.resolver.NoAnswer:
-            logger.debug(f"No DMARC record found for {dmarc_domain} (NoAnswer)")
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout when fetching DMARC record for {dmarc_domain}")
-            results["error"] = f"DNS lookup timeout for {dmarc_domain}"
-            return results
-        except Exception as e:
-            logger.debug(f"Error fetching DMARC records for {dmarc_domain}: {str(e)}")
-            results["error"] = f"Error fetching DMARC records: {str(e)}"
-            return results
+        # Filter records that start with v=DMARC1
+        dmarc_records = [
+            record for record in txt_records if record.startswith("v=DMARC1")
+        ]
 
         if not dmarc_records:
             results["error"] = "No DMARC record found"
@@ -154,15 +148,6 @@ async def check_dmarc(domain: str) -> Dict:
         results["record_exists"] = True
         results["record"] = dmarc_record
 
-        # Extract reporting URIs
-        rua_match = re.search(r"rua=([^;\s]+)", dmarc_record)
-        if rua_match:
-            results["rua"] = rua_match.group(1)
-
-        ruf_match = re.search(r"ruf=([^;\s]+)", dmarc_record)
-        if ruf_match:
-            results["ruf"] = ruf_match.group(1)
-
         # Basic syntax check
         if not re.match(r"^v=DMARC1;(\s*[a-zA-Z]+=[^;\s]+[;\s]*)*$", dmarc_record):
             results["error"] = "Invalid DMARC syntax"
@@ -176,6 +161,15 @@ async def check_dmarc(domain: str) -> Dict:
 
         policy = policy_match.group(1).lower()
         results["policy"] = policy
+
+        # Extract reporting URIs
+        rua_match = re.search(r"rua=([^;\s]+)", dmarc_record)
+        if rua_match:
+            results["rua"] = rua_match.group(1)
+
+        ruf_match = re.search(r"ruf=([^;\s]+)", dmarc_record)
+        if ruf_match:
+            results["ruf"] = ruf_match.group(1)
 
         # Validate policy strictness
         if policy == "none":
