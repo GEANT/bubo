@@ -275,20 +275,112 @@
                 </div>
 
                 {% if results.dkim.selectors_found %}
-                    {% for selector in results.dkim.selectors_found %}
+                    {% if results.dkim.overall_key_strength %}
                         <div class="record-item">
                             <div class="record-header">
-                                <i class="fas fa-key"></i>
-                                <strong>Selector: {{ selector }}</strong>
+                                <i class="fas fa-shield-alt"></i>
+                                <strong>Overall Key Strength:</strong>
                             </div>
-                            <code class="monospace">{{ results.dkim.records[selector].record }}</code>
+                            <div class="record-details">
+                                <div class="detail-row">
+                                    {% set strength_icon = {
+                                        'vulnerable': 'fa-exclamation-circle status-invalid',
+                                        'acceptable': 'fa-info-circle status-info',
+                                        'strong': 'fa-check-circle status-valid',
+                                        'future-proof': 'fa-shield-alt status-valid'
+                                    } %}
+                                    {% set strength_class = {
+                                        'vulnerable': 'status-invalid',
+                                        'acceptable': 'status-info',
+                                        'strong': 'status-valid',
+                                        'future-proof': 'status-valid'
+                                    } %}
+
+                                    <i class="fas {{ strength_icon.get(results.dkim.overall_key_strength, 'fa-question-circle') }}"></i>
+                                    <span class="{{ strength_class.get(results.dkim.overall_key_strength, '') }}">
+                                        {{ results.dkim.overall_key_strength|title }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% for selector in results.dkim.selectors_found %}
+                        <div class="record-card">
+                            <div class="record-card-header collapsible" onclick="toggleCollapse(this)">
+                                <i class="fas fa-key"></i>
+                                <span>Selector: {{ selector }}</span>
+                                <i class="fas fa-chevron-down collapse-icon"></i>
+                            </div>
+                            <div class="record-card-body">
+                                {% if results.dkim.records[selector].key_info %}
+                                    {% set key_info = results.dkim.records[selector].key_info %}
+                                    <div class="record-section">
+                                        <h5>Key Information</h5>
+                                        <div class="detail-row">
+                                            <i class="fas fa-key"></i>
+                                            <strong>Type:</strong>
+                                            <span>{{ key_info.key_type|upper }}</span>
+                                        </div>
+
+                                        <div class="detail-row">
+                                            <i class="fas fa-ruler"></i>
+                                            <strong>Length:</strong>
+                                            <span>{{ key_info.key_length }} bits</span>
+                                        </div>
+
+                                        {% if key_info.strength %}
+                                            <div class="detail-row">
+                                                {% set strength_icon = {
+                                                    'vulnerable': 'fa-exclamation-circle status-invalid',
+                                                    'acceptable': 'fa-info-circle status-info',
+                                                    'strong': 'fa-check-circle status-valid',
+                                                    'future-proof': 'fa-shield-alt status-valid'
+                                                } %}
+                                                {% set strength_class = {
+                                                    'vulnerable': 'status-invalid',
+                                                    'acceptable': 'status-info',
+                                                    'strong': 'status-valid',
+                                                    'future-proof': 'status-valid'
+                                                } %}
+
+                                                <i class="fas {{ strength_icon.get(key_info.strength, 'fa-question-circle') }}"></i>
+                                                <strong>Strength:</strong>
+                                                <span class="{{ strength_class.get(key_info.strength, '') }}">
+                                                    {{ key_info.strength|title }}
+                                                </span>
+                                            </div>
+
+                                            {% if key_info.strength_description %}
+                                                <div class="detail-row" style="margin-left: 24px;">
+                                                    <span>{{ key_info.strength_description }}</span>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+
+                                        {% if key_info.error %}
+                                            <div class="detail-row">
+                                                <i class="fas fa-exclamation-triangle status-warning"></i>
+                                                <span>Error: {{ key_info.error }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <div class="record-section">
+                                    <h5>DKIM Record</h5>
+                                    <code class="monospace dkim-record">{{ results.dkim.records[selector].record }}</code>
+                                </div>
+                            </div>
                         </div>
                     {% endfor %}
-                {% else %}
+                {% endif %}
+
+                {% if results.dkim.error %}
                     <div class="record-item">
                         <div class="detail-row">
                             <i class="fas fa-times-circle status-invalid"></i>
-                            <span>No DKIM Selector has been found for this domain.</span>
+                            <span>{{ results.dkim.error }}</span>
                         </div>
                     </div>
                 {% endif %}
