@@ -4,6 +4,7 @@ import dns.resolver
 import dns.exception
 
 from standards.email_security import (
+    extract_dkim_key_info,
     get_txt_records,
     check_dkim_selector,
     check_dkim,
@@ -18,7 +19,6 @@ def mock_dns_manager():
     with patch(
         "core.utils.dns_manager.resolve", new_callable=AsyncMock
     ) as mock_resolve:
-        # Default behavior - return empty list to avoid errors
         mock_resolve.return_value = []
         yield mock_resolve
 
@@ -104,13 +104,38 @@ async def test_check_dkim_selector_valid(mock_dns_answer):
         mock_get_txt.return_value = [
             "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
         ]
-        result = await check_dkim_selector("example.com", "selector1")
-        assert result == {
-            "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
-            "valid": True,
-            "selector": "selector1",
-        }
-        mock_get_txt.assert_called_once_with("selector1._domainkey.example.com", "dkim")
+
+        with patch(
+            "standards.email_security.extract_dkim_key_info",
+            return_value={
+                "key_type": "rsa",
+                "key_length": 2048,
+                "strength": "strong",
+                "strength_description": "RSA-2048 is the current recommended standard for DKIM keys.",
+                "error": None,
+            },
+        ) as mock_extract_key:
+            result = await check_dkim_selector("example.com", "selector1")
+
+            assert result == {
+                "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
+                "valid": True,
+                "selector": "selector1",
+                "key_info": {
+                    "key_type": "rsa",
+                    "key_length": 2048,
+                    "strength": "strong",
+                    "strength_description": "RSA-2048 is the current recommended standard for DKIM keys.",
+                    "error": None,
+                },
+            }
+
+            mock_get_txt.assert_called_once_with(
+                "selector1._domainkey.example.com", "dkim"
+            )
+            mock_extract_key.assert_called_once_with(
+                "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+            )
 
 
 @pytest.mark.asyncio
@@ -118,9 +143,7 @@ async def test_check_dkim_selector_invalid():
     with patch(
         "standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
-        mock_get_txt.return_value = [
-            "v=spf1 include:_spf.example.com ~all"
-        ]  # Not a DKIM record
+        mock_get_txt.return_value = ["v=spf1 include:_spf.example.com ~all"]
         result = await check_dkim_selector("example.com", "selector1")
         assert result is None
 
@@ -137,10 +160,19 @@ async def test_check_dkim_selector_no_records():
 
 @pytest.mark.asyncio
 async def test_check_dkim_valid_selectors():
+    key_info = {
+        "key_type": "rsa",
+        "key_length": 2048,
+        "strength": "strong",
+        "strength_description": "RSA-2048 is the current recommended standard for DKIM keys.",
+        "error": None,
+    }
+
     valid_selector = {
         "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
         "valid": True,
         "selector": "selector1",
+        "key_info": key_info,
     }
 
     with patch(
@@ -162,8 +194,11 @@ async def test_check_dkim_valid_selectors():
             "selector1": {
                 "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
                 "valid": True,
+                "key_info": key_info,
             }
         }
+        assert result["key_info"] == {"selector1": key_info}
+        assert result["overall_key_strength"] == "strong"
         assert result["error"] is None
         assert mock_check_selector.call_count == len(COMMON_DKIM_SELECTORS)
 
@@ -195,6 +230,90 @@ async def test_check_dkim_exception():
 
         assert result["valid"] is False
         assert "Test exception" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_run_with_vulnerable_dkim():
+    """Test run function when DKIM key is vulnerable"""
+    spf_result = {
+        "domain": "example.com",
+        "has_spf": True,
+        "valid": True,
+        "record": "v=spf1 include:_spf.example.com ~all",
+        "dns_lookups": 1,
+        "exceeds_lookup_limit": False,
+        "policy": "~all",
+        "policy_explanation": "Policy '~all' is sufficiently strict.",
+        "policy_sufficiently_strict": True,
+    }
+
+    dkim_result = {
+        "selectors_found": ["selector1"],
+        "records": {
+            "selector1": {
+                "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
+                "valid": True,
+                "key_info": {
+                    "key_type": "rsa",
+                    "key_length": 512,
+                    "strength": "vulnerable",
+                    "strength_description": "RSA-512 is highly vulnerable. Can be cracked for less than $8 in the cloud.",
+                    "error": None,
+                },
+            }
+        },
+        "valid": True,
+        "key_info": {
+            "selector1": {
+                "key_type": "rsa",
+                "key_length": 512,
+                "strength": "vulnerable",
+                "strength_description": "RSA-512 is highly vulnerable. Can be cracked for less than $8 in the cloud.",
+                "error": None,
+            }
+        },
+        "overall_key_strength": "vulnerable",
+        "error": None,
+    }
+
+    dmarc_result = {
+        "record_exists": True,
+        "valid": True,
+        "record": "v=DMARC1; p=reject; pct=100;",
+        "policy": "reject",
+        "sub_policy": "reject",
+        "percentage": 100,
+        "error": None,
+        "warnings": [],
+        "rua": None,
+        "ruf": None,
+    }
+
+    with (
+        patch("core.utils.dns_manager.resolve", new_callable=AsyncMock),
+        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
+        patch(
+            "standards.email_security.check_dkim", new_callable=AsyncMock
+        ) as mock_dkim,
+        patch(
+            "standards.email_security.check_dmarc", new_callable=AsyncMock
+        ) as mock_dmarc,
+    ):
+        mock_spf.return_value = spf_result
+        mock_dkim.return_value = dkim_result
+        mock_dmarc.return_value = dmarc_result
+
+        results, state = await run("example.com")
+
+        assert "example.com" in results
+        assert results["example.com"]["spf"] == spf_result
+        assert results["example.com"]["dkim"] == dkim_result
+        assert results["example.com"]["dmarc"] == dmarc_result
+
+        assert "example.com" in state
+        assert state["example.com"]["SPF"] == "valid"
+        assert state["example.com"]["DKIM"] == "critically-weak-key"
+        assert state["example.com"]["DMARC"] == "valid"
 
 
 @pytest.mark.asyncio
@@ -314,7 +433,7 @@ async def test_check_dmarc_invalid_syntax():
     with patch(
         "standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
-        mock_get_txt.return_value = ["v=DMARC1 p=reject pct=100"]  # Missing semicolons
+        mock_get_txt.return_value = ["v=DMARC1 p=reject pct=100"]
 
         result = await check_dmarc("example.com")
 
@@ -328,7 +447,7 @@ async def test_check_dmarc_missing_policy():
     with patch(
         "standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
-        mock_get_txt.return_value = ["v=DMARC1; pct=100;"]  # Missing p tag
+        mock_get_txt.return_value = ["v=DMARC1; pct=100;"]
 
         result = await check_dmarc("example.com")
 
@@ -342,9 +461,7 @@ async def test_check_dmarc_invalid_percentage():
     with patch(
         "standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
-        mock_get_txt.return_value = [
-            "v=DMARC1; p=reject; pct=101;"
-        ]  # Invalid pct value
+        mock_get_txt.return_value = ["v=DMARC1; p=reject; pct=101;"]
 
         result = await check_dmarc("example.com")
 
@@ -367,13 +484,47 @@ async def test_check_dmarc_exception():
 
 @pytest.mark.asyncio
 async def test_run_success():
-    spf_result = {"valid": True, "record": "v=spf1 include:_spf.example.com ~all"}
+    spf_result = {
+        "domain": "example.com",
+        "has_spf": True,
+        "valid": True,
+        "record": "v=spf1 include:_spf.example.com ~all",
+        "dns_lookups": 1,
+        "exceeds_lookup_limit": False,
+        "policy": "~all",
+        "policy_explanation": "Policy '~all' is sufficiently strict.",
+        "policy_sufficiently_strict": True,
+    }
+
     dkim_result = {
         "selectors_found": ["selector1"],
-        "records": {"selector1": {"record": "v=DKIM1; k=rsa;", "valid": True}},
+        "records": {
+            "selector1": {
+                "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
+                "valid": True,
+                "key_info": {
+                    "key_type": "rsa",
+                    "key_length": 2048,
+                    "strength": "strong",
+                    "strength_description": "RSA-2048 is the current recommended standard for DKIM keys.",
+                    "error": None,
+                },
+            }
+        },
         "valid": True,
+        "key_info": {
+            "selector1": {
+                "key_type": "rsa",
+                "key_length": 2048,
+                "strength": "strong",
+                "strength_description": "RSA-2048 is the current recommended standard for DKIM keys.",
+                "error": None,
+            }
+        },
+        "overall_key_strength": "strong",
         "error": None,
     }
+
     dmarc_result = {
         "record_exists": True,
         "valid": True,
@@ -383,9 +534,12 @@ async def test_run_success():
         "percentage": 100,
         "error": None,
         "warnings": [],
+        "rua": None,
+        "ruf": None,
     }
 
     with (
+        patch("core.utils.dns_manager.resolve", new_callable=AsyncMock),
         patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
         patch(
             "standards.email_security.check_dkim", new_callable=AsyncMock
@@ -405,6 +559,7 @@ async def test_run_success():
         assert results["example.com"]["dkim"] == dkim_result
         assert results["example.com"]["dmarc"] == dmarc_result
 
+        assert "example.com" in state
         assert state["example.com"]["SPF"] == "valid"
         assert state["example.com"]["DKIM"] == "valid"
         assert state["example.com"]["DMARC"] == "valid"
@@ -456,9 +611,382 @@ async def test_run_exception():
         "standards.email_security.check_spf", new_callable=AsyncMock
     ) as mock_spf:
         mock_spf.side_effect = Exception("Test exception")
+        results, state = await run("example.com")
+
+        assert results == {}
+        assert state == {}
+
+
+@pytest.mark.asyncio
+async def test_get_txt_records_exception_without_record_type():
+    """Test get_txt_records with general exception and no record_type"""
+    with patch(
+        "standards.email_security.dns_manager.resolve", new_callable=AsyncMock
+    ) as mock_resolve:
+        mock_resolve.side_effect = Exception("Test general exception")
+        result = await get_txt_records("example.com")
+        assert result == []
+
+
+def test_extract_dkim_key_info_ed25519():
+    """Test extraction of Ed25519 key"""
+    result = extract_dkim_key_info(
+        "v=DKIM1; k=ed25519; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+    )
+
+    assert result["key_type"] == "Ed25519"
+    assert result["key_length"] == 256
+    assert result["strength"] == "future-proof"
+    assert "Ed25519" in result["strength_description"]
+    assert result["error"] is None
+
+
+def test_extract_dkim_key_info_unsupported_key_type():
+    """Test extraction with unsupported key type"""
+    result = extract_dkim_key_info(
+        "v=DKIM1; k=unsupported; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+    )
+
+    assert result["key_type"] == "unsupported"
+    assert "Unsupported key type" in result["error"]
+
+
+def test_extract_dkim_key_info_no_public_key():
+    """Test extraction with missing public key"""
+    result = extract_dkim_key_info("v=DKIM1; k=rsa;")
+
+    assert result["key_type"] == "rsa"
+    assert "No public key found" in result["error"]
+
+
+def test_extract_dkim_key_info_empty_public_key():
+    """Test extraction with empty public key"""
+    result = extract_dkim_key_info("v=DKIM1; k=rsa; p=")
+
+    assert result["key_type"] == "rsa"
+    assert "No public key found" in result["error"]
+
+
+def test_extract_dkim_key_info_general_exception():
+    """Test general exception handling in extract_dkim_key_info"""
+    with patch(
+        "standards.email_security.re.search", side_effect=Exception("Regex failure")
+    ):
+        result = extract_dkim_key_info(
+            "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+        )
+
+        assert "Error extracting key info" in result["error"]
+
+
+@pytest.mark.parametrize(
+    "key_size,expected_strength,description_contains",
+    [
+        (512, "vulnerable", "highly vulnerable"),
+        (1024, "acceptable", "acceptable"),
+        (2048, "strong", "recommended standard"),
+        (4096, "future-proof", "future-proofing"),
+    ],
+)
+def test_extract_dkim_key_info_rsa_key_sizes(
+    key_size, expected_strength, description_contains, monkeypatch
+):
+    """Test RSA key sizes by patching the cryptography module"""
+
+    class MockKey:
+        @property
+        def key_size(self):
+            return key_size
+
+    mock_load_key = MagicMock(return_value=MockKey())
+
+    import sys
+
+    mock_serialization = MagicMock()
+    mock_serialization.load_der_public_key = mock_load_key
+
+    original_module = sys.modules.get(
+        "cryptography.hazmat.primitives.serialization", None
+    )
+
+    try:
+        sys.modules["cryptography.hazmat.primitives.serialization"] = mock_serialization
+
+        with patch("base64.b64decode", return_value=b"test_key_bytes"):
+            result = extract_dkim_key_info(
+                "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+            )
+
+        assert result["key_type"] == "rsa"
+        assert result["key_length"] == key_size
+        assert result["strength"] == expected_strength
+        assert description_contains in result["strength_description"]
+        assert result["error"] is None
+
+    finally:
+        if original_module:
+            sys.modules["cryptography.hazmat.primitives.serialization"] = (
+                original_module
+            )
+        else:
+            sys.modules.pop("cryptography.hazmat.primitives.serialization", None)
+
+
+def test_extract_dkim_key_info_fallback_parsing(monkeypatch):
+    """Test fallback parsing when cryptography library fails"""
+
+    mock_serialization = MagicMock()
+    mock_serialization.load_der_public_key = MagicMock(
+        side_effect=Exception("Cryptography failure")
+    )
+
+    import sys
+
+    original_module = sys.modules.get(
+        "cryptography.hazmat.primitives.serialization", None
+    )
+
+    try:
+        sys.modules["cryptography.hazmat.primitives.serialization"] = mock_serialization
+
+        with patch("base64.b64decode") as mock_b64decode:
+            mock_b64decode.return_value = b"0" * 276
+
+            result = extract_dkim_key_info(
+                "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
+            )
+
+        assert result["key_type"] == "rsa"
+        assert result["key_length"] == 2048
+        assert result["strength"] == "unknown"
+        assert "estimation" in result["strength_description"]
+
+    finally:
+        if original_module:
+            sys.modules["cryptography.hazmat.primitives.serialization"] = (
+                original_module
+            )
+        else:
+            sys.modules.pop("cryptography.hazmat.primitives.serialization", None)
+
+
+def test_extract_dkim_key_info_fallback_exception(monkeypatch):
+    """Test when even fallback parsing fails"""
+
+    mock_serialization = MagicMock()
+    mock_serialization.load_der_public_key = MagicMock(
+        side_effect=Exception("Cryptography failure")
+    )
+
+    import sys
+
+    original_module = sys.modules.get(
+        "cryptography.hazmat.primitives.serialization", None
+    )
+
+    try:
+        sys.modules["cryptography.hazmat.primitives.serialization"] = mock_serialization
+
+        with patch("base64.b64decode", side_effect=Exception("Base64 decode error")):
+            result = extract_dkim_key_info("v=DKIM1; k=rsa; p=INVALID")
+
+        assert "Failed to parse RSA key" in result["error"]
+
+    finally:
+        if original_module:
+            sys.modules["cryptography.hazmat.primitives.serialization"] = (
+                original_module
+            )
+        else:
+            sys.modules.pop("cryptography.hazmat.primitives.serialization", None)
+
+
+@pytest.mark.asyncio
+async def test_check_dmarc_invalid_policy_value():
+    """Test check_dmarc with an invalid policy value"""
+    with patch(
+        "standards.email_security.get_txt_records", new_callable=AsyncMock
+    ) as mock_get_txt:
+        mock_get_txt.return_value = ["v=DMARC1; p=invalid; pct=100;"]
+
+        result = await check_dmarc("example.com")
+
+        assert result["record_exists"] is True
+        assert result["valid"] is False
+        assert result["policy"] == "invalid"
+        assert "Invalid policy value" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_check_dmarc_valid_quarantine_policy():
+    """Test check_dmarc with a valid quarantine policy"""
+    with patch(
+        "standards.email_security.get_txt_records", new_callable=AsyncMock
+    ) as mock_get_txt:
+        mock_get_txt.return_value = ["v=DMARC1; p=quarantine; pct=100;"]
+
+        result = await check_dmarc("example.com")
+
+        assert result["record_exists"] is True
+        assert result["valid"] is True
+        assert result["policy"] == "quarantine"
+        assert result["sub_policy"] == "quarantine"
+        assert result["error"] is None
+
+
+@pytest.mark.asyncio
+async def test_run_with_acceptable_dkim():
+    """Test run function when DKIM key is of acceptable strength"""
+    spf_result = {
+        "domain": "example.com",
+        "has_spf": True,
+        "valid": True,
+        "record": "v=spf1 include:_spf.example.com ~all",
+        "dns_lookups": 1,
+        "exceeds_lookup_limit": False,
+        "policy": "~all",
+        "policy_explanation": "Policy '~all' is sufficiently strict.",
+        "policy_sufficiently_strict": True,
+    }
+
+    dkim_result = {
+        "selectors_found": ["selector1"],
+        "records": {
+            "selector1": {
+                "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
+                "valid": True,
+                "key_info": {
+                    "key_type": "rsa",
+                    "key_length": 1024,
+                    "strength": "acceptable",
+                    "strength_description": "RSA-1024 is considered acceptable by modern standards.",
+                    "error": None,
+                },
+            }
+        },
+        "valid": True,
+        "key_info": {
+            "selector1": {
+                "key_type": "rsa",
+                "key_length": 1024,
+                "strength": "acceptable",
+                "strength_description": "RSA-1024 is considered acceptable by modern standards.",
+                "error": None,
+            }
+        },
+        "overall_key_strength": "acceptable",
+        "error": None,
+    }
+
+    dmarc_result = {
+        "record_exists": True,
+        "valid": True,
+        "record": "v=DMARC1; p=reject; pct=100;",
+        "policy": "reject",
+        "sub_policy": "reject",
+        "percentage": 100,
+        "error": None,
+        "warnings": [],
+        "rua": None,
+        "ruf": None,
+    }
+
+    with (
+        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
+        patch(
+            "standards.email_security.check_dkim", new_callable=AsyncMock
+        ) as mock_dkim,
+        patch(
+            "standards.email_security.check_dmarc", new_callable=AsyncMock
+        ) as mock_dmarc,
+    ):
+        mock_spf.return_value = spf_result
+        mock_dkim.return_value = dkim_result
+        mock_dmarc.return_value = dmarc_result
 
         results, state = await run("example.com")
 
-        # Both dictionaries should be empty due to the exception
-        assert results == {}
-        assert state == {}
+        assert "example.com" in results
+        assert results["example.com"]["spf"] == spf_result
+        assert results["example.com"]["dkim"] == dkim_result
+        assert results["example.com"]["dmarc"] == dmarc_result
+
+        assert "example.com" in state
+        assert state["example.com"]["SPF"] == "valid"
+        assert state["example.com"]["DKIM"] == "valid"
+        assert state["example.com"]["DMARC"] == "valid"
+
+
+@pytest.mark.asyncio
+async def test_run_with_future_proof_dkim():
+    """Test run function when DKIM key is future-proof strength"""
+    spf_result = {
+        "domain": "example.com",
+        "has_spf": True,
+        "valid": True,
+        "record": "v=spf1 include:_spf.example.com ~all",
+        "dns_lookups": 1,
+        "exceeds_lookup_limit": False,
+        "policy": "~all",
+        "policy_explanation": "Policy '~all' is sufficiently strict.",
+        "policy_sufficiently_strict": True,
+    }
+
+    dkim_result = {
+        "selectors_found": ["selector1"],
+        "records": {
+            "selector1": {
+                "record": "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC",
+                "valid": True,
+                "key_info": {
+                    "key_type": "rsa",
+                    "key_length": 4096,
+                    "strength": "future-proof",
+                    "strength_description": "RSA-4096 exceeds current recommendations and provides future-proofing.",
+                    "error": None,
+                },
+            }
+        },
+        "valid": True,
+        "key_info": {
+            "selector1": {
+                "key_type": "rsa",
+                "key_length": 4096,
+                "strength": "future-proof",
+                "strength_description": "RSA-4096 exceeds current recommendations and provides future-proofing.",
+                "error": None,
+            }
+        },
+        "overall_key_strength": "future-proof",
+        "error": None,
+    }
+
+    dmarc_result = {
+        "record_exists": True,
+        "valid": True,
+        "record": "v=DMARC1; p=reject; pct=100;",
+        "policy": "reject",
+        "sub_policy": "reject",
+        "percentage": 100,
+        "error": None,
+        "warnings": [],
+        "rua": None,
+        "ruf": None,
+    }
+
+    with (
+        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
+        patch(
+            "standards.email_security.check_dkim", new_callable=AsyncMock
+        ) as mock_dkim,
+        patch(
+            "standards.email_security.check_dmarc", new_callable=AsyncMock
+        ) as mock_dmarc,
+    ):
+        mock_spf.return_value = spf_result
+        mock_dkim.return_value = dkim_result
+        mock_dmarc.return_value = dmarc_result
+
+        results, state = await run("example.com")
+
+        assert state["example.com"]["DKIM"] == "valid"
