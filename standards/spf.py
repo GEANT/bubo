@@ -220,9 +220,7 @@ async def check_spf(domain: str) -> Dict:
     lookup_count, policy, redirect_info = await count_dns_lookups(spf_info, domain)
 
     if policy == "?all" and not spf_info["redirect"]:
-        policy_explanation = (
-            "SPF record contains non-restrictive '?all' mechanism which makes your policy not effective enough. Try to use '~all' (soft fail) or '-all' (hard fail) instead."
-        )
+        policy_explanation = "SPF record contains non-restrictive '?all' mechanism which makes your policy not effective enough. Try to use '~all' (soft fail) or '-all' (hard fail) instead."
     elif policy in ["~all", "-all"]:
         policy_explanation = f"Policy '{policy}' is sufficiently strict."
     else:
