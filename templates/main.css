@@ -270,6 +270,10 @@ body {
     color: var(--not-valid-color);
 }
 
+.status-info {
+    color: #0288d1; /* Material blue for information */
+}
+
 .status-button {
     cursor: pointer;
     padding: 6px 12px;
