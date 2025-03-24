@@ -221,7 +221,7 @@ async def check_spf(domain: str) -> Dict:
 
     if policy == "?all" and not spf_info["redirect"]:
         policy_explanation = (
-            "Default policy is ?all (neutral) because no explicit policy is set."
+            "SPF record contains non-restrictive '?all' mechanism which makes your policy not effective enough. Try to use '~all' (soft fail) or '-all' (hard fail) instead."
         )
     elif policy in ["~all", "-all"]:
         policy_explanation = f"Policy '{policy}' is sufficiently strict."
