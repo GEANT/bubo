@@ -10,7 +10,7 @@ from core.cache_manager import DomainResultsCache
 from core.custom_logger.logger import setup_logger
 from core.generate_report import generate_html_report
 from core.utils import process_domain, process_file, sanitize_domain, sanitize_file_path
-from standards import rpki, dane, dnssec, dnssec_security, email_security
+from standards import rpki, dane, dnssec, email_security
 
 setup_logger()
 logger = getLogger(__name__)
@@ -25,7 +25,6 @@ class DomainValidator:
         "RPKI": rpki.run,
         "DANE": dane.run,
         "DNSSEC": dnssec.run,
-        "DNSSEC_SECURITY": dnssec_security.run,
         "EMAIL_SECURITY": email_security.run,
     }
 

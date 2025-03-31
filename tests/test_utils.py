@@ -77,18 +77,36 @@ async def test_process_file_csv(temp_csv_file):
 
 @pytest.mark.asyncio
 async def test_process_file_invalid_format():
-    with pytest.raises(Exception) as excinfo:
-        await process_file("file.docx")
+    file_path = (
+        "test_only_filename.docx"  # Use a name that won't be confused with real files
+    )
+    mock_abs_path = os.path.join(tempfile.gettempdir(), file_path)
 
-    assert "Invalid file format" in str(excinfo.value)
+    with (
+        patch("os.path.isfile", return_value=True),
+        patch("os.path.abspath", return_value=mock_abs_path),
+        patch("os.path.normpath", return_value=mock_abs_path),
+    ):
+        with pytest.raises(Exception) as excinfo:
+            await process_file(file_path)
+
+        assert "Invalid file format" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_process_file_file_not_found():
-    with pytest.raises(Exception) as excinfo:
-        await process_file("nonexistent_file.txt")
+    file_path = "nonexistent_test_file.txt"
+    mock_abs_path = os.path.join(tempfile.gettempdir(), file_path)
 
-    assert "Error processing file" in str(excinfo.value)
+    with (
+        patch("os.path.isfile", return_value=False),
+        patch("os.path.abspath", return_value=mock_abs_path),
+        patch("os.path.normpath", return_value=mock_abs_path),
+    ):
+        with pytest.raises(Exception) as excinfo:
+            await process_file(file_path)
+
+        assert "File does not exist" in str(excinfo.value)
 
 
 @pytest.mark.asyncio

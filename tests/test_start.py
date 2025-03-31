@@ -123,6 +123,10 @@ async def test_main_batch_mode():
             {"Domain": "example.com", "Country": "US", "Institution": "Example Corp"}
         ]
 
+    # Create mock for sanitize_file_path to bypass validation
+    def mock_sanitize_file_path(path):
+        return path  # Just return the path without validation
+
     mock_process_file = AsyncMock(side_effect=mock_process_file_impl)
 
     with (
@@ -132,6 +136,7 @@ async def test_main_batch_mode():
         patch(
             "start.generate_html_report", new_callable=AsyncMock
         ) as mock_generate_report,
+        patch("start.sanitize_file_path", mock_sanitize_file_path),  # Add this patch
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
     ):
         mock_validator = AsyncMock()
