@@ -9,8 +9,8 @@ from typing import Dict, List, Optional, Any
 from core.cache_manager import DomainResultsCache
 from core.custom_logger.logger import setup_logger
 from core.generate_report import generate_html_report
-from core.utils import process_domain, process_file
-from standards import rpki, dane, dnssec, email_security
+from core.utils import process_domain, process_file, sanitize_domain, sanitize_file_path
+from standards import rpki, dane, dnssec, dnssec_security, email_security
 
 setup_logger()
 logger = getLogger(__name__)
@@ -25,6 +25,7 @@ class DomainValidator:
         "RPKI": rpki.run,
         "DANE": dane.run,
         "DNSSEC": dnssec.run,
+        "DNSSEC_SECURITY": dnssec_security.run,
         "EMAIL_SECURITY": email_security.run,
     }
 
@@ -219,7 +220,7 @@ class CLIOptions:
 
 
 class CLIHandler:
-    """Handles CLI argument parsing and validation"""
+    """Handles CLI argument parsing and validation with improved security"""
 
     @staticmethod
     def parse_args() -> CLIOptions:
@@ -244,6 +245,15 @@ class CLIHandler:
         )
 
         args = parser.parse_args()
+
+        if args.single:
+            args.single = sanitize_domain(args.single)
+        if args.batch:
+            args.batch = sanitize_file_path(args.batch)
+
+        if args.max_concurrent < 1 or args.max_concurrent > 100:
+            args.max_concurrent = 48
+
         return CLIOptions(**vars(args))
 
 

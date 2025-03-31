@@ -1,6 +1,7 @@
 # core/utils.py
 
 import asyncio
+import html
 import ipaddress
 import re
 from csv import DictReader
@@ -266,35 +267,57 @@ async def translate_server_type(server_type):
 async def process_file(file_path, sort_by="Country"):
     domains = []
 
+    # Path validation (added)
+    file_path = os.path.abspath(os.path.normpath(file_path))
+    if not os.path.isfile(file_path):
+        raise Exception(f"File does not exist: {file_path}")
+
     try:
         if file_path.endswith(".txt"):
-            with open(file_path, "r") as file:
-                domains = [
-                    {"Domain": line.strip(), "Country": "", "Institution": ""}
-                    for line in file
-                    if line.strip()
-                ]
+            with open(file_path, "r", encoding="utf-8") as file:  # Specify encoding
+                for line in file:
+                    line = line.strip()
+                    if line:
+                        # Validate domain before adding (added)
+                        if await validate_hostname(line) or is_valid_ip(line):
+                            domains.append(
+                                {"Domain": line, "Country": "", "Institution": ""}
+                            )
+                        else:
+                            logger.warning(f"Skipping invalid domain: {line}")
+
         elif file_path.endswith(".csv"):
-            with open(file_path, "r") as file:
+            with open(file_path, "r", encoding="utf-8") as file:  # Specify encoding
                 reader = DictReader(file)
                 try:
                     if "Domain" not in reader.fieldnames:
                         raise Exception("CSV file must contain a 'Domain' column.")
 
                     for row in reader:
-                        if row["Domain"]:  # Only process rows with non-empty Domain
-                            domain_info = {
-                                "Domain": row["Domain"],
-                                "Country": row.get("Country", ""),
-                                "Institution": row.get("Institution", ""),
-                            }
-                            domains.append(domain_info)
+                        if row.get("Domain"):
+                            domain = row["Domain"].strip()
+                            # Validate domain (added)
+                            if await validate_hostname(domain) or is_valid_ip(domain):
+                                # Sanitize country and institution (added)
+                                country = sanitize_text_field(
+                                    row.get("Country", ""), max_length=100
+                                )
+                                institution = sanitize_text_field(
+                                    row.get("Institution", ""), max_length=200
+                                )
 
+                                domain_info = {
+                                    "Domain": domain,
+                                    "Country": country,
+                                    "Institution": institution,
+                                }
+                                domains.append(domain_info)
+                            else:
+                                logger.warning(f"Skipping invalid domain: {domain}")
                 except Exception as e:
                     raise Exception(f"Error processing CSV file: {e}")
 
-                logger.info(f"Found {len(domains)} domains in the CSV file")
-
+                logger.info(f"Found {len(domains)} valid domains in the CSV file")
         else:
             raise Exception(
                 "Invalid file format. Only .txt and .csv files are supported."
@@ -302,6 +325,14 @@ async def process_file(file_path, sort_by="Country"):
 
     except Exception as e:
         raise Exception(f"Error processing file: {e}")
+
+    # Limit number of domains to prevent resource exhaustion (added)
+    MAX_DOMAINS = 75
+    if len(domains) > MAX_DOMAINS:
+        logger.warning(
+            f"Too many domains in file (limit: {MAX_DOMAINS}). Processing only the first {MAX_DOMAINS}."
+        )
+        domains = domains[:MAX_DOMAINS]
 
     try:
         if domains and sort_by:
@@ -339,11 +370,9 @@ async def process_domain(domain):
         try:
             if domain_mailservers:
                 for mailserver in domain_mailservers:
-                    # Check if mailserver is an IP address
                     if is_valid_ip(mailserver):
                         mail_nameservers.append([mailserver])
                     else:
-                        # Get the parent domain of the mailserver
                         mail_domain = ".".join(mailserver.split(".")[1:])
                         ns_list = await resolve_nameservers(mail_domain)
                         mail_nameservers.append(ns_list if ns_list else [])
@@ -362,3 +391,31 @@ async def process_domain(domain):
     else:
         logger.warning(f"Domain {domain} is not valid. Skipping.")
         return None, None, None
+
+
+def sanitize_domain(domain):
+    domain = domain.strip().strip("'\"")
+    if not re.match(r"^[a-zA-Z0-9.\-_]+$", domain):
+        raise ValueError(f"Invalid domain format: {domain}")
+    return domain
+
+
+def sanitize_file_path(file_path):
+    abs_path = os.path.abspath(os.path.normpath(file_path))
+    if not os.path.isfile(abs_path):
+        raise ValueError(f"File does not exist: {file_path}")
+    if not (abs_path.endswith(".txt") or abs_path.endswith(".csv")):
+        raise ValueError("Only .txt and .csv files are supported")
+    return abs_path
+
+
+def sanitize_text_field(text, max_length=100):
+    """Sanitize text fields to prevent XSS and injection attacks."""
+    if text is None:
+        return ""
+    text = text.strip()
+    if len(text) > max_length:
+        text = text[:max_length]
+    # Convert HTML entities to prevent XSS
+    text = html.escape(text)
+    return text
