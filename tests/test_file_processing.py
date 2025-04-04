@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch, mock_open
-from core.utils import process_file
+from core.io.file_processor import process_file
 
 
 @pytest.mark.asyncio

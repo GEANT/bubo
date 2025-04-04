@@ -4,12 +4,12 @@ import pytest
 import json
 import os
 from datetime import datetime, timedelta
-from core.cache_manager import DomainResultsCache
+from core.cache_manager.cache_manager import DomainResultsCache
 
 
 @pytest.fixture
 def cache_dir(tmp_path):
-    return tmp_path / "cache"
+    return tmp_path / "cache_manager"
 
 
 @pytest.fixture

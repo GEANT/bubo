@@ -13,6 +13,7 @@ from standards.dnssec import DNSSECChecker, run
 
 @pytest.fixture(autouse=True)
 def mock_dns_manager():
+    # Update the import path to match the new structure
     with patch(
         "standards.dnssec.dns_manager.resolve_dnssec", new_callable=AsyncMock
     ) as mock_resolve:
@@ -109,7 +110,7 @@ async def test_dnssec_validation_structure(sample_domain):
         "dns.asyncresolver.Resolver.resolve", AsyncMock(return_value=mock_response)
     ):
         with patch(
-            "core.utils.dns_manager.resolve_dnssec",
+            "core.dns.resolver.dns_manager.resolve_dnssec",
             AsyncMock(return_value=mock_response),
         ):
             results, state = await dnssec.run(sample_domain)

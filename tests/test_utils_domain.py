@@ -1,7 +1,8 @@
 # tests/test_utils_domain.py
 
 import pytest
-from core.utils import is_valid_ip, validate_hostname
+from core.network.ip_tools import is_valid_ip
+from core.validators.sanitizer import validate_hostname
 
 
 @pytest.mark.asyncio

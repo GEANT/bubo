@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from core.cache_manager import DomainResultsCache
+from core.cache_manager.cache_manager import DomainResultsCache
 from datetime import datetime
 
 
@@ -84,7 +84,7 @@ def mock_standards_results():
 
 @pytest.fixture
 def cache_dir(tmp_path):
-    return tmp_path / "cache"
+    return tmp_path / "cache_manager"
 
 
 @pytest.fixture
@@ -108,34 +108,50 @@ def mock_dns_resolver():
 
 @pytest.fixture
 def mock_ipv4_records():
-    return [MagicMock(__str__=lambda x: "192.168.1.1")]
+    record = MagicMock()
+    record.__str__ = lambda _: "192.168.1.1"
+
+    records = MagicMock()
+    records.__iter__.return_value = [record]
+    return records
 
 
 @pytest.fixture
 def mock_ipv6_records():
-    return [MagicMock(__str__=lambda x: "2001:db8::1")]
+    record = MagicMock()
+    record.__str__ = lambda _: "2001:db8::1"
+
+    records = MagicMock()
+    records.__iter__.return_value = [record]
+    return records
 
 
 @pytest.fixture
 def mock_mx_records():
-    records = []
-    for hostname in ["mail1.example.com", "mail2.example.com"]:
-        record = MagicMock()
-        record.exchange = MagicMock()
-        record.exchange.to_text.return_value = hostname
-        records.append(record)
+    record1 = MagicMock()
+    record1.exchange = MagicMock()
+    record1.exchange.to_text.return_value = "mail1.example.com."
 
-    result = MagicMock()
-    result.__iter__.return_value = records
-    return result
+    record2 = MagicMock()
+    record2.exchange = MagicMock()
+    record2.exchange.to_text.return_value = "mail2.example.com."
+
+    records = MagicMock()
+    records.__iter__.return_value = [record1, record2]
+    return records
 
 
 @pytest.fixture
 def mock_ns_records():
-    return [
-        MagicMock(__str__=lambda _: "ns1.example.com"),
-        MagicMock(__str__=lambda _: "ns2.example.com"),
-    ]
+    record1 = MagicMock()
+    record1.__str__ = lambda _: "ns1.example.com."
+
+    record2 = MagicMock()
+    record2.__str__ = lambda _: "ns2.example.com."
+
+    records = MagicMock()
+    records.__iter__.return_value = [record1, record2]
+    return records
 
 
 @pytest.fixture

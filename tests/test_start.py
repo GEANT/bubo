@@ -49,7 +49,7 @@ async def test_process_single_domain(
 
     with (
         patch(
-            "core.utils.process_domain", new_callable=AsyncMock
+            "core.dns.records.process_domain", new_callable=AsyncMock
         ) as mock_process_domain,
         patch(
             "start.DomainValidator.VALIDATION_TYPES", new={}

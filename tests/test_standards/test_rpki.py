@@ -20,6 +20,7 @@ async def test_rpki_validation_structure(
 ):
     with (
         patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
+        # These imports should point to core.network.ip_tools and core.dns.records in the standards.rpki module
         patch("standards.rpki.resolve_ips", new_callable=AsyncMock) as mock_resolve,
         patch("standards.rpki.get_asn_and_prefix", new_callable=AsyncMock) as mock_asn,
     ):

@@ -20,6 +20,7 @@ class MockDNSRecord:
 
 @pytest.fixture
 def mock_dns_manager():
+    # Update the patch path to match the new import in standards.spf
     with patch("standards.spf.dns_manager") as mock_dns:
         yield mock_dns
 

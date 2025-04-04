@@ -4,11 +4,9 @@ import tempfile
 from unittest.mock import patch, AsyncMock
 import dns.resolver
 
-from core.utils import (
-    DNSResolverManager,
-    process_file,
-    process_domain,
-)
+from core.io.file_processor import process_file
+from core.dns.records import process_domain
+from core.dns.resolver import dns_manager
 
 
 @pytest.fixture
@@ -111,7 +109,7 @@ async def test_process_file_file_not_found():
 
 @pytest.mark.asyncio
 async def test_dns_resolver_manager_resolve_exception_handling():
-    manager = DNSResolverManager()
+    manager = dns_manager
 
     # Test handling of NoNameservers exception
     with patch.object(
@@ -138,12 +136,12 @@ async def test_dns_resolver_manager_resolve_exception_handling():
 @pytest.mark.asyncio
 async def test_process_domain_email_extraction(sample_email):
     with (
-        patch("core.utils.validate_hostname", return_value=True),
+        patch("core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.utils.resolve_nameservers",
+            "core.dns.records.resolve_nameservers",
             AsyncMock(return_value=["ns1.example.com"]),
         ),
-        patch("core.utils.get_mx_records", AsyncMock(return_value=None)),
+        patch("core.dns.records.get_mx_records", AsyncMock(return_value=None)),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain(sample_email)
 
@@ -154,19 +152,19 @@ async def test_process_domain_email_extraction(sample_email):
 @pytest.mark.asyncio
 async def test_process_domain_mail_nameservers():
     with (
-        patch("core.utils.validate_hostname", return_value=True),
+        patch("core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.utils.resolve_nameservers",
+            "core.dns.records.resolve_nameservers",
             side_effect=[
                 ["ns1.example.com"],  # First call for domain nameservers
                 ["ns1.mail-domain.com"],  # Second call for mail server's domain
             ],
         ),
         patch(
-            "core.utils.get_mx_records",
+            "core.dns.records.get_mx_records",
             AsyncMock(return_value=["mail.mail-domain.com"]),
         ),
-        patch("core.utils.is_valid_ip", return_value=False),
+        patch("core.network.ip_tools.is_valid_ip", return_value=False),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -178,9 +176,9 @@ async def test_process_domain_mail_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_all_empty_mail_nameservers():
     with (
-        patch("core.utils.validate_hostname", return_value=True),
+        patch("core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.utils.resolve_nameservers",
+            "core.dns.records.resolve_nameservers",
             side_effect=[
                 ["ns1.example.com"],  # First call for domain nameservers
                 [],  # Empty result for first mail server
@@ -188,10 +186,10 @@ async def test_process_domain_all_empty_mail_nameservers():
             ],
         ),
         patch(
-            "core.utils.get_mx_records",
+            "core.dns.records.get_mx_records",
             AsyncMock(return_value=["mail1.example.com", "mail2.example.com"]),
         ),
-        patch("core.utils.is_valid_ip", return_value=False),
+        patch("core.network.ip_tools.is_valid_ip", return_value=False),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -203,19 +201,19 @@ async def test_process_domain_all_empty_mail_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_mail_nameservers():
     with (
-        patch("core.utils.validate_hostname", return_value=True),
+        patch("core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.utils.resolve_nameservers",
+            "core.dns.records.resolve_nameservers",
             side_effect=[
                 ["ns1.example.com"],  # First call for domain nameservers
                 Exception("DNS error"),  # Exception during mail nameserver resolution
             ],
         ),
         patch(
-            "core.utils.get_mx_records", AsyncMock(return_value=["mail.example.com"])
+            "core.dns.records.get_mx_records",
+            AsyncMock(return_value=["mail.example.com"]),
         ),
-        patch("core.utils.is_valid_ip", return_value=False),
-        patch("core.utils.logger.error"),
+        patch("core.network.ip_tools.is_valid_ip", return_value=False),
     ):  # Mock logger to prevent actual logging
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -227,12 +225,14 @@ async def test_process_domain_exception_in_mail_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_domain_nameservers():
     with (
-        patch("core.utils.validate_hostname", return_value=True),
-        patch("core.utils.resolve_nameservers", side_effect=Exception("DNS error")),
+        patch("core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.utils.get_mx_records", AsyncMock(return_value=["mail.example.com"])
+            "core.dns.records.resolve_nameservers", side_effect=Exception("DNS error")
         ),
-        patch("core.utils.logger.error"),
+        patch(
+            "core.dns.records.get_mx_records",
+            AsyncMock(return_value=["mail.example.com"]),
+        ),
     ):  # Mock logger to prevent actual logging
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -244,13 +244,12 @@ async def test_process_domain_exception_in_domain_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_mx_records():
     with (
-        patch("core.utils.validate_hostname", return_value=True),
+        patch("core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.utils.resolve_nameservers",
+            "core.dns.records.resolve_nameservers",
             AsyncMock(return_value=["ns1.example.com"]),
         ),
-        patch("core.utils.get_mx_records", side_effect=Exception("DNS error")),
-        patch("core.utils.logger.error"),
+        patch("core.dns.records.get_mx_records", side_effect=Exception("DNS error")),
     ):  # Mock logger to prevent actual logging
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
