@@ -3,17 +3,19 @@ import asyncio
 import os
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from logging import getLogger
 from typing import Dict, List, Optional, Any
 
-from core.cache_manager import DomainResultsCache
-from core.custom_logger.logger import setup_logger
-from core.generate_report import generate_html_report
-from core.utils import process_domain, process_file, sanitize_domain, sanitize_file_path
+from core.cache_manager.cache_manager import DomainResultsCache
+from core.logging.logger import setup_logger
+from core.report.generator import generate_html_report
+from core.dns.records import process_domain
+from core.io.file_processor import process_file, sanitize_file_path
+from core.validators.sanitizer import sanitize_domain
 from standards import rpki, dane, dnssec, email_security
+import traceback
 
-setup_logger()
-logger = getLogger(__name__)
+
+logger = setup_logger(__name__)
 
 
 class DomainValidator:
@@ -163,7 +165,7 @@ class DomainValidator:
         self, results: List[Dict[str, Any]], all_results: Dict[str, Any]
     ) -> None:
         """
-        Merges batch processing results into the overall results structure and updates cache.
+        Merges batch processing results into the overall results structure and updates cache_manager.
         """
         for result in results:
             if result:
@@ -299,6 +301,7 @@ async def main():
 
     except Exception as e:
         logger.error(f"Error processing domains: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 if __name__ == "__main__":

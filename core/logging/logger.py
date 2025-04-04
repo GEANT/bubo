@@ -23,11 +23,13 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def setup_logger():
+def setup_logger(name: str) -> logging.Logger:
     ColorfulHandler = logging.StreamHandler()
     ColorfulHandler.setFormatter(CustomFormatter())
 
-    logging.addLevelName(logging.INFO, "INFOR")
-    logging.addLevelName(logging.WARNING, "ALERT")
+    logging.addLevelName(logging.WARNING, "WARN")
+    logging.addLevelName(logging.ERROR, "ERRR")
+    logging.addLevelName(logging.CRITICAL, "CRIT")
 
     logging.basicConfig(level=logging.INFO, handlers=[ColorfulHandler])
+    return logging.getLogger(name)

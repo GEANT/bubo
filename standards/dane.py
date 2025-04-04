@@ -2,19 +2,17 @@
 
 import asyncio
 import os
-from logging import getLogger
 from typing import List, Dict, Tuple
 from datetime import datetime
 import aiofiles
 import dns.asyncresolver
 from random import random
 
-from core.custom_logger.logger import setup_logger
-from core.utils import dns_manager
+from core.logging.logger import setup_logger
+from core.dns.resolver import dns_manager
 
 
-setup_logger()
-logger = getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 async def check_tlsa_record(domain: str, port: int) -> List[str]:
@@ -61,7 +59,7 @@ async def validate_tlsa_hash(
             tlsa_record,
         ]
         retries = 0
-        while retries <= 3:
+        while retries <= 1:
             proc = await asyncio.create_subprocess_exec(
                 *command,
                 stdout=asyncio.subprocess.PIPE,

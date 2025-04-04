@@ -1,12 +1,10 @@
 import asyncio
 from typing import Dict, List, Set, Tuple, Optional
-from core.utils import dns_manager
-from core.custom_logger.logger import setup_logger
-from logging import getLogger
+from core.dns.resolver import dns_manager
+from core.logging.logger import setup_logger
 
 
-setup_logger()
-logger = getLogger(__name__)
+logger = setup_logger(__name__)
 
 MAX_DNS_LOOKUPS = 10  # Maximum allowed DNS lookups for SPF
 

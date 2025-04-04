@@ -165,4 +165,5 @@ cython_debug/
 results/
 domain.txt
 cache/
+ipwhois/
 venv/

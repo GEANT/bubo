@@ -1,6 +1,3 @@
-from core.custom_logger.logger import setup_logger
-from logging import getLogger
+from core.logging.logger import setup_logger
 
-
-setup_logger()
-logger = getLogger(__name__)
+logger = setup_logger(__name__)

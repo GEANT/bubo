@@ -2,20 +2,14 @@
 
 import argparse
 import asyncio
-from logging import getLogger
 
 import aiohttp
 
-from core.custom_logger.logger import setup_logger
-from core.utils import (
-    resolve_ips,
-    get_asn_and_prefix,
-    translate_server_type,
-    process_domain,
-)
+from core.logging.logger import setup_logger
+from core.dns.records import process_domain, resolve_ips, translate_server_type
+from core.network.ip_tools import get_asn_and_prefix
 
-setup_logger()
-logger = getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 async def validate_rpki(asn, prefix):
@@ -235,10 +229,6 @@ async def process_batch_mode(domains):
         return {}, {}
 
 
-# ----------------------------------------------------------------
-
-
-# ----------------------------------------------------------------
 async def run(domain, check_mode, domain_ns=None, domain_mx=None, mail_ns=None):
     """
     Run RPKI validation with pre-processed server information.

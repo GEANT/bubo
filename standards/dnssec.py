@@ -1,19 +1,17 @@
 # standards/dnssec.py
 
 from datetime import datetime
-from logging import getLogger
 
 import dns.dnssec
 import dns.flags
 import dns.name
 import dns.resolver
 
-from core.custom_logger.logger import setup_logger
-from core.utils import dns_manager
+from core.logging.logger import setup_logger
+from core.dns.resolver import dns_manager
 
 
-setup_logger()
-logger = getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 class DNSSECChecker:

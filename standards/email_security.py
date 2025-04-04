@@ -1,16 +1,14 @@
 import asyncio
 import dns.asyncresolver
 import dns.exception
-from logging import getLogger
 from typing import Dict, List, Tuple, Optional
 import re
 import base64
-from core.utils import dns_manager
-from core.custom_logger.logger import setup_logger
+from core.dns.resolver import dns_manager
+from core.logging.logger import setup_logger
 from standards.spf import check_spf
 
-setup_logger()
-logger = getLogger(__name__)
+logger = setup_logger(__name__)
 COMMON_DKIM_SELECTORS = [
     "default",
     "selector1",
