@@ -92,7 +92,7 @@ async def validate_tlsa_hash(
                 return "Verification: OK" in output
 
             except asyncio.TimeoutError:
-                logger.error(
+                logger.warning(
                     f"Timeout validating TLSA for {server}:{port}. Retrying in 6 seconds..."
                 )
                 if proc:
