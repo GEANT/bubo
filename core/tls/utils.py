@@ -127,6 +127,7 @@ def retry_async(
 # OpenSSL Utilities
 # ------------------------------------------------------------------------------
 
+
 def has_openssl() -> bool:
     """Check if OpenSSL command-line tool is available."""
     return shutil.which("openssl") is not None

@@ -141,9 +141,7 @@ async def check_protocol_with_openssl(
     logger.debug(f"Using OpenSSL args for {protocol.value}: {args}")
     output, exit_code = await run_openssl_command(domain, port, args, timeout)
 
-    logger.debug(
-        f"OpenSSL output for {protocol.value}:\n{output[:500]}"
-    )
+    logger.debug(f"OpenSSL output for {protocol.value}:\n{output[:500]}")
 
     critical_failures = [
         "sslv3 alert handshake failure",
