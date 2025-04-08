@@ -2,6 +2,7 @@
 {% from 'modals/dane_modal.html' import dane_modal %}
 {% from 'modals/dnssec_modal.html' import dnssec_modal %}
 {% from 'modals/email_security_modal.html' import email_security_modal %}
+{% from 'modals/web_security_modal.html' import web_security_modal %}
 {% from 'tooltips/column_tooltips.html' import tooltip_header %}
 
 
@@ -11,8 +12,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Internet Standards Validation Report</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
@@ -21,132 +24,33 @@
 
     <main class="main-content">
         <div class="container">
-            <div class="tab-container">
-                <div class="tab-buttons">
-                    <button class="tab-button active" onclick="showServiceTab('all')">All Services</button>
-                    <button class="tab-button" onclick="showServiceTab('nameserver')">Nameservers</button>
-                    <button class="tab-button" onclick="showServiceTab('mailserver')">Mail Servers</button>
-                    <button class="tab-button" onclick="showServiceTab('mailserver-ns')">Mail Server NS</button>
-                </div>
-
-                <div id="tab-all" class="tab-content active">
-                    <table class="validation-table">
-                        <thead>
-                        <tr>
-                            <th>Country</th>
-                            <th>Institution</th>
-                            <th>Domain</th>
-                            <th>Service Type</th>
-                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'all-services') }}
-                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'all-services') }}
-                            {{ tooltip_header('DNSSEC Status', 'dnssec-tooltip', 'all-services') }}
-                            {{ tooltip_header('Email Security Status', 'email-security-tooltip', 'all-services') }}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for domain in validations.RPKI.state %}
-                            {% set check_types = validations.RPKI.state[domain].keys() %}
-                            {% for check_type in check_types %}
-                                <tr class="service-row" data-service="{{ check_type|lower|replace(' ', '-') }}">
-                                    {% if loop.first %}
-                                        <td rowspan="{{ check_types|length }}">{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
-                                        <td rowspan="{{ check_types|length }}">{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
-                                        <td rowspan="{{ check_types|length }}" class="server-name">{{ domain }}</td>
-                                    {% endif %}
-                                    <td>{{ check_type }}</td>
-                                    {% set show_dnssec = true %}
-                                    {% set tab_id = 'all-services' %}
-                                    {% include 'status_columns.html' %}
-                                </tr>
-                            {% endfor %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div id="tab-nameserver" class="tab-content">
-                    <table class="validation-table">
-                        <thead>
-                        <tr>
-                            <th>Country</th>
-                            <th>Institution</th>
-                            <th>Domain</th>
-                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'nameservers') }}
-                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'nameservers') }}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for domain in validations.RPKI.state %}
-                            {% set check_type = 'Nameserver of Domain' %}
-                            <tr class="service-row" data-service="nameserver-of-domain">
-                                <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
-                                <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
-                                <td class="server-name">{{ domain }}</td>
-                                {% set show_dnssec = false %}
-                                {% set tab_id = 'nameservers' %}
-                                {% include 'status_columns.html' %}
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div id="tab-mailserver" class="tab-content">
-                    <table class="validation-table">
-                        <thead>
-                        <tr>
-                            <th>Country</th>
-                            <th>Institution</th>
-                            <th>Domain</th>
-                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'mail-servers') }}
-                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'mail-servers') }}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for domain in validations.RPKI.state %}
-                            {% set check_type = 'Mail Server of Domain' %}
-                            <tr class="service-row" data-service="mail-server-of-domain">
-                                <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
-                                <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
-                                <td class="server-name">{{ domain }}</td>
-                                {% set show_dnssec = false %}
-                                {% set tab_id = 'mail-servers' %}
-                                {% include 'status_columns.html' %}
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div id="tab-mailserver-ns" class="tab-content">
-                    <table class="validation-table">
-                        <thead>
-                        <tr>
-                            <th>Country</th>
-                            <th>Institution</th>
-                            <th>Domain</th>
-                            {{ tooltip_header('RPKI Status', 'rpki-tooltip', 'mailserver-ns') }}
-                            {{ tooltip_header('DANE Status', 'dane-tooltip', 'mailserver-ns') }}
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for domain in validations.RPKI.state %}
-                            {% if validations.RPKI.results[domain].mailserver_ns %}
-                                {% set check_type = 'Nameserver of Mail Server' %}
-                                <tr class="service-row" data-service="nameserver-of-mail-server">
-                                    <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
-                                    <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
-                                    <td class="server-name">{{ domain }}</td>
-                                    {% set show_dnssec = false %}
-                                    {% set tab_id = 'mailserver-ns' %}
-                                    {% include 'status_columns.html' %}
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <table class="validation-table">
+                <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>Institution</th>
+                    <th>Domain</th>
+                    {{ tooltip_header('RPKI', 'rpki-tooltip') }}
+                    {{ tooltip_header('DANE', 'dane-tooltip') }}
+                    {{ tooltip_header('DNSSEC', 'dnssec-tooltip') }}
+                    {{ tooltip_header('Email Security', 'email-security-tooltip') }}
+                    {{ tooltip_header('Web Security', 'web-security-tooltip') }}
+                </tr>
+                </thead>
+                <tbody>
+                {% for domain in validations.RPKI.state %}
+                    <tr class="service-row">
+                        <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
+                        <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
+                        <td class="server-name">{{ domain }}</td>
+                        {% set show_dnssec = true %}
+                        {% set tab_id = 'all' %}
+                        {% set check_type = 'Nameserver of Domain' %}
+                        {% include 'status_columns.html' %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </main>
 

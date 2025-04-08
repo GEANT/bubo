@@ -45,7 +45,7 @@
                                         <span>Algorithm: {{ record.algorithm }}</span>
                                         <!-- Add algorithm name if available -->
                                         {% if record.algorithm_name %}
-                                        <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
+                                            <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
                                         {% endif %}
                                     </div>
                                     <div class="detail-row">
@@ -60,7 +60,24 @@
                             </div>
                         {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="no-records">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        <span>No DS Records Found</span>
+                        <div class="security-advisory mt-2">
+                            <p class="text-sm text-red-700 font-medium">Security Impact:</p>
+                            <ul class="text-xs text-red-700 ml-5 mt-1 list-disc">
+                                <li>Trust chain broken - parent zone not authenticating your DNSSEC keys</li>
+                                <li>Resolver validation fails even if zone is signed at nameserver level</li>
+                                <li>Vulnerable to DNS spoofing and cache poisoning attacks</li>
+                                <li>DNSSEC implementation incomplete - "islands of security" configuration</li>
+                            </ul>
+                            <p class="text-xs text-gray-700 mt-1 italic">Validation Status: <span class="text-red-600 font-medium">Insecure</span> (RFC8499)</p>
+                            <p class="text-xs text-gray-700 mt-1"><i class="fas fa-wrench mr-1"> </i> Remediation: Publish DS records at your registrar to complete the chain of trust</p>
+                        </div>
+                    </div>
                 {% endif %}
+
             </td>
         </tr>
         <!-- Nameservers Section -->
@@ -95,7 +112,7 @@
                                             <i class="fas fa-flag text-gray-500"></i>
                                             <span>Flag: {{ record.flags }}</span>
                                             {% if record.key_type %}
-                                            <span class="badge ml-2 {{ 'bg-orange-500' if record.key_type == 'KSK' else 'bg-blue-500' }}">
+                                                <span class="badge ml-2 {{ 'bg-orange-500' if record.key_type == 'KSK' else 'bg-blue-500' }}">
                                                 {{ record.key_type }}
                                             </span>
                                             {% endif %}
@@ -108,14 +125,14 @@
                                             <i class="fas fa-cogs text-gray-500"></i>
                                             <span>Algorithm: {{ record.algorithm }}</span>
                                             {% if record.algorithm_name %}
-                                            <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
+                                                <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
                                             {% endif %}
                                         </div>
                                         {% if record.ttl is defined %}
-                                        <div class="detail-row">
-                                            <i class="fas fa-clock text-gray-500"></i>
-                                            <span>TTL: {{ record.ttl }} seconds</span>
-                                        </div>
+                                            <div class="detail-row">
+                                                <i class="fas fa-clock text-gray-500"></i>
+                                                <span>TTL: {{ record.ttl }} seconds</span>
+                                            </div>
                                         {% endif %}
                                         <div class="detail-row key">
                                             <i class="fas fa-key text-gray-500"></i>
@@ -146,7 +163,7 @@
                                             <i class="fas fa-cogs text-gray-500"></i>
                                             <span>Algorithm: {{ record.algorithm }}</span>
                                             {% if record.algorithm_name %}
-                                            <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
+                                                <span class="text-gray-500 ml-1">({{ record.algorithm_name }})</span>
                                             {% endif %}
                                         </div>
                                         <div class="detail-row">
@@ -161,20 +178,35 @@
                                             <i class="fas fa-calendar-alt text-gray-500"></i>
                                             <span>Valid: {{ record.inception }} - {{ record.expiration }}</span>
                                             {% if record.days_until_expiry is defined %}
-                                            <span class="ml-2 {{ 'text-yellow-600 font-medium' if record.expiring_soon else 'text-green-600' }}">
+                                                <span class="ml-2 {{ 'text-yellow-600 font-medium' if record.expiring_soon else 'text-green-600' }}">
                                                 ({{ record.days_until_expiry }} days remaining)
                                             </span>
                                             {% endif %}
                                         </div>
                                         {% if record.ttl is defined %}
-                                        <div class="detail-row">
-                                            <i class="fas fa-clock text-gray-500"></i>
-                                            <span>TTL: {{ record.ttl }} seconds</span>
-                                        </div>
+                                            <div class="detail-row">
+                                                <i class="fas fa-clock text-gray-500"></i>
+                                                <span>TTL: {{ record.ttl }} seconds</span>
+                                            </div>
                                         {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="no-records">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                        <span>No RRSIG Records Found</span>
+                        <div class="security-advisory mt-2">
+                            <p class="text-sm text-red-700 font-medium">Security Impact:</p>
+                            <ul class="text-xs text-red-700 ml-5 mt-1 list-disc">
+                                <li>Zone data not cryptographically signed - integrity not verifiable</li>
+                                <li>DNSSEC is not properly implemented on authoritative nameservers</li>
+                                <li>DNS records can be tampered with in transit (MitM vulnerability)</li>
+                                <li>Potential exploitation vectors: DNS cache poisoning, Kaminsky attacks</li>
+                            </ul>
+                            <p class="text-xs text-gray-700 mt-1"><i class="fas fa-wrench mr-1"> </i> Remediation: Configure DNSSEC signing on authoritative nameservers</p>
                         </div>
                     </div>
                 {% endif %}
@@ -195,7 +227,7 @@
                 <div class="step-content">
                     <table class="chain-view-table">
                         <tbody>
-                            {% if step.dnskey_records %}
+                        {% if step.dnskey_records %}
                             <tr>
                                 <td class="record-type" rowspan="{{ step.dnskey_records|length }}">
                                     <i class="fas fa-key text-yellow-600"></i>
@@ -203,15 +235,15 @@
                                 </td>
                                 <td class="record-content">
                                     <div class="record-list">
-                                    {% for record in step.dnskey_records %}
-                                        <div class="monospace">{{ record }}</div>
-                                    {% endfor %}
+                                        {% for record in step.dnskey_records %}
+                                            <div class="monospace">{{ record }}</div>
+                                        {% endfor %}
                                     </div>
                                 </td>
                             </tr>
-                            {% endif %}
+                        {% endif %}
 
-                            {% if step.ds_records %}
+                        {% if step.ds_records %}
                             <tr>
                                 <td class="record-type" rowspan="{{ step.ds_records|length }}">
                                     <i class="fas fa-shield-alt text-green-600"></i>
@@ -219,15 +251,15 @@
                                 </td>
                                 <td class="record-content">
                                     <div class="record-list">
-                                    {% for record in step.ds_records %}
-                                        <div class="monospace">{{ record }}</div>
-                                    {% endfor %}
+                                        {% for record in step.ds_records %}
+                                            <div class="monospace">{{ record }}</div>
+                                        {% endfor %}
                                     </div>
                                 </td>
                             </tr>
-                            {% endif %}
+                        {% endif %}
 
-                            {% if step.rrsig_info %}
+                        {% if step.rrsig_info %}
                             <tr>
                                 <td class="record-type" rowspan="{{ step.rrsig_info|length }}">
                                     <i class="fas fa-signature text-purple-600"></i>
@@ -235,15 +267,15 @@
                                 </td>
                                 <td class="record-content">
                                     <div class="record-list">
-                                    {% for info in step.rrsig_info %}
-                                        <div class="monospace">{{ info }}</div>
-                                    {% endfor %}
+                                        {% for info in step.rrsig_info %}
+                                            <div class="monospace">{{ info }}</div>
+                                        {% endfor %}
                                     </div>
                                 </td>
                             </tr>
-                            {% endif %}
+                        {% endif %}
 
-                            {% if step.nameserver %}
+                        {% if step.nameserver %}
                             <tr>
                                 <td class="record-type">
                                     <i class="fas fa-server text-blue-600"></i>
@@ -253,9 +285,9 @@
                                     <span class="monospace">{{ step.nameserver }}</span>
                                 </td>
                             </tr>
-                            {% endif %}
+                        {% endif %}
 
-                            {% if step.a_records %}
+                        {% if step.a_records %}
                             <tr>
                                 <td class="record-type" rowspan="{{ step.a_records|length }}">
                                     <i class="fas fa-globe text-indigo-600"></i>
@@ -263,13 +295,13 @@
                                 </td>
                                 <td class="record-content">
                                     <div class="record-list">
-                                    {% for record in step.a_records %}
-                                        <div class="monospace">{{ record }}</div>
-                                    {% endfor %}
+                                        {% for record in step.a_records %}
+                                            <div class="monospace">{{ record }}</div>
+                                        {% endfor %}
                                     </div>
                                 </td>
                             </tr>
-                            {% endif %}
+                        {% endif %}
                         </tbody>
                     </table>
                 </div>

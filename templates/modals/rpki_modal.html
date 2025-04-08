@@ -1,67 +1,245 @@
-{% macro rpki_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key) %}
+{% macro rpki_modal(modal_id, domain, validation_type, check_type, results_data, current_data_key, validation_state) %}
     <div id="{{ modal_id }}" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
-            <h3>{{ validation_type }} Details - {{ domain }} ({{ check_type }})</h3>
+            <h3>{{ validation_type }} Details - {{ domain }}</h3>
+
             <div class="tab-container">
                 <div class="tab-buttons">
-                    <button class="tab-button active" onclick="showTab('{{ modal_id }}-content')">Details</button>
+                    {% if results_data.domain_ns %}
+                        <button class="tab-button {% if current_data_key == 'domain_ns' %}active{% endif %}"
+                                onclick="showTab('{{ modal_id }}-domain-ns')">
+                            <i class="fas fa-server"></i> Nameserver of Domain
+                            {% set state = validation_state['Nameserver of Domain'] %}
+                            {% if state.lower() == 'valid' %}
+                                <i class="fas fa-check-circle status-valid"></i>
+                            {% elif state.lower() == 'partially-valid' %}
+                                <i class="fas fa-exclamation-triangle status-partially-valid"></i>
+                            {% elif state.lower() == 'not-found' %}
+                                <i class="fas fa-question-circle status-not-found"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle status-not-valid"></i>
+                            {% endif %}
+                        </button>
+                    {% endif %}
+
+                    {% if results_data.domain_mx %}
+                        <button class="tab-button {% if current_data_key == 'domain_mx' %}active{% endif %}"
+                                onclick="showTab('{{ modal_id }}-domain-mx')">
+                            <i class="fas fa-envelope"></i> Mail Server of Domain
+                            {% set state = validation_state['Mail Server of Domain'] %}
+                            {% if state.lower() == 'valid' %}
+                                <i class="fas fa-check-circle status-valid"></i>
+                            {% elif state.lower() == 'partially-valid' %}
+                                <i class="fas fa-exclamation-triangle status-partially-valid"></i>
+                            {% elif state.lower() == 'not-found' %}
+                                <i class="fas fa-question-circle status-not-found"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle status-not-valid"></i>
+                            {% endif %}
+                        </button>
+                    {% endif %}
+
+                    {% if results_data.mailserver_ns %}
+                        <button class="tab-button {% if current_data_key == 'mailserver_ns' %}active{% endif %}"
+                                onclick="showTab('{{ modal_id }}-mailserver-ns')">
+                            <i class="fas fa-server"></i> Nameserver of Mail Server
+                            {% set state = validation_state['Nameserver of Mail Server'] %}
+                            {% if state.lower() == 'valid' %}
+                                <i class="fas fa-check-circle status-valid"></i>
+                            {% elif state.lower() == 'partially-valid' %}
+                                <i class="fas fa-exclamation-triangle status-partially-valid"></i>
+                            {% elif state.lower() == 'not-found' %}
+                                <i class="fas fa-question-circle status-not-found"></i>
+                            {% else %}
+                                <i class="fas fa-times-circle status-not-valid"></i>
+                            {% endif %}
+                        </button>
+                    {% endif %}
                 </div>
-                <div id="{{ modal_id }}-content" class="tab-content active">
-                    <table class="details-table">
-                        <thead>
-                        <tr>
-                            <th>Server</th>
-                            <th>IPv4</th>
-                            <th>IPv6</th>
-                            <th>ASN</th>
-                            <th>Prefix</th>
-                            <th>RPKI State</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for server, details in results_data[current_data_key].items() %}
-                            {% for prefix, prefix_data in details.prefix.items() %}
-                                <tr class="{{ 'server-row-start' if loop.first }}">
-                                    {% if loop.first %}
-                                        <td rowspan="{{ details.prefix|length }}" class="server-name">{{ server }}</td>
-                                        <td rowspan="{{ details.prefix|length }}">
-                                            {% for ip in details.prefix.values()|map(attribute='ipv4')|sum(start=[]) %}
-                                                <span class="ip-address">{{ ip }}</span>
-                                            {% endfor %}
-                                        </td>
-                                        <td rowspan="{{ details.prefix|length }}">
-                                            {% for ip in details.ipv6 %}
-                                                {% if ip != 'No IPv6' %}
+
+                <!-- Nameserver of Domain Tab -->
+                {% if results_data.domain_ns %}
+                    <div id="{{ modal_id }}-domain-ns"
+                         class="tab-content {% if current_data_key == 'domain_ns' %}active{% endif %}">
+                        <table class="details-table">
+                            <thead>
+                            <tr>
+                                <th>Server</th>
+                                <th>IPv4</th>
+                                <th>IPv6</th>
+                                <th>ASN</th>
+                                <th>Prefix</th>
+                                <th>RPKI State</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for server, details in results_data.domain_ns.items() %}
+                                {% for prefix, prefix_data in details.prefix.items() %}
+                                    <tr class="{{ 'server-row-start' if loop.first }}">
+                                        {% if loop.first %}
+                                            <td rowspan="{{ details.prefix|length }}"
+                                                class="server-name">{{ server }}</td>
+                                            <td rowspan="{{ details.prefix|length }}">
+                                                {% for ip in details.prefix.values()|map(attribute='ipv4')|sum(start=[]) %}
                                                     <span class="ip-address">{{ ip }}</span>
-                                                {% else %}
-                                                    <span class="status-not-found">{{ ip }}</span>
-                                                {% endif %}
-                                            {% endfor %}
+                                                {% endfor %}
+                                            </td>
+                                            <td rowspan="{{ details.prefix|length }}">
+                                                {% for ip in details.ipv6 %}
+                                                    {% if ip != 'No IPv6' %}
+                                                        <span class="ip-address">{{ ip }}</span>
+                                                    {% else %}
+                                                        <span class="status-not-found">{{ ip }}</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                        {% endif %}
+                                        <td>AS{{ prefix_data.asn }}</td>
+                                        <td class="prefix-cell">{{ prefix }}</td>
+                                        <td>
+                                            <span class="rpki-state {{ {
+                                                'Valid': 'rpki-valid',
+                                                'Not-found': 'rpki-not-found',
+                                                'Invalid': 'rpki-invalid'
+                                                }[prefix_data.rpki_state] }}">
+                                            <i class="fas fa-{{ {
+                                                'Valid': 'check-circle',
+                                                'Not-found': 'question-circle',
+                                                'Invalid': 'times-circle'
+                                                }[prefix_data.rpki_state] }}"></i>
+                                            {{ prefix_data.rpki_state }}
+                                            </span>
                                         </td>
-                                    {% endif %}
-                                    <td>AS{{ prefix_data.asn }}</td>
-                                    <td class="prefix-cell">{{ prefix }}</td>
-                                    <td>
-                                <span class="rpki-state {{ {
-                                    'Valid': 'rpki-valid',
-                                    'Not-found': 'rpki-not-found',
-                                    'Invalid': 'rpki-invalid'
-                                    }[prefix_data.rpki_state] }}">
-                                <i class="fas fa-{{ {
-                                    'Valid': 'check-circle',
-                                    'Not-found': 'question-circle',
-                                    'Invalid': 'times-circle'
-                                    }[prefix_data.rpki_state] }}"></i>
-                                {{ prefix_data.rpki_state }}
-                                </span>
-                                    </td>
-                                </tr>
+                                    </tr>
+                                {% endfor %}
                             {% endfor %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
+                <!-- Mail Server of Domain Tab -->
+                {% if results_data.domain_mx %}
+                    <div id="{{ modal_id }}-domain-mx"
+                         class="tab-content {% if current_data_key == 'domain_mx' %}active{% endif %}">
+                        <table class="details-table">
+                            <thead>
+                            <tr>
+                                <th>Server</th>
+                                <th>IPv4</th>
+                                <th>IPv6</th>
+                                <th>ASN</th>
+                                <th>Prefix</th>
+                                <th>RPKI State</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for server, details in results_data.domain_mx.items() %}
+                                {% for prefix, prefix_data in details.prefix.items() %}
+                                    <tr class="{{ 'server-row-start' if loop.first }}">
+                                        {% if loop.first %}
+                                            <td rowspan="{{ details.prefix|length }}"
+                                                class="server-name">{{ server }}</td>
+                                            <td rowspan="{{ details.prefix|length }}">
+                                                {% for ip in details.prefix.values()|map(attribute='ipv4')|sum(start=[]) %}
+                                                    <span class="ip-address">{{ ip }}</span>
+                                                {% endfor %}
+                                            </td>
+                                            <td rowspan="{{ details.prefix|length }}">
+                                                {% for ip in details.ipv6 %}
+                                                    {% if ip != 'No IPv6' %}
+                                                        <span class="ip-address">{{ ip }}</span>
+                                                    {% else %}
+                                                        <span class="status-not-found">{{ ip }}</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                        {% endif %}
+                                        <td>AS{{ prefix_data.asn }}</td>
+                                        <td class="prefix-cell">{{ prefix }}</td>
+                                        <td>
+                                            <span class="rpki-state {{ {
+                                                'Valid': 'rpki-valid',
+                                                'Not-found': 'rpki-not-found',
+                                                'Invalid': 'rpki-invalid'
+                                                }[prefix_data.rpki_state] }}">
+                                            <i class="fas fa-{{ {
+                                                'Valid': 'check-circle',
+                                                'Not-found': 'question-circle',
+                                                'Invalid': 'times-circle'
+                                                }[prefix_data.rpki_state] }}"></i>
+                                            {{ prefix_data.rpki_state }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
+                <!-- Nameserver of Mail Server Tab -->
+                {% if results_data.mailserver_ns %}
+                    <div id="{{ modal_id }}-mailserver-ns"
+                         class="tab-content {% if current_data_key == 'mailserver_ns' %}active{% endif %}">
+                        <table class="details-table">
+                            <thead>
+                            <tr>
+                                <th>Server</th>
+                                <th>IPv4</th>
+                                <th>IPv6</th>
+                                <th>ASN</th>
+                                <th>Prefix</th>
+                                <th>RPKI State</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for server, details in results_data.mailserver_ns.items() %}
+                                {% for prefix, prefix_data in details.prefix.items() %}
+                                    <tr class="{{ 'server-row-start' if loop.first }}">
+                                        {% if loop.first %}
+                                            <td rowspan="{{ details.prefix|length }}"
+                                                class="server-name">{{ server }}</td>
+                                            <td rowspan="{{ details.prefix|length }}">
+                                                {% for ip in details.prefix.values()|map(attribute='ipv4')|sum(start=[]) %}
+                                                    <span class="ip-address">{{ ip }}</span>
+                                                {% endfor %}
+                                            </td>
+                                            <td rowspan="{{ details.prefix|length }}">
+                                                {% for ip in details.ipv6 %}
+                                                    {% if ip != 'No IPv6' %}
+                                                        <span class="ip-address">{{ ip }}</span>
+                                                    {% else %}
+                                                        <span class="status-not-found">{{ ip }}</span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                        {% endif %}
+                                        <td>AS{{ prefix_data.asn }}</td>
+                                        <td class="prefix-cell">{{ prefix }}</td>
+                                        <td>
+                                            <span class="rpki-state {{ {
+                                                'Valid': 'rpki-valid',
+                                                'Not-found': 'rpki-not-found',
+                                                'Invalid': 'rpki-invalid'
+                                                }[prefix_data.rpki_state] }}">
+                                            <i class="fas fa-{{ {
+                                                'Valid': 'check-circle',
+                                                'Not-found': 'question-circle',
+                                                'Invalid': 'times-circle'
+                                                }[prefix_data.rpki_state] }}"></i>
+                                            {{ prefix_data.rpki_state }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>

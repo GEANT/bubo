@@ -2,12 +2,12 @@
     <div class="header-content">
         <div class="header-left">
             <i class="fas fa-shield-alt header-icon"></i>
-            <h1>Internet and Mail Standards Validation Report</h1>
+            <h1>{% if header_title is defined %}{{ header_title }}{% else %}Internet and Email Standards Validation Report{% endif %}</h1>
         </div>
         <div class="header-right">
             <div class="timestamp">
                 <i class="fas fa-clock"></i>
-                <span id="reportTimestamp">Generated: {{ timestamp }}</span>
+                <span id="reportTimestamp">{{ timestamp }}</span>
             </div>
         </div>
     </div>
@@ -25,8 +25,12 @@
             <span>DNS Security</span>
         </div>
         <div class="security-item">
-            <i class="fas fa-server"></i>
+            <i class="fas fa-envelope"></i>
             <span>Email Security</span>
         </div>
+        <div class="security-item">
+            <i class="fas fa-globe"></i>
+            <span>Web Security</span>
+    </div>
     </div>
 </header>

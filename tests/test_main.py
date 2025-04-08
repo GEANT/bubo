@@ -7,12 +7,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import pytest
 from unittest.mock import patch, AsyncMock
 import argparse
-from start import main, DomainValidator
+from main import main, DomainValidator
 
 
 @pytest.fixture
 def domain_validator(mock_cache_generator):
-    with patch("start.DomainResultsCache", return_value=mock_cache_generator):
+    with patch("main.DomainResultsCache", return_value=mock_cache_generator):
         validator = DomainValidator(
             cache_dir="test_cache", cache_duration=timedelta(days=1)
         )
@@ -52,13 +52,13 @@ async def test_process_single_domain(
             "core.dns.records.process_domain", new_callable=AsyncMock
         ) as mock_process_domain,
         patch(
-            "start.DomainValidator.VALIDATION_TYPES", new={}
+            "main.DomainValidator.VALIDATION_TYPES", new={}
         ),  # Clear the validation types first
-        patch("start.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
-        patch("start.dane.run", new_callable=AsyncMock) as mock_dane_run,
-        patch("start.dnssec.run", new_callable=AsyncMock) as mock_dnssec_run,
+        patch("main.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
+        patch("main.dane.run", new_callable=AsyncMock) as mock_dane_run,
+        patch("main.dnssec.run", new_callable=AsyncMock) as mock_dnssec_run,
         patch(
-            "start.email_security.run", new_callable=AsyncMock
+            "main.email_security.run", new_callable=AsyncMock
         ) as mock_email_security_run,
     ):
         domain_validator.VALIDATION_TYPES = {
@@ -103,7 +103,7 @@ async def test_process_single_domain_no_nameservers(
         return (None, None, None)
 
     with (
-        patch("start.process_domain", new_callable=AsyncMock) as mock_process_domain,
+        patch("main.process_domain", new_callable=AsyncMock) as mock_process_domain,
         patch.object(
             domain_validator, "create_validation_tasks", new_callable=AsyncMock
         ),
@@ -131,12 +131,12 @@ async def test_main_batch_mode():
 
     with (
         patch("sys.argv", ["script.py"] + test_args),
-        patch("start.DomainValidator") as mock_validator_class,
-        patch("start.process_file", mock_process_file),
+        patch("main.DomainValidator") as mock_validator_class,
+        patch("main.process_file", mock_process_file),
         patch(
-            "start.generate_html_report", new_callable=AsyncMock
+            "main.generate_html_report", new_callable=AsyncMock
         ) as mock_generate_report,
-        patch("start.sanitize_file_path", mock_sanitize_file_path),  # Add this patch
+        patch("main.sanitize_file_path", mock_sanitize_file_path),  # Add this patch
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
     ):
         mock_validator = AsyncMock()

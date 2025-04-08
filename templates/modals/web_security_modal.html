@@ -1,0 +1,850 @@
+{# modals/web_security_modal.html #}
+{% macro web_security_modal(modal_id, domain, results_data) %}
+    {# Helper macros for safe property access #}
+    {% macro safe_expiry_icon(cert_data) %}
+        {% if cert_data is defined and cert_data.days_until_expiry is defined and cert_data.days_until_expiry is not none %}
+            {% if cert_data.days_until_expiry > 30 %}check-circle status-valid
+            {% elif cert_data.days_until_expiry > 7 %}exclamation-triangle status-partially-valid
+            {% else %}times-circle status-not-valid{% endif %}
+        {% else %}times-circle status-not-valid{% endif %}
+    {% endmacro %}
+
+    {% macro safe_expiry_text(cert_data) %}
+        {% if cert_data is defined and cert_data.days_until_expiry is defined and cert_data.days_until_expiry is not none %}
+            {{ cert_data.days_until_expiry }} days
+        {% else %}Unknown{% endif %}
+    {% endmacro %}
+
+    <div id="{{ modal_id }}" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-lock"></i>
+                    Web Security Details for {{ domain }}
+                </h3>
+            </div>
+
+
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" onclick="showTab('{{ modal_id }}-overview')">
+                        <i class="fas fa-chart-pie"></i> Overview
+                    </button>
+                    <button class="tab-button" onclick="showTab('{{ modal_id }}-certificate')">
+                        <i class="fas fa-certificate"></i> Certificate
+                    </button>
+                    <button class="tab-button" onclick="showTab('{{ modal_id }}-protocols')">
+                        <i class="fas fa-exchange-alt"></i> Protocols & Ciphers
+                    </button>
+                    <button class="tab-button" onclick="showTab('{{ modal_id }}-headers')">
+                        <i class="fas fa-shield-alt"></i> Security Headers
+                    </button>
+                </div>
+
+                {# Overview Tab #}
+                <div id="{{ modal_id }}-overview" class="tab-content active">
+                    <!-- Security Assessment -->
+                    {% if results_data.security_assessment is defined %}
+                        <div class="card">
+                            {# Display connectivity error banner if present #}
+                            {% if results_data.connectivity_error is defined and results_data.connectivity_error %}
+                                <div class="error-banner p-4 mb-4 bg-red-100 border-l-4 border-red-500 text-red-700">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-2"></i>
+                                        <strong>Connection Error:</strong>
+                                        <span class="ml-2">{{ results_data.error_message|default('Could not connect to server') }}</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="card-header">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span>Security Assessment</span>
+                            </div>
+                            <div class="card-body">
+                                {% set rating = results_data.security_assessment.rating|default('unknown') %}
+                                <div class="text-center mb-3">
+                                    <div class="rating-badge rating-{{ rating|lower }}">
+                                        <i class="fas fa-{% if rating == 'excellent' %}star{% elif rating == 'good' %}check-circle{% elif rating in ['moderate', 'fair'] %}exclamation-triangle{% else %}times-circle{% endif %} me-2"></i>
+                                        Rating: {{ rating|title }}
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-center mb-2">
+                                        <strong>Issues
+                                            found: {{ results_data.security_assessment.issues_count|default(0) }}</strong>
+                                    </div>
+
+                                    {% if results_data.security_assessment.issues|default([]) %}
+                                        <div class="issues-list">
+                                            {% for issue in results_data.security_assessment.issues %}
+                                                <div class="issue-item">
+                                                    <i class="fas fa-exclamation-circle text-danger me-2"></i>
+                                                    <span>{{ issue }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <div class="d-flex justify-content-center">
+                                            <div class="issue-item good">
+                                                <i class="fas fa-check-circle text-success me-2"></i>
+                                                <span>No security issues detected</span>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Status Grid (Certificate and Protocol) -->
+                    <div class="status-grid">
+                        <!-- Certificate Status -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-certificate me-2"></i>
+                                <span>Certificate Status</span>
+                            </div>
+                            {% if results_data.certificate is defined %}
+                                <div class="card-body">
+                                    <ul class="status-list">
+                                        {% set is_valid = results_data.certificate.is_valid|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if is_valid %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                            <strong>Valid Certificate:</strong>
+                                            <span>{{ 'Yes' if is_valid else 'No' }}</span>
+                                        </li>
+
+                                        {% set chain_valid = results_data.certificate.chain_valid|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if chain_valid %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                            <strong>Valid Chain:</strong>
+                                            <span>{{ 'Yes' if chain_valid else 'No' }}</span>
+                                        </li>
+
+                                        {% set is_self_signed = results_data.certificate.is_self_signed|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if not is_self_signed %}check-circle text-success{% else %}exclamation-triangle text-danger{% endif %} me-2"></i>
+                                            <strong>Self-signed:</strong>
+                                            <span>{{ 'No' if not is_self_signed else 'Yes' }}</span>
+                                        </li>
+
+                                        {% set days_until_expiry = results_data.certificate.days_until_expiry|default(0) %}
+                                        {% if days_until_expiry %}
+                                            <li class="status-item">
+                                                <i class="fas fa-{% if days_until_expiry > 30 %}check-circle text-success{% elif days_until_expiry > 7 %}exclamation-triangle text-warning{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                                <strong>Expires in:</strong>
+                                                <span>{{ days_until_expiry }} days</span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% else %}
+                                <div class="card-body">
+                                    <div class="error-message">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Certificate information not available</span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Protocol Security -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                <span>Protocol Security</span>
+                            </div>
+                            <div class="card-body">
+                                {% if results_data.protocol_support is defined %}
+                                    <ul class="status-list">
+                                        {% set has_secure = results_data.protocol_support.has_secure_protocols|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if has_secure %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                            <strong>Secure Protocols:</strong>
+                                            <span>{{ 'Yes' if has_secure else 'No' }}</span>
+                                        </li>
+
+                                        {% set has_insecure = results_data.protocol_support.has_insecure_protocols|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if not has_insecure %}check-circle text-success{% else %}exclamation-triangle text-danger{% endif %} me-2"></i>
+                                            <strong>Insecure Protocols:</strong>
+                                            <span>{{ 'No' if not has_insecure else 'Yes' }}</span>
+                                        </li>
+
+                                        {% if results_data.ciphers is defined %}
+                                            {% set has_strong = results_data.ciphers.has_strong_ciphers|default(false) %}
+                                            <li class="status-item">
+                                                <i class="fas fa-{% if has_strong %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                                <strong>Strong Ciphers:</strong>
+                                                <span>{{ 'Yes' if has_strong else 'No' }}</span>
+                                            </li>
+
+                                            {% set has_weak = results_data.ciphers.has_weak_ciphers|default(false) %}
+                                            <li class="status-item">
+                                                <i class="fas fa-{% if not has_weak %}check-circle text-success{% else %}exclamation-triangle text-danger{% endif %} me-2"></i>
+                                                <strong>Weak Ciphers:</strong>
+                                                <span>{{ 'No' if not has_weak else 'Yes' }}</span>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                {% else %}
+                                    <div class="error-message">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <span>Protocol information not available</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HSTS Configuration -->
+                    {% if results_data.hsts is defined %}
+                        <div class="card">
+                            <div class="card-header collapsible" onclick="toggleCollapse(this)">
+                                <i class="fas fa-chevron-up me-2"></i>
+                                <span>HSTS Configuration</span>
+                            </div>
+                            <div class="card-body">
+                                <ul class="status-list">
+                                    {% set hsts_enabled = results_data.hsts.enabled|default(false) %}
+                                    <li class="status-item">
+                                        <i class="fas fa-{% if hsts_enabled %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                        <strong>HSTS Enabled:</strong>
+                                        <span>{{ 'Yes' if hsts_enabled else 'No' }}</span>
+                                    </li>
+
+                                    {% if hsts_enabled %}
+                                        {% set max_age_good = results_data.hsts.max_age >= 15768000 %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if max_age_good %}check-circle text-success{% else %}exclamation-triangle text-warning{% endif %} me-2"></i>
+                                            <strong>Max Age:</strong>
+                                            <span>{{ results_data.hsts.max_age }} seconds ({{ (results_data.hsts.max_age / 86400)|round }} days)</span>
+                                        </li>
+
+                                        {% set includes_subs = results_data.hsts.include_subdomains|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if includes_subs %}check-circle text-success{% else %}exclamation-triangle text-warning{% endif %} me-2"></i>
+                                            <strong>Include Subdomains:</strong>
+                                            <span>{{ 'Yes' if includes_subs else 'No' }}</span>
+                                        </li>
+
+                                        {% set preload = results_data.hsts.preload|default(false) %}
+                                        <li class="status-item">
+                                            <i class="fas fa-{% if preload %}check-circle text-success{% else %}info-circle text-info{% endif %} me-2"></i>
+                                            <strong>Preload:</strong>
+                                            <span>{{ 'Yes' if preload else 'No' }}</span>
+                                        </li>
+
+                                        {% if results_data.hsts.header_value %}
+                                            <li class="status-item header-value">
+                                                <strong>Header Value:</strong>
+                                                <code class="ms-2">{{ results_data.hsts.header_value }}</code>
+                                            </li>
+                                        {% endif %}
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Certificate Tab #}
+                <div id="{{ modal_id }}-certificate"
+                     class="tab-content{% if active_tab == 'certificate' %} active{% endif %}">
+                    <div class="section-header-main">
+                        <h3>Certificate Details</h3>
+                        {% if results_data.certificate is defined and results_data.certificate.is_valid|default(false) %}
+                            <span class="status-tag valid">
+                            <i class="fas fa-check-circle"></i> Valid
+                        </span>
+                        {% else %}
+                            <span class="status-tag invalid">
+                            <i class="fas fa-times-circle"></i> Invalid
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if results_data.connectivity_error|default(false) %}
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Certificate information not available due to connection issues</span>
+                        </div>
+                    {% elif results_data.certificate is defined %}
+                        <!-- Subject & Validity Section -->
+                        <div class="certificate-section">
+                            <div class="section-header">
+                                <i class="fas fa-id-card"></i>
+                                <span>Subject & Validity</span>
+                            </div>
+                            <div class="section-content">
+                                <div class="certificate-row">
+                                    <div class="key">Subject:</div>
+                                    <div class="value">{{ results_data.certificate.subject|default('Unknown') }}</div>
+                                </div>
+                                <div class="certificate-row">
+                                    <div class="key">Issuer:</div>
+                                    <div class="value">{{ results_data.certificate.issuer|default('Unknown') }}</div>
+                                </div>
+                                <div class="certificate-row">
+                                    <div class="key">Valid From:</div>
+                                    <div class="value">{{ results_data.certificate.valid_from|default('Unknown') }}</div>
+                                </div>
+                                <div class="certificate-row">
+                                    <div class="key">Valid Until:</div>
+                                    <div class="value">{{ results_data.certificate.valid_until|default('Unknown') }}</div>
+                                </div>
+                                {% if results_data.certificate.days_until_expiry %}
+                                    <div class="certificate-row">
+                                        {% set days_until_expiry = results_data.certificate.days_until_expiry|default(0) %}
+                                        <div class="key with-icon">
+                                            <i class="fas fa-{% if days_until_expiry > 30 %}check-circle text-success{% elif days_until_expiry > 7 %}exclamation-triangle text-warning{% else %}times-circle text-danger{% endif %}"></i>
+                                            Days Until Expiry:
+                                        </div>
+                                        <div class="value">{{ days_until_expiry }} days</div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Key Information Section -->
+                        {% if results_data.certificate.key_info is defined %}
+                            <div class="certificate-section">
+                                <div class="section-header">
+                                    <i class="fas fa-key"></i>
+                                    <span>Key Information</span>
+                                </div>
+                                <div class="section-content">
+                                    <div class="certificate-row">
+                                        <div class="key">Key Type:</div>
+                                        <div class="value">{{ results_data.certificate.key_info.type|default('Unknown') }}</div>
+                                    </div>
+                                    <div class="certificate-row">
+                                        <div class="key">Key Length:</div>
+                                        <div class="value">{{ results_data.certificate.key_info.length|default('Unknown') }}
+                                            bits
+                                        </div>
+                                    </div>
+                                    <div class="certificate-row">
+                                        {% set key_secure = results_data.certificate.key_info.secure|default(false) %}
+                                        <div class="key with-icon">
+                                            <i class="fas fa-{% if key_secure %}check-circle text-success{% else %}times-circle text-danger{% endif %}"></i>
+                                            Key Security:
+                                        </div>
+                                        <div class="value">{{ 'Secure' if key_secure else 'Insecure' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if results_data.certificate.signature_algorithm is defined %}
+                            <!-- Signature Algorithm Section -->
+                            <div class="certificate-section">
+                                <div class="section-header">
+                                    <i class="fas fa-signature"></i>
+                                    <span>Signature Algorithm</span>
+                                </div>
+                                <div class="section-content">
+                                    <div class="certificate-row">
+                                        <div class="key">Algorithm:</div>
+                                        <div class="value">{{ results_data.certificate.signature_algorithm.name|default('Unknown') }}</div>
+                                    </div>
+                                    <div class="certificate-row">
+                                        {% set sig_strong = results_data.certificate.signature_algorithm.security|default('') == 'strong' %}
+                                        <div class="key with-icon">
+                                            <i class="fas fa-{% if sig_strong %}check-circle text-success{% else %}times-circle text-danger{% endif %}"></i>
+                                            Security:
+                                        </div>
+                                        <div class="value">{{ results_data.certificate.signature_algorithm.security|default('Unknown')|title }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Subject Alternative Names Section -->
+                        {% if results_data.certificate.subject_alternative_names is defined %}
+                            <div class="certificate-section">
+                                <div class="section-header">
+                                    <i class="fas fa-globe-americas"></i>
+                                    <span>Subject Alternative Names</span>
+                                </div>
+                                <div class="section-content">
+                                    <div class="certificate-row">
+                                        {% set contains_domain = results_data.certificate.subject_alternative_names.contains_domain|default(false) %}
+                                        <div class="key with-icon">
+                                            <i class="fas fa-{% if sig_strong %}check-circle text-success{% else %}times-circle text-danger{% endif %}"></i>
+                                            Contains Domain:
+                                        </div>
+                                        <div class="value">{{ 'Yes' if contains_domain else 'No' }}</div>
+                                    </div>
+
+                                    {% if results_data.certificate.subject_alternative_names.names|default([]) %}
+                                        <div class="dns-names-container">
+                                            <div class="key">Names:</div>
+                                            <div class="dns-names-list">
+                                                {% for name in results_data.certificate.subject_alternative_names.names %}
+                                                    <div class="dns-name">{{ name }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Certificate Chain Section -->
+                        {% if results_data.certificate.chain_info|default([]) %}
+                            <div class="certificate-section">
+                                <div class="section-header">
+                                    <i class="fas fa-link"></i>
+                                    <span>Certificate Chain</span>
+                                </div>
+                                <div class="section-content cert-chain">
+                                    {% for cert in results_data.certificate.chain_info %}
+                                        <div class="cert-item">
+                                            <div class="cert-subject">
+                                                <i class="fas fa-certificate"></i>
+                                                {% if loop.first %}
+                                                    {{ cert.subject }}
+                                                {% else %}
+                                                    {{ cert.subject }}
+                                                {% endif %}
+                                            </div>
+
+                                            <div class="cert-details">
+                                                <div class="cert-details-left">
+                                                    <div class="certificate-row">
+                                                        <div class="key">Issuer:</div>
+                                                        <div class="value">{{ cert.issuer }}</div>
+                                                    </div>
+                                                    <div class="certificate-row">
+                                                        <div class="key">Key:</div>
+                                                        <div class="value">{{ cert.key_type }} ({{ cert.key_length }}
+                                                            bits)
+                                                        </div>
+                                                    </div>
+                                                    <div class="certificate-row">
+                                                        <div class="key">Signature:</div>
+                                                        <div class="value">{{ cert.signature_algorithm }}</div>
+                                                    </div>
+                                                    <div class="certificate-row">
+                                                        {% set sig_secure = cert.signature_security|default('') == 'strong' %}
+                                                        <div class="key with-icon">
+                                                            <i class="fas fa-{% if sig_secure %}check-circle text-success{% else %}times-circle text-danger{% endif %}"></i>
+                                                            Security:
+                                                        </div>
+                                                        <div class="value">{{ cert.signature_security|default('Unknown')|title }}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="cert-details-right">
+                                                    <div class="certificate-row">
+                                                        <div class="key">Valid From:</div>
+                                                        <div class="value">{{ cert.valid_from }}</div>
+                                                    </div>
+                                                    <div class="certificate-row">
+                                                        <div class="key">Valid Until:</div>
+                                                        <div class="value">{{ cert.valid_until }}</div>
+                                                    </div>
+                                                    <div class="certificate-row">
+                                                        <div class="key">Serial:</div>
+                                                        <div class="value serial-value">{{ cert.serial_number }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {% if not loop.last %}
+                                            <div class="chain-connector">
+                                                <i class="fas fa-arrow-down"></i>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Certificate information not available
+                                {% if results_data.certificate is defined and results_data.certificate.validation_error is defined %}
+                                    :
+                                    {{ results_data.certificate.validation_error }}{% endif %}</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Protocols & Ciphers Tab #}
+                <div id="{{ modal_id }}-protocols" class="tab-content">
+                    {% if results_data.connectivity_error|default(false) %}
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Protocol and cipher information not available due to connection issues</span>
+                        </div>
+                    {% else %}
+                        {# Protocol Support Section #}
+                        <div class="summary-section">
+                            <div class="section-header">
+                                <i class="fas fa-exchange-alt"></i>
+                                Protocol Support
+                            </div>
+                            {% if results_data.protocol_support is defined and results_data.protocol_support.protocols %}
+                                <div class="summary-content">
+                                    <table class="details-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Protocol</th>
+                                            <th>Status</th>
+                                            <th>Security</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for protocol in results_data.protocol_support.protocols %}
+                                            <tr>
+                                                <td>{{ protocol.name }}</td>
+                                                <td>
+                                                    {% if protocol.supported %}
+                                                        <i class="fas fa-check-circle {% if protocol.secure %}status-valid{% else %}status-not-valid{% endif %}"></i>
+                                                        Supported
+                                                    {% else %}
+                                                        <i class="fas fa-times-circle {% if not protocol.secure %}status-valid{% else %}status-not-valid{% endif %}"></i>
+                                                        Not Supported
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if protocol.secure %}
+                                                        <i class="fas fa-shield-alt status-valid"></i> Secure
+                                                    {% else %}
+                                                        <i class="fas fa-exclamation-triangle status-not-valid"></i>
+                                                        Insecure
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                </div>
+                            {% else %}
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>No protocol information available</span>
+                                </div>
+                            {% endif %}
+
+                        {# Cipher Suites Section #}
+                        <div class="summary-section">
+                            <div class="section-header">
+                                <i class="fas fa-lock"></i>
+                                Cipher Suites
+                            </div>
+                            {% if results_data.ciphers is defined and results_data.ciphers.by_protocol %}
+                                <div class="summary-content">
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <i class="fas fa-{% if results_data.ciphers.has_strong_ciphers|default(false) %}check-circle status-valid{% else %}times-circle status-not-valid{% endif %} me-2"></i>
+                                        <strong>Strong
+                                            Ciphers:</strong> {{ 'Yes' if results_data.ciphers.has_strong_ciphers|default(false) else 'No' }}
+                                    </div>
+                                    <div class="flex items-center gap-2 mb-4">
+                                        <i class="fas fa-{% if not results_data.ciphers.has_weak_ciphers|default(false) %}check-circle status-valid{% else %}exclamation-triangle status-not-valid{% endif %} me-2"></i>
+                                        <strong>Weak
+                                            Ciphers:</strong> {{ 'No' if not results_data.ciphers.has_weak_ciphers|default(false) else 'Yes' }}
+                                    </div>
+
+                                    {% for protocol, ciphers in results_data.ciphers.by_protocol.items() %}
+                                        {% if ciphers|length > 0 %}
+                                            <div class="record-card mb-4">
+                                                <div class="record-card-header collapsible"
+                                                     onclick="toggleCollapse(this)">
+                                                    <i class="fas fa-exchange-alt"></i>
+                                                    <span>{{ protocol }} Ciphers ({{ ciphers|length }})</span>
+                                                    <i class="fas fa-chevron-down collapse-icon"></i>
+                                                </div>
+                                                <div class="record-card-body">
+                                                    <table class="details-table">
+                                                        <thead>
+                                                        <tr>
+                                                            <th>Cipher</th>
+                                                            <th>Bits</th>
+                                                            <th>Strength</th>
+                                                        </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                        {% for cipher in ciphers %}
+                                                            <tr>
+                                                                <td class="monospace">{{ cipher.name }}</td>
+                                                                <td>{{ cipher.bits }}</td>
+                                                                <td>
+                                                            <span class="status-badge {{ 'status-valid' if cipher.strength == 'strong' else 'status-not-valid' }}">
+                                                                <i class="fas fa-{% if cipher.strength == 'strong' %}shield-alt{% else %}exclamation-triangle{% endif %}"></i>
+                                                                {{ cipher.strength|title }}
+                                                            </span>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                </div>
+                            {% else %}
+                                <div class="error-message">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>No cipher information available</span>
+                                </div>
+                            {% endif %}
+                    {% endif %}
+                </div>
+
+
+                {# Security Headers Tab #}
+                <div id="{{ modal_id }}-headers" class="tab-content{% if active_tab == 'headers' %} active{% endif %}">
+                    <div class="summary-section">
+                        <div class="section-header">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Security Headers</span>
+                        </div>
+
+                        {% if results_data.security_headers is defined and not results_data.connectivity_error|default(false) %}
+                            <div class="summary-content">
+                                <table class="details-table">
+                                <colgroup>
+                                    <col style="width: 25%"> <!-- Header column -->
+                                    <col style="width: 10%"> <!-- Status column -->
+                                    <col style="width: 65%"> <!-- Value column -->
+                                </colgroup>
+                                    <thead>
+                                    <tr>
+                                        <th><i class="fas fa-tag"></i> Header</th>
+                                        <th><i class="fas fa-info-circle"></i> Status</th>
+                                        <th><i class="fas fa-list-ul"></i> Value</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <!-- Content-Security-Policy -->
+                                    <tr>
+                                        <td>
+                                            <div class="component-header">
+                                                <i class="fas fa-shield-alt"></i>
+                                                <span>content-security-policy</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="status-indicator">
+                                    <span class="status-badge {{ 'status-valid' if results_data.security_headers.content_security_policy else 'status-invalid' }}">
+                                        <i class="fas fa-{{ 'check-circle' if results_data.security_headers.content_security_policy else 'times-circle' }}"></i>
+                                        {{ 'Present' if results_data.security_headers.content_security_policy else 'Missing' }}
+                                    </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if results_data.security_headers.content_security_policy %}
+                                                <div class="record-details">
+                                                    <div class="code-wrap">{{ results_data.security_headers.content_security_policy }}</div>
+                                                </div>
+                                            {% else %}
+                                                <span class="not-set">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- X-Content-Type-Options -->
+                                    <tr>
+                                        <td>
+                                            <div class="component-header">
+                                                <i class="fas fa-file-code"></i>
+                                                <span>x-content-type-options</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="status-indicator">
+                                    <span class="status-badge {{ 'status-valid' if results_data.security_headers.x_content_type_options else 'status-invalid' }}">
+                                        <i class="fas fa-{{ 'check-circle' if results_data.security_headers.x_content_type_options else 'times-circle' }}"></i>
+                                        {{ 'Present' if results_data.security_headers.x_content_type_options else 'Missing' }}
+                                    </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if results_data.security_headers.x_content_type_options %}
+                                                <div class="record-details">
+                                                    <span>{{ results_data.security_headers.x_content_type_options }}</span>
+                                                </div>
+                                            {% else %}
+                                                <span class="not-set">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- X-Frame-Options -->
+                                    <tr>
+                                        <td>
+                                            <div class="component-header">
+                                                <i class="fas fa-window-maximize"></i>
+                                                <span>x-frame-options</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="status-indicator">
+                                    <span class="status-badge {{ 'status-valid' if results_data.security_headers.x_frame_options else 'status-invalid' }}">
+                                        <i class="fas fa-{{ 'check-circle' if results_data.security_headers.x_frame_options else 'times-circle' }}"></i>
+                                        {{ 'Present' if results_data.security_headers.x_frame_options else 'Missing' }}
+                                    </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if results_data.security_headers.x_frame_options %}
+                                                <div class="record-details">
+                                                    <span>{{ results_data.security_headers.x_frame_options }}</span>
+                                                </div>
+                                            {% else %}
+                                                <span class="not-set">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- Referrer-Policy -->
+                                    <tr>
+                                        <td>
+                                            <div class="component-header">
+                                                <i class="fas fa-external-link-alt"></i>
+                                                <span>referrer-policy</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="status-indicator">
+                                    <span class="status-badge {{ 'status-valid' if results_data.security_headers.referrer_policy else 'status-invalid' }}">
+                                        <i class="fas fa-{{ 'check-circle' if results_data.security_headers.referrer_policy else 'times-circle' }}"></i>
+                                        {{ 'Present' if results_data.security_headers.referrer_policy else 'Missing' }}
+                                    </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if results_data.security_headers.referrer_policy %}
+                                                <div class="record-details">
+                                                    <span>{{ results_data.security_headers.referrer_policy }}</span>
+                                                </div>
+                                            {% else %}
+                                                <span class="not-set">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- Strict-Transport-Security (HSTS) -->
+                                    <tr>
+                                        <td>
+                                            <div class="component-header">
+                                                <i class="fas fa-lock"></i>
+                                                <span>strict-transport-security</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="status-indicator">
+                                    <span class="status-badge {{ 'status-valid' if results_data.hsts is defined and results_data.hsts.enabled|default(false) else 'status-invalid' }}">
+                                        <i class="fas fa-{{ 'check-circle' if results_data.hsts is defined and results_data.hsts.enabled|default(false) else 'times-circle' }}"></i>
+                                        {{ 'Present' if results_data.hsts is defined and results_data.hsts.enabled|default(false) else 'Missing' }}
+                                    </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if results_data.hsts is defined and results_data.hsts.enabled|default(false) and results_data.hsts.header_value %}
+                                                <div class="record-details">
+                                                    <span>{{ results_data.hsts.header_value }}</span>
+                                                </div>
+                                            {% else %}
+                                                <span class="not-set">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- X-XSS-Protection -->
+                                    {% if results_data.security_headers.x_xss_protection is defined %}
+                                        <tr>
+                                            <td>
+                                                <div class="component-header">
+                                                    <i class="fas fa-user-shield"></i>
+                                                    <span>x-xss-protection</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="status-indicator">
+                                        <span class="status-badge {{ 'status-valid' if results_data.security_headers.x_xss_protection else 'status-invalid' }}">
+                                            <i class="fas fa-{{ 'check-circle' if results_data.security_headers.x_xss_protection else 'times-circle' }}"></i>
+                                            {{ 'Present' if results_data.security_headers.x_xss_protection else 'Missing' }}
+                                        </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if results_data.security_headers.x_xss_protection %}
+                                                    <div class="record-details">
+                                                        <span>{{ results_data.security_headers.x_xss_protection }}</span>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="not-set">N/A</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+
+                                    <!-- Permissions-Policy -->
+                                    {% if results_data.security_headers.permissions_policy is defined %}
+                                        <tr>
+                                            <td>
+                                                <div class="component-header">
+                                                    <i class="fas fa-sliders-h"></i>
+                                                    <span>permissions-policy</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="status-indicator">
+                                        <span class="status-badge {{ 'status-valid' if results_data.security_headers.permissions_policy else 'status-invalid' }}">
+                                            <i class="fas fa-{{ 'check-circle' if results_data.security_headers.permissions_policy else 'times-circle' }}"></i>
+                                            {{ 'Present' if results_data.security_headers.permissions_policy else 'Missing' }}
+                                        </span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if results_data.security_headers.permissions_policy %}
+                                                    <div class="record-details">
+                                                        <div class="code-wrap">{{ results_data.security_headers.permissions_policy }}</div>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="not-set">N/A</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                    </tbody>
+                                </table>
+
+                                <div class="headers-info-box">
+                                    <div class="info-icon">
+                                        <i class="fas fa-info-circle"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <p>Security headers help protect your site against common web vulnerabilities
+                                            such as
+                                            XSS, clickjacking, and other attacks. Missing headers may impact your site's
+                                            security posture.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="error-message">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Security header information not available
+                                    {% if results_data.connectivity_error|default(false) %} due to connection
+                                        issues{% endif %}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% endmacro %}

@@ -3,7 +3,8 @@
     <th>
         <div class="header-with-tooltip">
             {{ header_text }}
-            <span class="info-icon" onmouseover="showTooltip('{{ tooltip_id }}')" onmouseout="hideTooltip('{{ tooltip_id }}')">
+            <span class="info-icon" onmouseover="showTooltip('{{ tooltip_id }}')"
+                  onmouseout="hideTooltip('{{ tooltip_id }}')">
                 <i class="fas fa-info-circle"></i>
                 <div id="{{ tooltip_id }}" class="tooltip-content">
                     {% if tooltip_type == 'rpki-tooltip' %}
@@ -30,14 +31,35 @@
                             <li>Verifies DNS responses come from legitimate sources</li>
                             <li>Provides a chain of trust from the root zone to subdomains</li>
                         </ul>
+                    {% elif tooltip_type == 'dnssec-security-tooltip' %}
+                        <h4>DNSSEC Security Assessment</h4>
+                        <p>In-depth security analysis of DNSSEC implementation beyond basic compliance.</p>
+                        <ul>
+                            <li><strong>Secure:</strong> No vulnerabilities detected</li>
+                            <li><strong>Low/Medium:</strong> Minor to moderate security issues</li>
+                            <li><strong>High/Critical:</strong> Serious vulnerabilities that require immediate attention</li>
+                        </ul>
+                        <p>This assessment evaluates NSEC3 parameters, key material strength, signature timing, and cryptographic implementation.</p>
                     {% elif tooltip_type == 'email-security-tooltip' %}
                         <h4>Email Security Standards</h4>
                         <p>A combination of protocols that protect email from spoofing and phishing.</p>
                         <ul>
                             <li><strong>SPF:</strong> Specifies which servers can send email from your domain</li>
-                            <li><strong>DKIM:</strong> Digitally signs emails to verify they haven't been tampered with</li>
+                            <li><strong>DKIM:</strong> Digitally signs emails to verify they haven't been tampered with.</li>
                             <li><strong>DMARC:</strong> Policies for handling emails that fail SPF or DKIM checks</li>
                         </ul>
+                    {% elif tooltip_type == 'web-security-tooltip' %}
+                        <h4>WEB Security</h4>
+                        <p>Transport Layer Security (TLS) is a protocol that ensures privacy between communicating applications and their users on the Internet.</p>
+                        <p>This check evaluates:</p>
+                        <ul>
+                            <li><strong>Certificate validity</strong> - Is the SSL/TLS certificate valid and from a trusted authority?</li>
+                            <li><strong>Protocol security</strong> - Are only secure TLS versions supported?</li>
+                            <li><strong>Cipher strength</strong> - Are strong encryption ciphers used?</li>
+                            <li><strong>Security headers</strong> - Are essential security HTTP headers implemented?</li>
+                            <li><strong>HSTS</strong> - Is HTTP Strict Transport Security properly configured?</li>
+                        </ul>
+                        <p>The overall rating summarizes the security posture of the site's TLS implementation.</p>
                     {% endif %}
                 </div>
             </span>
