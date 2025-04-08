@@ -1560,18 +1560,24 @@ tr[data-show="false"] {
 }
 
 .status-item.header-value {
-  flex-direction: column;
-  align-items: flex-start;
+  display: block; /* Override the grid display */
+  padding-left: 24px; /* Maintain alignment with other items */
+}
+
+.status-item.header-value strong {
+  display: block; /* Make the label take full width */
+  margin-bottom: 0.5rem;
 }
 
 .status-item.header-value code {
+  display: block;
   margin-top: 0.5rem;
   padding: 0.5rem;
   background-color: #f8f9fa;
   border-radius: 4px;
   font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.875rem;
-  width: 100%;
+  width: 90%;
   overflow-x: auto;
   white-space: nowrap;
 }
