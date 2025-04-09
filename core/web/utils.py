@@ -15,8 +15,11 @@ def build_security_assessment(
     hsts_info: Optional[HSTSInfo] = None,
     headers_info: Optional[SecurityHeadersInfo] = None,
 ) -> Dict[str, Any]:
-    """Build security assessment based on checks."""
+    """Build security assessment based on checks with weighted scoring."""
     security_issues = []
+    critical_issues = []
+    major_issues = []
+    minor_issues = []
 
     if hasattr(cert_result, "connection_error") and cert_result.connection_error:
         return {
@@ -33,81 +36,134 @@ def build_security_assessment(
         r.protocol_name for r in protocol_results if r.supported and not r.secure
     ]
 
-    if insecure_protocols:
-        security_issues.append("Insecure protocols supported")
-
     if not secure_protocols:
-        security_issues.append("No secure protocols supported")
+        issue = "No secure protocols supported"
+        critical_issues.append(issue)
+        security_issues.append(issue)
+    elif insecure_protocols:
+        issue = "Insecure protocols supported"
+        critical_issues.append(issue)
+        security_issues.append(issue)
 
     if has_weak_ciphers:
-        security_issues.append("Weak cipher suites supported")
+        issue = "Weak cipher suites supported"
+        major_issues.append(issue)
+        security_issues.append(issue)
 
     if cert_result.is_expired:
-        security_issues.append("Certificate expired")
+        issue = "Certificate expired"
+        critical_issues.append(issue)
+        security_issues.append(issue)
     elif (
         cert_result.days_until_expiry is not None and cert_result.days_until_expiry < 30
     ):
-        security_issues.append(
-            f"Certificate expiring soon ({cert_result.days_until_expiry} days)"
-        )
+        issue = f"Certificate expiring soon ({cert_result.days_until_expiry} days)"
+        major_issues.append(issue)
+        security_issues.append(issue)
 
     if cert_result.is_self_signed:
-        security_issues.append("Self-signed certificate")
+        issue = "Self-signed certificate"
+        critical_issues.append(issue)
+        security_issues.append(issue)
 
     if not cert_result.chain_trusted and cert_result.chain_error:
-        security_issues.append("Untrusted certificate chain")
+        issue = "Untrusted certificate chain"
+        critical_issues.append(issue)
+        security_issues.append(issue)
 
     if cert_result.key_info and not cert_result.key_info.secure:
-        security_issues.append(
-            f"Weak key size ({cert_result.key_info.length} bits for {cert_result.key_info.type})"
-        )
+        issue = f"Weak key size ({cert_result.key_info.length} bits for {cert_result.key_info.type})"
+        critical_issues.append(issue)
+        security_issues.append(issue)
 
     if (
         cert_result.signature_algorithm
         and cert_result.signature_algorithm.security == SignatureAlgorithmSecurity.WEAK
     ):
-        security_issues.append(
-            f"Weak signature algorithm ({cert_result.signature_algorithm.name})"
-        )
+        issue = f"Weak signature algorithm ({cert_result.signature_algorithm.name})"
+        critical_issues.append(issue)
+        security_issues.append(issue)
 
     if (
         cert_result.subject_alternative_names
         and not cert_result.subject_alternative_names.contains_domain
     ):
-        security_issues.append("Domain not found in Subject Alternative Names")
+        issue = "Domain not found in Subject Alternative Names"
+        major_issues.append(issue)
+        security_issues.append(issue)
 
     if hsts_info:
         if not hsts_info.enabled:
-            security_issues.append("HSTS not enabled")
-        elif hsts_info.max_age < 15768000:  # 6 months in seconds
-            security_issues.append(
-                f"HSTS max-age too short ({hsts_info.max_age} seconds, should be at least 6 months)"
-            )
-        elif not hsts_info.include_subdomains:
-            security_issues.append("HSTS missing includeSubDomains directive")
+            issue = "HSTS not enabled"
+            major_issues.append(issue)
+            security_issues.append(issue)
+        else:
+            if hsts_info.max_age < 15768000:  # 6 months in seconds
+                issue = f"HSTS max-age too short ({hsts_info.max_age} seconds, should be at least 6 months)"
+                minor_issues.append(issue)
+                security_issues.append(issue)
+            if not hsts_info.include_subdomains:
+                issue = "HSTS missing includeSubDomains directive"
+                minor_issues.append(issue)
+                security_issues.append(issue)
 
     if headers_info:
+        missing_headers = []
         if not headers_info.content_type_options:
-            security_issues.append("Missing X-Content-Type-Options header")
+            missing_headers.append("X-Content-Type-Options")
         if not headers_info.frame_options:
-            security_issues.append("Missing X-Frame-Options header")
+            missing_headers.append("X-Frame-Options")
         if not headers_info.content_security_policy:
-            security_issues.append("Missing Content-Security-Policy header")
+            missing_headers.append("Content-Security-Policy")
         if not headers_info.referrer_policy:
-            security_issues.append("Missing Referrer-Policy header")
+            missing_headers.append("Referrer-Policy")
+
+        if missing_headers:
+            if len(missing_headers) >= 3:
+                issue = (
+                    f"Multiple security headers missing: {', '.join(missing_headers)}"
+                )
+                major_issues.append(issue)
+            else:
+                issue = f"Some security headers missing: {', '.join(missing_headers)}"
+                minor_issues.append(issue)
+            security_issues.append(issue)
 
     if not security_issues:
         rating = "excellent"
-    elif len(security_issues) <= 1:
-        rating = "good"
-    elif len(security_issues) <= 3:
-        rating = "fair"
+    elif not critical_issues:
+        if not major_issues:
+            rating = "good"
+        elif len(major_issues) <= 2:
+            rating = "fair"  # 1-2 major issues but fundamentals are solid
+        else:
+            rating = "moderate"  # Several major issues
     else:
+        if len(critical_issues) >= 1 or len(major_issues) >= 2:
+            rating = "poor"
+        else:
+            rating = "moderate"
+
+    cert_protocol_critical = any(
+        issue in critical_issues
+        for issue in [
+            "No secure protocols supported",
+            "Certificate expired",
+            "Self-signed certificate",
+            "Untrusted certificate chain",
+            "Weak key size",
+        ]
+    )
+
+    if cert_protocol_critical:
         rating = "poor"
 
     return {
         "issues": security_issues,
         "issues_count": len(security_issues),
+        "critical_issues_count": len(critical_issues),
+        "major_issues_count": len(major_issues),
+        "minor_issues_count": len(minor_issues),
         "rating": rating,
         "connectivity_error": False,
     }
