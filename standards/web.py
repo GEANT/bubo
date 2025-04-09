@@ -19,7 +19,7 @@ from datetime import datetime
 from core.tls.protocols import check_protocol, process_protocol_results
 from core.tls.certificates import check_certificate
 from core.tls.ciphers import check_cipher, process_cipher_results
-from core.web.utils import build_security_assessment
+from core.web.utils import build_security_assessment, resolve_domain
 from core.web.http_security import run_http_security_checks, build_http_security_dicts
 
 logger = setup_logger(__name__)
@@ -155,51 +155,81 @@ async def run(
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Run comprehensive TLS security checks on the specified domain and port.
-
-    Args:
-        domain: Target domain to check
-        port: Port number (default: 443)
-        config: Configuration options for checks (default: None, uses defaults)
-
-    Returns:
-        Tuple of (results_dict, state_dict) where:
-        - results_dict: Detailed results with domain as key
-        - state_dict: Summary state information with domain as key
+    Will try with www. prefix if the original domain fails to connect.
     """
     if config is None:
         config = TLSCheckConfig()
 
-    logger.debug(f"Processing Web security checks for {domain}:{port}")
+    logger.info(f"Processing Web security checks for {domain}")
 
     results = {}
     state = {domain: {}}
 
     try:
-        processed_results, supported_protocols = await run_protocol_checks(
-            domain, port, config
+        cert_result, resolved_domain = await resolve_domain(
+            domain, port, check_certificate, domain, port, config
         )
-
-        cert_result = await check_certificate(domain, port, config)
-
-        hsts_info, headers_info = await run_http_security_checks(domain, port, config)
 
         if hasattr(cert_result, "connection_error") and cert_result.connection_error:
-            state[domain]["connectivity_error"] = True
-            state[domain]["connectivity_error_message"] = cert_result.validation_error
-            cipher_strength = {}
-            ciphers_by_protocol = {}
-        else:
-            ciphers_by_protocol, cipher_strength = await run_cipher_checks(
-                domain, port, supported_protocols, config
+            logger.error(
+                f"Certificate check failed for all domain variations of {domain}:{port}"
             )
+            processed_results = []
+            supported_protocols = []
+            ciphers_by_protocol = {}
+            cipher_strength = {}
+            hsts_info = None
+            headers_info = None
+        else:
+            try:
+                processed_results, supported_protocols = await run_protocol_checks(
+                    resolved_domain, port, config
+                )
+
+                try:
+                    hsts_info, headers_info = await run_http_security_checks(
+                        resolved_domain, port, config
+                    )
+                except Exception as http_error:
+                    logger.error(f"HTTP security checks failed: {http_error}")
+                    hsts_info = None
+                    headers_info = None
+
+                try:
+                    ciphers_by_protocol, cipher_strength = await run_cipher_checks(
+                        resolved_domain, port, supported_protocols, config
+                    )
+                except Exception as cipher_error:
+                    logger.error(f"Cipher checks failed: {cipher_error}")
+                    ciphers_by_protocol = {}
+                    cipher_strength = {}
+
+            except Exception as e:
+                logger.error(f"Protocol checks failed: {e}")
+                processed_results = []
+                supported_protocols = []
+                ciphers_by_protocol = {}
+                cipher_strength = {}
+                hsts_info = None
+                headers_info = None
 
         cert_dict = build_certificate_dict(cert_result)
-        secure_protocols, insecure_protocols = extract_protocol_status(
-            processed_results
-        )
-        protocol_dict = build_protocol_dict(
-            processed_results, secure_protocols, insecure_protocols
-        )
+
+        if processed_results:
+            secure_protocols, insecure_protocols = extract_protocol_status(
+                processed_results
+            )
+            protocol_dict = build_protocol_dict(
+                processed_results, secure_protocols, insecure_protocols
+            )
+        else:
+            protocol_dict = {
+                "protocols": [],
+                "has_insecure_protocols": False,
+                "has_secure_protocols": False,
+                "insecure_protocols": [],
+                "secure_protocols": [],
+            }
 
         if hasattr(cert_result, "connection_error") and cert_result.connection_error:
             cipher_dict = {
@@ -212,12 +242,15 @@ async def run(
         else:
             cipher_dict = build_cipher_dict(ciphers_by_protocol, cipher_strength)
 
-        hsts_dict, headers_dict = build_http_security_dicts(hsts_info, headers_info)
+        if hsts_info is not None and headers_info is not None:
+            hsts_dict, headers_dict = build_http_security_dicts(hsts_info, headers_info)
+        else:
+            hsts_dict, headers_dict = None, None
 
         security_assessment = build_security_assessment(
-            processed_results,
+            processed_results if processed_results else [],
             cert_result,
-            bool(cipher_strength.get("weak")),
+            bool(cipher_strength.get("weak")) if cipher_strength else False,
             hsts_info,
             headers_info,
         )
@@ -229,6 +262,9 @@ async def run(
             "security_assessment": security_assessment,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
+
+        if resolved_domain != domain:
+            domain_results["resolved_domain"] = resolved_domain
 
         if hasattr(cert_result, "connection_error") and cert_result.connection_error:
             domain_results["connectivity_error"] = True
@@ -253,6 +289,9 @@ async def run(
             "issues_count": security_assessment["issues_count"],
             "uses_secure_protocols": protocol_dict["has_secure_protocols"],
         }
+
+        if resolved_domain != domain:
+            state[domain]["resolved_domain"] = resolved_domain
 
         if hasattr(cert_result, "connection_error") and cert_result.connection_error:
             state[domain]["connectivity_error"] = True

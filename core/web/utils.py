@@ -2,6 +2,10 @@ from typing import List, Dict, Any, Optional
 from core.tls.models import TLSProtocolResult, CertificateResult
 from core.web.models import HSTSInfo, SecurityHeadersInfo
 from core.tls.models import SignatureAlgorithmSecurity
+from core.logging.logger import setup_logger
+
+
+logger = setup_logger(__name__)
 
 
 def build_security_assessment(
@@ -128,3 +132,54 @@ def parse_security_header(headers, header_name, default=None):
         if name.lower() == header_name.lower():
             return value
     return default
+
+
+async def resolve_domain(domain: str, port: int, check_func, *args, **kwargs):
+    """
+    Try to execute a check function with the original domain, then with www-prefixed version if needed.
+
+    Args:
+        domain: The domain to check
+        port: The port to connect to
+        check_func: The async function to execute
+        *args, **kwargs: Additional arguments to pass to check_func
+
+    Returns:
+        Tuple of (result, resolved_domain)
+    """
+    domains_to_try = [domain]
+
+    if not domain.startswith("www."):
+        domains_to_try.append(f"www.{domain}")
+
+    last_result = None
+
+    for current_domain in domains_to_try:
+        try:
+            new_args = (
+                (current_domain, port) + args[2:]
+                if len(args) > 2
+                else (current_domain, port)
+            )
+            result = await check_func(*new_args, **kwargs)
+
+            if hasattr(result, "connection_error") and result.connection_error:
+                logger.warning(
+                    f"Connection error for {current_domain}:{port}, will try next domain"
+                )
+                last_result = result
+                continue
+
+            logger.debug(f"Check succeeded for {current_domain}:{port}")
+            return result, current_domain
+
+        except Exception as e:
+            logger.warning(f"Check failed for {current_domain}:{port}: {e}")
+            last_result = e
+
+    if isinstance(last_result, Exception):
+        logger.error(f"All domain variations failed for {domain}:{port}: {last_result}")
+        raise last_result
+    else:
+        logger.error(f"All domain variations had connection errors for {domain}:{port}")
+        return last_result, domain
