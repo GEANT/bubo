@@ -239,10 +239,11 @@
                                         </li>
 
                                         {% if results_data.hsts.header_value %}
-                                            <li class="status-item header-value">
+                                            <div class="records-section">
                                                 <strong>Header Value:</strong>
-                                                <code class="ms-2">{{ results_data.hsts.header_value }}</code>
-                                            </li>
+                                                <code class="monospace dkim-record">{{ results_data.hsts.header_value }}</code>
+                                            </div>
+
                                         {% endif %}
                                     {% endif %}
                                 </ul>
@@ -613,11 +614,11 @@
                         {% if results_data.security_headers is defined and not results_data.connectivity_error|default(false) %}
                             <div class="summary-content">
                                 <table class="details-table">
-                                <colgroup>
-                                    <col style="width: 25%"> <!-- Header column -->
-                                    <col style="width: 10%"> <!-- Status column -->
-                                    <col style="width: 65%"> <!-- Value column -->
-                                </colgroup>
+                                    <colgroup>
+                                        <col style="width: 25%"> <!-- Header column -->
+                                        <col style="width: 10%"> <!-- Status column -->
+                                        <col style="width: 65%"> <!-- Value column -->
+                                    </colgroup>
                                     <thead>
                                     <tr>
                                         <th><i class="fas fa-tag"></i> Header</th>
