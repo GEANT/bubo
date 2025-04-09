@@ -172,43 +172,49 @@ async def run(
 
     try:
         results = {domain: {}}
+        state = {domain: {}}
 
-        # Process different server types concurrently
-        ns_task = process_servers(domain, domain_ns, 443, "domain_ns")
-        mx_task = process_servers(domain, domain_mx, 25, "domain_mx")
-        mail_ns_task = process_servers(
-            domain,
-            [ns for sublist in mail_ns for ns in sublist] if mail_ns else [],
-            443,
-            "mailserver_ns",
-        )
+        tasks = {}
 
-        ns_results, mx_results, mail_ns_results = await asyncio.gather(
-            ns_task, mx_task, mail_ns_task
-        )
+        if domain_ns:
+            tasks["domain_ns"] = process_servers(domain, domain_ns, 443, "domain_ns")
 
-        # Always include all server types in results
-        results[domain]["domain_ns"] = ns_results
-        results[domain]["domain_mx"] = mx_results
-        results[domain]["mailserver_ns"] = mail_ns_results
+        if domain_mx:
+            tasks["domain_mx"] = process_servers(domain, domain_mx, 25, "domain_mx")
 
-        # Set state based on validation results with more detailed status
-        state = {
-            domain: {
-                "Mail Server of Domain": get_state_value(mx_results),
-                "Nameserver of Domain": get_state_value(ns_results),
-                "Nameserver of Mail Server": get_state_value(mail_ns_results),
-            }
-        }
+        mail_servers = [ns for sublist in mail_ns for ns in sublist] if mail_ns else []
+        if mail_servers:
+            tasks["mailserver_ns"] = process_servers(
+                domain, mail_servers, 443, "mailserver_ns"
+            )
+
+        task_results = {}
+        for task_name, task in tasks.items():
+            task_results[task_name] = await task
+
+        for server_type, result in task_results.items():
+            if result:
+                results[domain][server_type] = result
+                state_label = {
+                    "domain_ns": "Nameserver of Domain",
+                    "domain_mx": "Mail Server of Domain",
+                    "mailserver_ns": "Nameserver of Mail Server",
+                }.get(server_type)
+
+                if state_label:
+                    state[domain][state_label] = get_state_value(result)
 
         return results, state
 
     except Exception as e:
         logger.error(f"Error in DANE validation for {domain}: {e}")
-        return {domain: {"domain_ns": {}, "domain_mx": {}, "mailserver_ns": {}}}, {
-            domain: {
-                "Mail Server of Domain": "not-valid",
-                "Nameserver of Domain": "not-valid",
-                "Nameserver of Mail Server": "not-valid",
-            }
-        }
+        error_state = {domain: {}}
+        for server_type in results.get(domain, {}):
+            if server_type == "domain_ns":
+                error_state[domain]["Nameserver of Domain"] = "not-valid"
+            elif server_type == "domain_mx":
+                error_state[domain]["Mail Server of Domain"] = "not-valid"
+            elif server_type == "mailserver_ns":
+                error_state[domain]["Nameserver of Mail Server"] = "not-valid"
+
+        return results, error_state
