@@ -179,12 +179,21 @@
 
 
 {% if 'WEB_SECURITY' in validations %}
-    <td class="text-center">
-        {% set web_security_modal_id = tab_id ~ '-web-security-' ~ domain|replace('.', '-') %}
-        <button class="status-button" onclick="openModal('{{ web_security_modal_id }}')">
-                <i class="fas fa-lock status-icon {{ 'status-valid' if validations.WEB_SECURITY.state[domain].cert_valid and validations.WEB_SECURITY.state[domain].tls_secure else 'status-not-valid' }}"></i>
-                Details
-        </button>
-        {{ web_security_modal(web_security_modal_id, domain, validations.WEB_SECURITY.results[domain]) }}
-    </td>
+<td class="text-center">
+    {% set web_security_modal_id = tab_id ~ '-web-security-' ~ domain|replace('.', '-') %}
+    <button class="status-button" onclick="openModal('{{ web_security_modal_id }}')">
+        {% set security_status_class %}
+        {% if validations.WEB_SECURITY.state[domain].rating in ['excellent', 'good'] %}
+            status-valid
+        {% elif validations.WEB_SECURITY.state[domain].rating in ['fair', 'moderate'] %}
+            status-partially-valid
+        {% else %}
+            status-not-valid
+        {% endif %}
+        {% endset %}
+        <i class="fas fa-lock status-icon {{ security_status_class }}"></i>
+        Details
+    </button>
+    {{ web_security_modal(web_security_modal_id, domain, validations.WEB_SECURITY.results[domain]) }}
+</td>
 {% endif %}
