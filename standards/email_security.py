@@ -349,6 +349,12 @@ async def run(domain: str) -> Tuple[Dict, Dict]:
     results = {}
     state = {}
 
+    state[domain] = {
+        "SPF": "not-valid",
+        "DKIM": "not-valid",
+        "DMARC": "not-valid",
+    }
+
     logger.info(f"Running email security checks for {domain}")
 
     try:
@@ -367,17 +373,29 @@ async def run(domain: str) -> Tuple[Dict, Dict]:
         }
 
         dkim_key_status = "not-valid"
-        if dkim_results["valid"]:
+        if dkim_results.get("valid", False):
             strength = dkim_results.get("overall_key_strength")
             if strength == "vulnerable":
                 dkim_key_status = "critically-weak-key"
             elif strength in ["acceptable", "strong", "future-proof"]:
                 dkim_key_status = "valid"
 
+        spf_state = "not-valid"
+        if spf_results.get("valid", False):
+            spf_state = "valid"
+        elif spf_results.get("has_spf", False) or "record" in spf_results:
+            spf_state = "partially-valid"
+
+        dmarc_state = "not-valid"
+        if dmarc_results.get("valid", False):
+            dmarc_state = "valid"
+        elif dmarc_results.get("record_exists", False):
+            dmarc_state = "partially-valid"
+
         state[domain] = {
-            "SPF": "valid" if spf_results["valid"] else "not-valid",
+            "SPF": spf_state,
             "DKIM": dkim_key_status,
-            "DMARC": "valid" if dmarc_results["valid"] else "not-valid",
+            "DMARC": dmarc_state,
         }
 
     except Exception as e:
