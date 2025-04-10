@@ -419,9 +419,9 @@ async def test_run_with_invalid_checks():
 
         results, state = await run("example.com")
 
-        assert state["example.com"]["SPF"] == "not-valid"
+        assert state["example.com"]["SPF"] == "partially-valid"
         assert state["example.com"]["DKIM"] == "not-valid"
-        assert state["example.com"]["DMARC"] == "not-valid"
+        assert state["example.com"]["DMARC"] == "partially-valid"
 
 
 @pytest.mark.asyncio
@@ -433,8 +433,13 @@ async def test_run_exception():
         results, state = await run("example.com")
 
         assert results == {}
-        assert state == {}
-
+        assert state == {
+            "example.com": {
+                "SPF": "not-valid",
+                "DKIM": "not-valid",
+                "DMARC": "not-valid"
+            }
+        }
 
 @pytest.mark.asyncio
 async def test_get_txt_records_exception_without_record_type():
