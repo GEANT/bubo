@@ -437,9 +437,10 @@ async def test_run_exception():
             "example.com": {
                 "SPF": "not-valid",
                 "DKIM": "not-valid",
-                "DMARC": "not-valid"
+                "DMARC": "not-valid",
             }
         }
+
 
 @pytest.mark.asyncio
 async def test_get_txt_records_exception_without_record_type():
