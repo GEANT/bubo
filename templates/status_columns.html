@@ -185,7 +185,7 @@
         {% set security_status_class %}
         {% if validations.WEB_SECURITY.state[domain].rating in ['excellent', 'good'] %}
             status-valid
-        {% elif validations.WEB_SECURITY.state[domain].rating in ['fair', 'moderate'] %}
+        {% elif validations.WEB_SECURITY.state[domain].rating in ['fair'] %}
             status-partially-valid
         {% else %}
             status-not-valid
