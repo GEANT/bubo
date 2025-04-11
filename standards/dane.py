@@ -73,22 +73,6 @@ async def validate_tlsa_hash(
                 )
                 output = stdout.decode()
 
-                base_dir = os.path.abspath(
-                    os.path.join(os.path.dirname(__file__), "..")
-                )
-                output_dir = os.path.join(
-                    base_dir,
-                    "results",
-                    datetime.now().strftime("%Y-%m-%d"),
-                    "dane_results",
-                )
-                os.makedirs(output_dir, exist_ok=True)
-
-                async with aiofiles.open(
-                    f"{output_dir}/dane_output_{server}_{port}.txt", "w"
-                ) as f:
-                    await f.write(f"Command: {' '.join(command)}\nOutput:\n{output}")
-
                 return "Verification: OK" in output
 
             except asyncio.TimeoutError:
