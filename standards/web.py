@@ -279,15 +279,25 @@ async def run(
         results[domain] = domain_results
 
         state[domain] = {
-            "tls_secure": False
-            if security_assessment.get("connectivity_error", False)
-            else security_assessment["issues_count"] == 0,
+            "tls_secure": (
+                not getattr(cert_result, "connection_error", False)
+                and cert_result.is_valid
+                and not cert_result.is_expired
+                and protocol_dict.get("has_secure_protocols", False)
+                and not protocol_dict.get("has_insecure_protocols", False)
+                and (
+                    not hasattr(cert_result, "chain_trusted")
+                    or cert_result.chain_trusted
+                )
+                and not bool(cipher_strength.get("weak", False))
+                and not cert_result.is_self_signed
+            ),
             "rating": security_assessment["rating"],
             "cert_valid": not getattr(cert_result, "connection_error", False)
             and cert_result.is_valid
             and not cert_result.is_expired,
             "issues_count": security_assessment["issues_count"],
-            "uses_secure_protocols": protocol_dict["has_secure_protocols"],
+            "uses_secure_protocols": protocol_dict.get("has_secure_protocols", False),
         }
 
         if resolved_domain != domain:
