@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional
+from enum import Enum
 
 
 @dataclass
@@ -21,3 +22,13 @@ class SecurityHeadersInfo:
     frame_options: Optional[str] = None
     content_security_policy: Optional[str] = None
     referrer_policy: Optional[str] = None
+
+
+class SecurityRating(Enum):
+    """Security rating levels."""
+
+    EXCELLENT = "excellent"
+    GOOD = "good"
+    FAIR = "fair"
+    POOR = "poor"
+    UNKNOWN = "unknown"
