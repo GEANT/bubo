@@ -4,32 +4,49 @@ from core.web.headers import check_security_headers
 from core.tls.models import TLSCheckConfig
 from core.web.models import HSTSInfo, SecurityHeadersInfo
 from core.web.hsts import check_hsts
+from core.web.http_client import fetch_headers
 
 
 async def run_http_security_checks(
     domain: str, port: int, config: TLSCheckConfig
 ) -> Tuple[Optional[HSTSInfo], Optional[SecurityHeadersInfo]]:
-    """Run HSTS and security headers checks if configured."""
-    http_tasks = []
+    """Run HSTS and security headers checks with a single HTTP request"""
+    hsts_info = None
+    headers_info = None
 
-    if config.check_hsts:
-        http_tasks.append(
-            asyncio.create_task(check_hsts(domain, port, config.timeout_connect))
-        )
-    else:
-        http_tasks.append(None)
+    if config.check_hsts or config.check_security_headers:
+        response_headers = await fetch_headers(domain, port, config.timeout_connect)
 
-    if config.check_security_headers:
-        http_tasks.append(
-            asyncio.create_task(
-                check_security_headers(domain, port, config.timeout_connect)
-            )
-        )
-    else:
-        http_tasks.append(None)
+        if response_headers:
+            tasks = []
 
-    hsts_info = await http_tasks[0] if http_tasks[0] else None
-    headers_info = await http_tasks[1] if http_tasks[1] else None
+            if config.check_hsts:
+                tasks.append(
+                    asyncio.create_task(
+                        check_hsts(
+                            domain, port, config.timeout_connect, response_headers
+                        )
+                    )
+                )
+
+            if config.check_security_headers:
+                tasks.append(
+                    asyncio.create_task(
+                        check_security_headers(
+                            domain, port, config.timeout_connect, response_headers
+                        )
+                    )
+                )
+
+            results = await asyncio.gather(*tasks)
+
+            result_index = 0
+            if config.check_hsts:
+                hsts_info = results[result_index]
+                result_index += 1
+
+            if config.check_security_headers:
+                headers_info = results[result_index]
 
     return hsts_info, headers_info
 
