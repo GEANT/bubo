@@ -115,10 +115,12 @@ def build_security_assessment(
                     minor_issues,
                     security_issues,
                 )
-            if not hsts_info.preload:
-                _add_issue(
-                    "HSTS missing preload directive", minor_issues, security_issues
-                )
+
+            # It depends on the domain functionality, and is not recommended to enforce on all domains, so we don't need to consider it as an issue.
+            # if not hsts_info.preload:
+            #     _add_issue(
+            #         "HSTS missing preload directive", minor_issues, security_issues
+            #     )
 
     if headers_info:
         missing_headers = _get_missing_headers(headers_info)
@@ -197,6 +199,8 @@ def _determine_rating(
     total_issues = num_critical + num_major + num_minor
 
     if total_issues == 0:
+        return SecurityRating.EXCELLENT.value
+    elif num_critical == 0 and num_major == 0 and num_minor <= 2:
         return SecurityRating.EXCELLENT.value
     elif num_critical > 0:
         return SecurityRating.POOR.value
