@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 from core.tls.models import TLSProtocolResult, CertificateResult
-from core.web.models import HSTSInfo, SecurityHeadersInfo
+from core.web.models import HSTSInfo, SecurityHeadersInfo, SecurityRating
 from core.tls.models import SignatureAlgorithmSecurity
 from core.logging.logger import setup_logger
 
@@ -15,7 +15,15 @@ def build_security_assessment(
     hsts_info: Optional[HSTSInfo] = None,
     headers_info: Optional[SecurityHeadersInfo] = None,
 ) -> Dict[str, Any]:
-    """Build security assessment based on checks with weighted scoring."""
+    """
+    Build security assessment based on checks with weighted scoring.
+
+    Categorizes issues into critical, major, and minor categories and
+    assigns a rating based on the severity and number of issues found.
+
+    Returns a dictionary with assessment details including issues list,
+    counts by severity, and an overall security rating.
+    """
     security_issues = []
     critical_issues = []
     major_issues = []
@@ -25,7 +33,7 @@ def build_security_assessment(
         return {
             "issues": ["Cannot assess security due to connection issues"],
             "issues_count": 1,
-            "rating": "unknown",
+            "rating": SecurityRating.UNKNOWN.value,
             "connectivity_error": True,
         }
 
@@ -37,126 +45,99 @@ def build_security_assessment(
     ]
 
     if not secure_protocols:
-        issue = "No secure protocols supported"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue("No secure protocols supported", critical_issues, security_issues)
     elif insecure_protocols:
-        issue = "Insecure protocols supported"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        if len(secure_protocols) == 0:
+            _add_issue("Insecure protocols supported", critical_issues, security_issues)
+        else:
+            _add_issue("Insecure protocols supported", major_issues, security_issues)
 
     if has_weak_ciphers:
-        issue = "Weak cipher suites supported"
-        major_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue("Weak cipher suites supported", major_issues, security_issues)
 
     if cert_result.is_expired:
-        issue = "Certificate expired"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue("Certificate expired", critical_issues, security_issues)
     elif (
         cert_result.days_until_expiry is not None and cert_result.days_until_expiry < 30
     ):
-        issue = f"Certificate expiring soon ({cert_result.days_until_expiry} days)"
-        major_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue(
+            f"Certificate expiring soon ({cert_result.days_until_expiry} day(s))",
+            major_issues,
+            security_issues,
+        )
 
     if cert_result.is_self_signed:
-        issue = "Self-signed certificate"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue("Self-signed certificate", critical_issues, security_issues)
 
     if not cert_result.chain_trusted and cert_result.chain_error:
-        issue = "Untrusted certificate chain"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue("Untrusted certificate chain", critical_issues, security_issues)
 
     if cert_result.key_info and not cert_result.key_info.secure:
-        issue = f"Weak key size ({cert_result.key_info.length} bits for {cert_result.key_info.type})"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue(
+            f"Weak key size ({cert_result.key_info.length} bits for {cert_result.key_info.type})",
+            critical_issues,
+            security_issues,
+        )
 
     if (
         cert_result.signature_algorithm
         and cert_result.signature_algorithm.security == SignatureAlgorithmSecurity.WEAK
     ):
-        issue = f"Weak signature algorithm ({cert_result.signature_algorithm.name})"
-        critical_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue(
+            f"Weak signature algorithm ({cert_result.signature_algorithm.name})",
+            critical_issues,
+            security_issues,
+        )
 
     if (
         cert_result.subject_alternative_names
         and not cert_result.subject_alternative_names.contains_domain
     ):
-        issue = "Domain not found in Subject Alternative Names"
-        major_issues.append(issue)
-        security_issues.append(issue)
+        _add_issue(
+            "Domain not found in Subject Alternative Names",
+            major_issues,
+            security_issues,
+        )
 
     if hsts_info:
         if not hsts_info.enabled:
-            issue = "HSTS not enabled"
-            major_issues.append(issue)
-            security_issues.append(issue)
+            _add_issue("HSTS not enabled", major_issues, security_issues)
         else:
-            if hsts_info.max_age < 15768000:  # 6 months in seconds
-                issue = f"HSTS max-age too short ({hsts_info.max_age} seconds, should be at least 6 months)"
-                minor_issues.append(issue)
-                security_issues.append(issue)
+            if hsts_info.max_age < 31536000:
+                _add_issue(
+                    f"HSTS max-age too short ({hsts_info.max_age} seconds, should be at least 1 year = 31536000)",
+                    minor_issues,
+                    security_issues,
+                )
             if not hsts_info.include_subdomains:
-                issue = "HSTS missing includeSubDomains directive"
-                minor_issues.append(issue)
-                security_issues.append(issue)
+                _add_issue(
+                    "HSTS missing includeSubDomains directive",
+                    minor_issues,
+                    security_issues,
+                )
+            if not hsts_info.preload:
+                _add_issue(
+                    "HSTS missing preload directive", minor_issues, security_issues
+                )
 
     if headers_info:
-        missing_headers = []
-        if not headers_info.content_type_options:
-            missing_headers.append("X-Content-Type-Options")
-        if not headers_info.frame_options:
-            missing_headers.append("X-Frame-Options")
-        if not headers_info.content_security_policy:
-            missing_headers.append("Content-Security-Policy")
-        if not headers_info.referrer_policy:
-            missing_headers.append("Referrer-Policy")
+        missing_headers = _get_missing_headers(headers_info)
 
         if missing_headers:
             if len(missing_headers) >= 3:
-                issue = (
-                    f"Multiple security headers missing: {', '.join(missing_headers)}"
+                _add_issue(
+                    f"Multiple security headers missing: {', '.join(missing_headers)}",
+                    major_issues,
+                    security_issues,
                 )
-                major_issues.append(issue)
             else:
-                issue = f"Some security headers missing: {', '.join(missing_headers)}"
-                minor_issues.append(issue)
-            security_issues.append(issue)
+                _add_issue(
+                    f"Some security headers missing: {', '.join(missing_headers)}",
+                    minor_issues,
+                    security_issues,
+                )
 
-    if not security_issues:
-        rating = "excellent"
-    elif not critical_issues:
-        if not major_issues:
-            rating = "good"
-        elif len(major_issues) <= 2:
-            rating = "fair"  # 1-2 major issues but fundamentals are solid
-        else:
-            rating = "moderate"  # Several major issues
-    else:
-        if len(critical_issues) >= 1 or len(major_issues) >= 2:
-            rating = "poor"
-        else:
-            rating = "moderate"
-
-    cert_protocol_critical = any(
-        issue in critical_issues
-        for issue in [
-            "No secure protocols supported",
-            "Certificate expired",
-            "Self-signed certificate",
-            "Untrusted certificate chain",
-            "Weak key size",
-        ]
-    )
-
-    if cert_protocol_critical:
-        rating = "poor"
+    rating = _determine_rating(critical_issues, major_issues, minor_issues)
 
     return {
         "issues": security_issues,
@@ -167,6 +148,64 @@ def build_security_assessment(
         "rating": rating,
         "connectivity_error": False,
     }
+
+
+def _add_issue(issue: str, category_list: List[str], main_list: List[str]) -> None:
+    """Helper to add an issue to both a category list and the main issues list."""
+    category_list.append(issue)
+    main_list.append(issue)
+
+
+def _get_missing_headers(headers_info: SecurityHeadersInfo) -> List[str]:
+    """Helper to collect missing security headers."""
+    missing = []
+    if not headers_info.content_type_options:
+        missing.append("X-Content-Type-Options")
+    if not headers_info.frame_options:
+        missing.append("X-Frame-Options")
+    if not headers_info.content_security_policy:
+        missing.append("Content-Security-Policy")
+    if not headers_info.referrer_policy:
+        missing.append("Referrer-Policy")
+    return missing
+
+
+def _determine_rating(
+    critical_issues: List[str], major_issues: List[str], minor_issues: List[str]
+) -> str:
+    """
+    Determine security rating based on the number and severity of issues.
+
+    Rating logic:
+    - EXCELLENT: No issues of any kind
+    - GOOD: No critical issues, at most 2 major issues, and at most 3 minor issues,
+            with a combined total of no more than 3 issues
+    - FAIR: No critical issues, at most 3 major issues, and at most 5 total issues
+    - POOR: Any critical issues, or too many major/minor issues
+
+    Args:
+        critical_issues: List of critical security issues
+        major_issues: List of major security issues
+        minor_issues: List of minor security issues
+
+    Returns:
+        str: The security rating value from the SecurityRating enum
+    """
+    num_critical = len(critical_issues)
+    num_major = len(major_issues)
+    num_minor = len(minor_issues)
+    total_issues = num_critical + num_major + num_minor
+
+    if total_issues == 0:
+        return SecurityRating.EXCELLENT.value
+    elif num_critical > 0:
+        return SecurityRating.POOR.value
+    elif num_major > 3 or total_issues > 5:
+        return SecurityRating.POOR.value
+    elif num_major > 2 or total_issues > 3:
+        return SecurityRating.FAIR.value
+    else:
+        return SecurityRating.GOOD.value
 
 
 def parse_security_header(headers, header_name, default=None):
