@@ -15,6 +15,71 @@
         {% else %}Unknown{% endif %}
     {% endmacro %}
 
+    {# Calculate status for each tab based on validation results #}
+    {% set certificate_status = 'valid' %}
+    {% set protocols_status = 'valid' %}
+    {% set headers_status = 'valid' %}
+
+    {% if results_data.connectivity_error is defined and results_data.connectivity_error %}
+        {% set certificate_status = 'not-valid' %}
+        {% set protocols_status = 'not-valid' %}
+        {% set headers_status = 'not-valid' %}
+    {% endif %}
+
+    {# Certificate status calculation #}
+    {% if results_data.certificate is defined %}
+        {% if not results_data.certificate.is_valid or results_data.certificate.is_self_signed or results_data.certificate.is_expired %}
+            {% set certificate_status = 'not-valid' %}
+        {% elif not results_data.certificate.chain_valid or results_data.certificate.days_until_expiry < 30 %}
+            {% set certificate_status = 'partially-valid' %}
+        {% endif %}
+    {% else %}
+        {% set certificate_status = 'not-valid' %}
+    {% endif %}
+
+    {# Protocols status calculation #}
+    {% if results_data.protocol_support is defined %}
+        {% if results_data.protocol_support.has_insecure_protocols %}
+            {% if results_data.protocol_support.has_secure_protocols %}
+                {% set protocols_status = 'partially-valid' %}
+            {% else %}
+                {% set protocols_status = 'not-valid' %}
+            {% endif %}
+        {% elif results_data.ciphers is defined and results_data.ciphers.has_weak_ciphers %}
+            {% set protocols_status = 'partially-valid' %}
+        {% endif %}
+    {% else %}
+        {% set protocols_status = 'not-valid' %}
+    {% endif %}
+
+    {# Headers status calculation #}
+    {% if results_data.security_headers is defined %}
+        {% set csp_valid = results_data.security_headers.content_security_policy is defined and results_data.security_headers.content_security_policy %}
+        {% set xcto_valid = results_data.security_headers.x_content_type_options is defined and results_data.security_headers.x_content_type_options %}
+        {% set xfo_valid = results_data.security_headers.x_frame_options is defined and results_data.security_headers.x_frame_options %}
+        {% set hsts_valid = results_data.hsts is defined and results_data.hsts.enabled == true %}
+
+        {# Calculate total count of valid headers #}
+        {% set valid_headers_count = 0 %}
+        {% if csp_valid %}{% set valid_headers_count = valid_headers_count + 1 %}{% endif %}
+        {% if xcto_valid %}{% set valid_headers_count = valid_headers_count + 1 %}{% endif %}
+        {% if xfo_valid %}{% set valid_headers_count = valid_headers_count + 1 %}{% endif %}
+        {% if hsts_valid %}{% set valid_headers_count = valid_headers_count + 1 %}{% endif %}
+
+        {% set total_possible_headers = 4 %}
+
+        {% if valid_headers_count == 0 %}
+            {% set headers_status = 'not-valid' %}
+        {% elif valid_headers_count < total_possible_headers %}
+            {% set headers_status = 'partially-valid' %}
+        {% else %}
+            {% set headers_status = 'valid' %}
+        {% endif %}
+    {% else %}
+        {% set headers_status = 'not-valid' %}
+    {% endif %}
+
+
     <div id="{{ modal_id }}" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeModal('{{ modal_id }}')">&times;</span>
@@ -33,12 +98,15 @@
                     </button>
                     <button class="tab-button" onclick="showTab('{{ modal_id }}-certificate')">
                         <i class="fas fa-certificate"></i> Certificate
+                        <i class="fas fa-{% if certificate_status == 'valid' %}check-circle status-valid{% elif certificate_status == 'partially-valid' %}exclamation-triangle status-partially-valid{% else %}times-circle status-not-valid{% endif %}"></i>
                     </button>
                     <button class="tab-button" onclick="showTab('{{ modal_id }}-protocols')">
                         <i class="fas fa-exchange-alt"></i> Protocols & Ciphers
+                        <i class="fas fa-{% if protocols_status == 'valid' %}check-circle status-valid{% elif protocols_status == 'partially-valid' %}exclamation-triangle status-partially-valid{% else %}times-circle status-not-valid{% endif %}"></i>
                     </button>
                     <button class="tab-button" onclick="showTab('{{ modal_id }}-headers')">
                         <i class="fas fa-shield-alt"></i> Security Headers
+                        <i class="fas fa-{% if headers_status == 'valid' %}check-circle status-valid{% elif headers_status == 'partially-valid' %}exclamation-triangle status-partially-valid{% else %}times-circle status-not-valid{% endif %}"></i>
                     </button>
                 </div>
 
@@ -252,6 +320,7 @@
                     {% endif %}
                 </div>
 
+                {# The rest of the content remains the same... #}
                 {# Certificate Tab #}
                 <div id="{{ modal_id }}-certificate"
                      class="tab-content{% if active_tab == 'certificate' %} active{% endif %}">
