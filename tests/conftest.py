@@ -1,9 +1,12 @@
 # tests/conftest.py
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from core.cache_manager.cache_manager import DomainResultsCache
 from datetime import datetime
+from core.tls.models import (
+    TLSCheckConfig,
+)
 
 
 @pytest.fixture
@@ -246,3 +249,171 @@ def mock_dane_valid():
         return None
 
     return setup_mock
+
+
+@pytest.fixture
+def mock_successful_openssl_response():
+    """Return a mock successful OpenSSL response."""
+    return (
+        """
+    New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384
+    Server public key is 2048 bit
+    Secure Renegotiation IS supported
+    Compression: NONE
+    Expansion: NONE
+    No ALPN negotiated
+    SSL-Session:
+        Protocol  : TLSv1.2
+        Cipher    : ECDHE-RSA-AES256-GCM-SHA384
+        Session-ID: 5F7C...
+        Master-Key: 8F3A...
+        PSK identity: None
+        PSK identity hint: None
+        SRP username: None
+        TLS session ticket lifetime hint: 300 (seconds)
+        TLS session ticket:
+        Start Time: 1622541234
+        Timeout   : 300 (sec)
+        Verify return code: 0 (ok)
+    """,
+        0,
+    )
+
+
+@pytest.fixture
+def mock_failed_openssl_response():
+    """Return a mock failed OpenSSL response."""
+    return (
+        """
+    140736010562752:error:1409E0E5:SSL routines:ssl3_write_bytes:ssl handshake failure:../ssl/record/rec_layer_s3.c:1543:
+    no peer certificate available
+    No client certificate CA names sent
+    SSL handshake has read 0 bytes and written 0 bytes
+    New, (NONE), Cipher is (NONE)
+    Secure Renegotiation IS NOT supported
+    """,
+        1,
+    )
+
+
+@pytest.fixture
+def mock_async_openssl_command():
+    """Create a properly configured AsyncMock for openssl command."""
+    async_mock = AsyncMock()
+    async_mock.return_value = ("Mock OpenSSL Output", 0)
+    return async_mock
+
+
+@pytest.fixture
+def mock_tls_check_config():
+    """Return a mock TLS check configuration."""
+
+    return TLSCheckConfig(
+        use_openssl=True,
+        timeout_connect=10,
+        timeout_command=10,
+        command_retries=2,
+        check_ciphers=True,
+        check_certificate=True,
+        verify_chain=True,
+        check_key_info=True,
+        check_signature_algorithm=True,
+        check_hsts=True,
+        check_san=True,
+        check_security_headers=True,
+    )
+
+
+@pytest.fixture
+def mock_cipher_result_factory():
+    """Return a factory for creating CipherResult objects with proper enum handling."""
+    from core.tls.models import CipherResult, CipherStrength
+
+    def _create_cipher_result(name, protocol, strength_val, bits=None):
+        # Convert string strength to enum if needed
+        if isinstance(strength_val, str):
+            for strength in CipherStrength:
+                if strength.value == strength_val:
+                    strength_val = strength
+                    break
+
+        return CipherResult(
+            name=name, protocol=protocol, strength=strength_val, bits=bits
+        )
+
+    return _create_cipher_result
+
+
+@pytest.fixture
+def mock_openssl_utils():
+    """Mock the OpenSSL utility functions properly for async testing."""
+    has_openssl_mock = MagicMock(return_value=True)
+    run_openssl_mock = AsyncMock()
+    run_openssl_mock.return_value = ("Mock OpenSSL Output", 0)
+
+    extract_cipher_info_mock = MagicMock(
+        return_value={
+            "name": "ECDHE-RSA-AES256-GCM-SHA384",
+            "protocol": "TLSv1.2",
+            "strength": "strong",
+            "bits": 256,
+        }
+    )
+
+    with (
+        patch("core.tls.utils.has_openssl", has_openssl_mock),
+        patch("core.tls.utils.run_openssl_command", run_openssl_mock),
+        patch("core.tls.utils.extract_cipher_info", extract_cipher_info_mock),
+    ):
+        yield has_openssl_mock, run_openssl_mock, extract_cipher_info_mock
+
+
+@pytest.fixture
+def mock_openssl_output_tls1_0():
+    """Sample OpenSSL output for TLSv1.0."""
+    return """
+    SSL-Session:
+        Protocol  : TLSv1
+        Cipher    : ECDHE-RSA-AES256-SHA
+        Session-ID: 
+        ...
+    New, TLSv1.0, Cipher is ECDHE-RSA-AES256-SHA
+    """
+
+
+@pytest.fixture
+def mock_openssl_output_tls1_2():
+    """Sample OpenSSL output for TLSv1.2."""
+    return """
+    SSL-Session:
+        Protocol  : TLSv1.2
+        Cipher    : ECDHE-RSA-AES256-GCM-SHA384
+        Session-ID: 
+        ...
+    New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384
+    Server public key is 2048 bit
+    """
+
+
+@pytest.fixture
+def mock_openssl_output_tls1_3():
+    """Sample OpenSSL output for TLSv1.3."""
+    return """
+    SSL-Session:
+        Protocol  : TLSv1.3
+        Cipher    : TLS_AES_256_GCM_SHA384
+        Session-ID: 
+        ...
+    New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+    Server public key is 4096 bit
+    """
+
+
+@pytest.fixture
+def mock_openssl_output_failed():
+    """Sample OpenSSL output for failed connection."""
+    return """
+    140736010562752:error:1409E0E5:SSL routines:ssl3_write_bytes:ssl handshake failure:../ssl/record/rec_layer_s3.c:1543:
+    no peer certificate available
+    No client certificate CA names sent
+    """
