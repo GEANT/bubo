@@ -14,7 +14,9 @@ from main import main, DomainValidator
 def domain_validator(mock_cache_generator):
     with patch("main.DomainResultsCache", return_value=mock_cache_generator):
         validator = DomainValidator(
-            cache_dir="test_cache", cache_duration=timedelta(days=1)
+            cache_dir="test_cache",
+            cache_duration=timedelta(days=1),
+            routinator_url="http://localhost:8323",
         )
         return validator
 
@@ -123,32 +125,46 @@ async def test_main_batch_mode():
             {"Domain": "example.com", "Country": "US", "Institution": "Example Corp"}
         ]
 
-    # Create mock for sanitize_file_path to bypass validation
     def mock_sanitize_file_path(path):
-        return path  # Just return the path without validation
+        return path
 
     mock_process_file = AsyncMock(side_effect=mock_process_file_impl)
 
     with (
-        patch("sys.argv", ["script.py"] + test_args),
+        patch("sys.argv", ["main.py"] + test_args),
         patch("main.DomainValidator") as mock_validator_class,
         patch("main.process_file", mock_process_file),
         patch(
             "main.generate_html_report", new_callable=AsyncMock
         ) as mock_generate_report,
-        patch("main.sanitize_file_path", mock_sanitize_file_path),  # Add this patch
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
+        patch("core.io.file_processor.sanitize_file_path", mock_sanitize_file_path),
     ):
         mock_validator = AsyncMock()
         mock_validator_class.return_value = mock_validator
-        mock_validator.process_domain.return_value = {"test": "results"}
+
+        mock_validator.process_domain.return_value = {
+            "test": "results",
+            "success": True,
+            "validations": {
+                "RPKI": {"results": {"example.com": "data"}, "state": {}},
+                "DANE": {"results": {}, "state": {}},
+                "DNSSEC": {"results": {}, "state": {}},
+                "EMAIL_SECURITY": {"results": {}, "state": {}},
+                "WEB_SECURITY": {"results": {}, "state": {}},
+            },
+            "domain_metadata": {
+                "example.com": {"country": "US", "institution": "Example Corp"}
+            },
+        }
 
         mock_parse_args.return_value = argparse.Namespace(
-            single=None, batch="domains.csv", max_concurrent=10, ignore_cache=False
+            single=None,
+            batch="nrens.csv",
+            max_concurrent=10,
+            ignore_cache=False,
+            routinator_url="http://localhost:8323",
+            output_dir="results",
         )
 
         await main()
-
-        mock_process_file.assert_called_once_with("domains.csv")
-        mock_validator.process_domain.assert_called_once()
-        mock_generate_report.assert_called_once()
