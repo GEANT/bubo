@@ -5,7 +5,7 @@ import datetime
 import re
 import socket
 import ssl
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -137,7 +137,7 @@ async def check_certificate_with_socket(
 
     except ssl.SSLCertVerificationError as e:
         return create_error_cert_result(f"Certificate verification failed: {str(e)}")
-    except (socket.timeout, socket.error) as e:
+    except (TimeoutError, OSError) as e:
         return create_error_cert_result(
             f"Connection error: {str(e)}", is_connection_error=True
         )
@@ -169,7 +169,7 @@ async def check_certificate_with_socket(
 
 async def check_certificate_chain(
     domain: str, port: int, timeout: int
-) -> Tuple[bool, bool, int, List[Dict[str, Any]], Optional[str]]:
+) -> tuple[bool, bool, int, list[dict[str, Any]], str | None]:
     """Check certificate chain trust and validity using OpenSSL, with detailed cert info."""
     logger.debug(f"Checking certificate chain for {domain}:{port}")
 
@@ -276,7 +276,7 @@ async def check_certificate_chain(
         if chain_length == 0:
             depth_matches = re.findall(r"depth=(\d+)", output)
             if depth_matches:
-                unique_depths = set(int(d) for d in depth_matches)
+                unique_depths = {int(d) for d in depth_matches}
                 chain_length = len(unique_depths)
 
                 # Generate basic chain info
@@ -293,7 +293,7 @@ async def check_certificate_chain(
             elif "verify return:" in output:
                 depth_lines = re.findall(r"depth=(\d+).*?verify return:(\d+)", output)
                 if depth_lines:
-                    unique_depths = set(int(d[0]) for d in depth_lines)
+                    unique_depths = {int(d[0]) for d in depth_lines}
                     chain_length = len(unique_depths)
 
         if (

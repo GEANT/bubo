@@ -3,7 +3,6 @@ import asyncio
 import re
 import socket
 import ssl
-from typing import List, Optional, Tuple, Union
 from core.logging.logger import setup_logger
 from core.tls.models import (
     TLSProtocol,
@@ -19,7 +18,7 @@ logger = setup_logger(__name__)
 
 async def check_protocol_with_socket(
     domain: str, port: int, protocol: TLSProtocol, timeout: int
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """Check if a server supports a TLS protocol using direct socket connections."""
     logger.debug(f"Checking {protocol.value} for {domain}:{port} using socket")
 
@@ -44,7 +43,7 @@ async def check_protocol_with_socket(
             await asyncio.wait_for(connect_task, timeout=timeout)
         except asyncio.TimeoutError:
             return False, f"Connection timeout to {domain}:{port}"
-        except socket.error as e:
+        except OSError as e:
             return False, f"Connection error: {str(e)}"
 
         protocol_version, min_version = protocol_to_ssl_version[protocol]
@@ -95,7 +94,7 @@ async def check_protocol_with_socket(
 
         return False, f"SSL error: {error_msg}"
 
-    except (socket.timeout, socket.error) as e:
+    except (TimeoutError, OSError) as e:
         return False, f"Connection error: {str(e)}"
 
     except Exception as e:
@@ -116,7 +115,7 @@ async def check_protocol_with_socket(
 
 async def check_protocol_with_openssl(
     domain: str, port: int, protocol: TLSProtocol, timeout: int
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """Check if a server supports a TLS protocol using OpenSSL."""
     logger.debug(f"Checking {protocol.value} for {domain}:{port} using OpenSSL")
 
@@ -243,8 +242,8 @@ async def check_protocol(
 
 
 def process_protocol_results(
-    results: List[Union[TLSProtocolResult, Exception]], protocols: List[TLSProtocol]
-) -> Tuple[List[TLSProtocolResult], List[TLSProtocol]]:
+    results: list[TLSProtocolResult | Exception], protocols: list[TLSProtocol]
+) -> tuple[list[TLSProtocolResult], list[TLSProtocol]]:
     """Process protocol check results and identify supported protocols."""
     processed_results = []
     supported_protocols = []

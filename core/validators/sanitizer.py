@@ -2,7 +2,6 @@
 
 import html
 import re
-from typing import Optional
 
 from core.logging.logger import setup_logger
 
@@ -52,7 +51,7 @@ def sanitize_domain(domain: str) -> str:
     return domain
 
 
-def sanitize_text_field(text: Optional[str], max_length: int = 100) -> str:
+def sanitize_text_field(text: str | None, max_length: int = 100) -> str:
     """
     Sanitize text fields to prevent XSS and injection attacks.
 

@@ -1,6 +1,5 @@
 # core/tls/ciphers.py
 
-from typing import Dict, List, Optional, Tuple, Union
 from collections import defaultdict
 from core.tls.utils import (
     has_openssl,
@@ -20,7 +19,7 @@ logger = setup_logger(__name__)
 
 async def check_cipher(
     domain: str, port: int, protocol: TLSProtocol, config: TLSCheckConfig
-) -> Optional[CipherResult]:
+) -> CipherResult | None:
     """Check supported cipher for a protocol."""
     if not config.check_ciphers or not has_openssl():
         return None
@@ -49,8 +48,8 @@ async def check_cipher(
 
 
 def process_cipher_results(
-    results: List[Union[CipherResult, Exception, None]], protocols: List[TLSProtocol]
-) -> Tuple[Dict[str, List[Dict]], Dict[str, List[str]]]:
+    results: list[CipherResult | Exception | None], protocols: list[TLSProtocol]
+) -> tuple[dict[str, list[dict]], dict[str, list[str]]]:
     """Process cipher check results."""
     ciphers_by_protocol = {}
     cipher_strength = defaultdict(list)

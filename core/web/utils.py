@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional
+from typing import Any
 from core.tls.models import TLSProtocolResult, CertificateResult
 from core.web.models import HSTSInfo, SecurityHeadersInfo, SecurityRating
 from core.tls.models import SignatureAlgorithmSecurity
@@ -9,12 +9,12 @@ logger = setup_logger(__name__)
 
 
 def build_security_assessment(
-    protocol_results: List[TLSProtocolResult],
+    protocol_results: list[TLSProtocolResult],
     cert_result: CertificateResult,
     has_weak_ciphers: bool,
-    hsts_info: Optional[HSTSInfo] = None,
-    headers_info: Optional[SecurityHeadersInfo] = None,
-) -> Dict[str, Any]:
+    hsts_info: HSTSInfo | None = None,
+    headers_info: SecurityHeadersInfo | None = None,
+) -> dict[str, Any]:
     """
     Build security assessment based on checks with weighted scoring.
 
@@ -116,13 +116,6 @@ def build_security_assessment(
                     security_issues,
                 )
 
-            # This directive is domain-specific and should not be universally enforced/recommended.
-            # Therefore, it's not necessary to treat it as an issue at this time.
-            # if not hsts_info.preload:
-            #     _add_issue(
-            #         "HSTS missing preload directive", minor_issues, security_issues
-            #     )
-
     if headers_info:
         missing_headers = _get_missing_headers(headers_info)
 
@@ -153,13 +146,13 @@ def build_security_assessment(
     }
 
 
-def _add_issue(issue: str, category_list: List[str], main_list: List[str]) -> None:
+def _add_issue(issue: str, category_list: list[str], main_list: list[str]) -> None:
     """Helper to add an issue to both a category list and the main issues list."""
     category_list.append(issue)
     main_list.append(issue)
 
 
-def _get_missing_headers(headers_info: SecurityHeadersInfo) -> List[str]:
+def _get_missing_headers(headers_info: SecurityHeadersInfo) -> list[str]:
     """Helper to collect missing security headers."""
     missing = []
     if not headers_info.content_type_options:
@@ -174,7 +167,7 @@ def _get_missing_headers(headers_info: SecurityHeadersInfo) -> List[str]:
 
 
 def _determine_rating(
-    critical_issues: List[str], major_issues: List[str], minor_issues: List[str]
+    critical_issues: list[str], major_issues: list[str], minor_issues: list[str]
 ) -> str:
     """
     Determine security rating based on the number and severity of issues.
@@ -279,5 +272,7 @@ async def resolve_domain(domain: str, port: int, check_func, *args, **kwargs):
         logger.error(f"All domain variations failed for {domain}:{port}: {last_result}")
         raise last_result
     else:
-        logger.error(f"All domain variations had connection errors for {domain}:{port}")
+        logger.warning(
+            f"All domain variations had connection errors for {domain}:{port}"
+        )
         return last_result, domain

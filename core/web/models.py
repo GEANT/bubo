@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 from enum import Enum
 
 
@@ -11,17 +10,17 @@ class HSTSInfo:
     max_age: int
     include_subdomains: bool
     preload: bool
-    header_value: Optional[str] = None
+    header_value: str | None = None
 
 
 @dataclass
 class SecurityHeadersInfo:
     """Security headers information."""
 
-    content_type_options: Optional[str] = None
-    frame_options: Optional[str] = None
-    content_security_policy: Optional[str] = None
-    referrer_policy: Optional[str] = None
+    content_type_options: str | None = None
+    frame_options: str | None = None
+    content_security_policy: str | None = None
+    referrer_policy: str | None = None
 
 
 class SecurityRating(Enum):

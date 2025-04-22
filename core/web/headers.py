@@ -1,5 +1,4 @@
 # core/web/headers.py
-from typing import Dict, Optional
 from core.logging.logger import setup_logger
 from core.web.models import SecurityHeadersInfo
 
@@ -13,7 +12,7 @@ async def check_security_headers(
     domain: str,
     port: int,
     timeout: int,
-    response_headers: Optional[Dict[str, str]] = None,
+    response_headers: dict[str, str] | None = None,
 ) -> SecurityHeadersInfo:
     """Check security-related HTTP headers from response or fetch if not provided."""
     logger.debug(f"Checking security headers for {domain}:{port}")

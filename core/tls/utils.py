@@ -8,7 +8,8 @@ import functools
 import re
 import shutil
 from random import random
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Awaitable, Callable
 from core.tls.models import (
     CertificateResult,
     CipherStrength,
@@ -37,7 +38,7 @@ async def with_retries(
     backoff_factor: float = 1.5,
     retry_exceptions: tuple = (Exception,),
     fatal_exceptions: tuple = (),
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
     **kwargs: Any,
 ) -> T:
     """
@@ -88,7 +89,7 @@ def retry_async(
     backoff_factor: float = 1.5,
     retry_exceptions: tuple = (Exception,),
     fatal_exceptions: tuple = (),
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
 ):
     """
     Decorator for retrying async functions with exponential backoff.
@@ -133,7 +134,7 @@ def has_openssl() -> bool:
     return shutil.which("openssl") is not None
 
 
-async def get_openssl_version() -> Tuple[int, int, int]:
+async def get_openssl_version() -> tuple[int, int, int]:
     """
     Get the OpenSSL version as a tuple of (major, minor, patch).
     Uses LRU cache_manager to avoid repeated calls.
@@ -216,7 +217,7 @@ def categorize_signature_algorithm(sig_alg: str) -> SignatureAlgorithmSecurity:
     return SignatureAlgorithmSecurity.UNKNOWN
 
 
-def extract_cipher_info(output: str, protocol: str) -> Optional[Dict[str, Any]]:
+def extract_cipher_info(output: str, protocol: str) -> dict[str, Any] | None:
     """
     Extract cipher information from OpenSSL output.
 
@@ -439,8 +440,8 @@ def extract_san_info(cert: x509.Certificate, domain: str) -> SANInfo:
 
 
 async def run_openssl_command(
-    domain: str, port: int, args: List[str], timeout: int, retries: int = 1
-) -> Tuple[str, int]:
+    domain: str, port: int, args: list[str], timeout: int, retries: int = 1
+) -> tuple[str, int]:
     """
     Run OpenSSL command asynchronously with retries.
     """

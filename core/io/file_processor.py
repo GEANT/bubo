@@ -2,7 +2,6 @@
 
 import os
 from csv import DictReader
-from typing import List, Dict, Optional
 
 from core.logging.logger import setup_logger
 from core.validators.sanitizer import validate_hostname, sanitize_text_field
@@ -12,8 +11,8 @@ logger = setup_logger(__name__)
 
 
 async def process_file(
-    file_path: str, sort_by: Optional[str] = "Country"
-) -> List[Dict[str, str]]:
+    file_path: str, sort_by: str | None = "Country"
+) -> list[dict[str, str]]:
     """
     Process a text or CSV file containing domains.
 
@@ -35,7 +34,7 @@ async def process_file(
 
     try:
         if file_path.endswith(".txt"):
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 for line in file:
                     line = line.strip()
                     if line:
@@ -47,7 +46,7 @@ async def process_file(
                             logger.warning(f"Skipping invalid domain: {line}")
 
         elif file_path.endswith(".csv"):
-            with open(file_path, "r", encoding="utf-8") as file:
+            with open(file_path, encoding="utf-8") as file:
                 reader = DictReader(file)
                 try:
                     if "Domain" not in reader.fieldnames:

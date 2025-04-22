@@ -1,5 +1,4 @@
 import asyncio
-from typing import Dict, List, Set, Tuple, Optional
 from core.dns.resolver import dns_manager
 from core.logging.logger import setup_logger
 
@@ -9,7 +8,7 @@ logger = setup_logger(__name__)
 MAX_DNS_LOOKUPS = 10  # Maximum allowed DNS lookups for SPF
 
 
-async def get_spf_record(domain: str) -> Optional[str]:
+async def get_spf_record(domain: str) -> str | None:
     try:
         answers = await dns_manager.resolve(domain, "TXT")
         for record in answers:
@@ -62,7 +61,7 @@ async def get_spf_record(domain: str) -> Optional[str]:
         return None
 
 
-async def parse_spf_record(record: str, domain: str) -> Dict:
+async def parse_spf_record(record: str, domain: str) -> dict:
     if not record:
         return {"valid": False, "error": "No SPF record found"}
 
@@ -128,11 +127,11 @@ async def parse_spf_record(record: str, domain: str) -> Dict:
 
 
 async def count_dns_lookups(
-    spf_info: Dict,
+    spf_info: dict,
     domain: str,
-    visited: Optional[Set[str]] = None,
+    visited: set[str] | None = None,
     lookup_count: int = 0,
-) -> Tuple[int, str, Optional[Dict]]:
+) -> tuple[int, str, dict | None]:
     if visited is None:
         visited = set()
 
@@ -193,7 +192,7 @@ def check_policy_strictness(policy: str) -> bool:
     return policy in ["~all", "-all"]
 
 
-async def check_spf(domain: str) -> Dict:
+async def check_spf(domain: str) -> dict:
     spf_record = await get_spf_record(domain)
 
     if not spf_record:
@@ -257,7 +256,7 @@ async def check_spf(domain: str) -> Dict:
     return result
 
 
-async def check_domains(domains: List[str]) -> Dict:
+async def check_domains(domains: list[str]) -> dict:
     results = {}
     for domain in domains:
         try:

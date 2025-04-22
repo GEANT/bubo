@@ -1,7 +1,6 @@
 # standards/dane.py
 
 import asyncio
-from typing import List, Dict, Tuple
 import dns.asyncresolver
 from random import random
 
@@ -12,9 +11,9 @@ from core.dns.resolver import dns_manager
 logger = setup_logger(__name__)
 
 
-async def check_tlsa_record(domain: str, port: int) -> List[str]:
+async def check_tlsa_record(domain: str, port: int) -> list[str]:
     """
-    Check for TLSA records with specified port.
+    Check for TLSA records with a specified port.
 
     Args:
         domain: Domain to check
@@ -89,8 +88,8 @@ async def validate_tlsa_hash(
 
 
 async def process_servers(
-    domain: str, servers: List[str], port: int, server_type: str
-) -> Dict:
+    domain: str, servers: list[str], port: int, server_type: str
+) -> dict:
     """
     Process a list of servers for TLSA records and validation.
     Returns results for all servers, including those without TLSA records.
@@ -145,10 +144,10 @@ def get_state_value(results):
 async def run(
     domain: str,
     check_mode: str,
-    domain_ns: List[str],
-    domain_mx: List[str],
-    mail_ns: List[str],
-) -> Tuple[Dict, Dict]:
+    domain_ns: list[str],
+    domain_mx: list[str],
+    mail_ns: list[str],
+) -> tuple[dict, dict]:
     logger.info(f"Processing DANE for domain: {domain}")
 
     try:

@@ -2,7 +2,7 @@
 
 import asyncio
 from random import random
-from typing import Optional, Any
+from typing import Any
 
 import dns
 import dns.asyncresolver
@@ -22,7 +22,7 @@ class DNSResolverManager:
 
     def __new__(cls) -> "DNSResolverManager":
         if cls._instance is None:
-            cls._instance = super(DNSResolverManager, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance._initialize()
         return cls._instance
 
@@ -85,7 +85,7 @@ class DNSResolverManager:
 
     async def resolve_dnssec(
         self, domain: str, record_type: str, raise_on_no_answer: bool = False
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """
         Specialized method for DNSSEC-enabled DNS resolution.
 

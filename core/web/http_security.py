@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Tuple, Dict, Any
+from typing import Any
 from core.web.headers import check_security_headers
 from core.tls.models import TLSCheckConfig
 from core.web.models import HSTSInfo, SecurityHeadersInfo
@@ -9,7 +9,7 @@ from core.web.http_client import fetch_headers
 
 async def run_http_security_checks(
     domain: str, port: int, config: TLSCheckConfig
-) -> Tuple[Optional[HSTSInfo], Optional[SecurityHeadersInfo]]:
+) -> tuple[HSTSInfo | None, SecurityHeadersInfo | None]:
     """Run HSTS and security headers checks with a single HTTP request"""
     hsts_info = None
     headers_info = None
@@ -52,8 +52,8 @@ async def run_http_security_checks(
 
 
 def build_http_security_dicts(
-    hsts_info: Optional[HSTSInfo], headers_info: Optional[SecurityHeadersInfo]
-) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    hsts_info: HSTSInfo | None, headers_info: SecurityHeadersInfo | None
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Build dictionaries for HSTS and security headers information."""
     hsts_dict = None
     if hsts_info:

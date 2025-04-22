@@ -1,7 +1,6 @@
 # core/tls/models.py
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional
 
 
 class CipherStrength(Enum):
@@ -46,7 +45,7 @@ class TLSProtocolResult:
     protocol_name: str
     supported: bool
     secure: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
@@ -80,7 +79,7 @@ class TLSCheckConfig:
 class SANInfo:
     """Subject Alternative Names information."""
 
-    names: List[str]
+    names: list[str]
     contains_domain: bool
 
 
@@ -94,17 +93,17 @@ class CertificateResult:
     valid_until: str
     is_valid: bool
     is_expired: bool
-    days_until_expiry: Optional[int]
+    days_until_expiry: int | None
     is_self_signed: bool = False
-    validation_error: Optional[str] = None
+    validation_error: str | None = None
     chain_trusted: bool = False
     chain_valid: bool = False
     chain_length: int = 0
-    chain_error: Optional[str] = None
-    chain_info: List[Dict[str, str]] = field(default_factory=list)
-    key_info: Optional[KeyInfo] = None
-    signature_algorithm: Optional[SignatureAlgorithmInfo] = None
-    subject_alternative_names: Optional[SANInfo] = None
+    chain_error: str | None = None
+    chain_info: list[dict[str, str]] = field(default_factory=list)
+    key_info: KeyInfo | None = None
+    signature_algorithm: SignatureAlgorithmInfo | None = None
+    subject_alternative_names: SANInfo | None = None
     connection_error: bool = False
 
 
@@ -115,7 +114,7 @@ class CipherResult:
     name: str
     protocol: str
     strength: CipherStrength
-    bits: Optional[int] = None
+    bits: int | None = None
 
 
 PROTOCOL_SECURITY = {

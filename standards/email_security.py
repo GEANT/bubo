@@ -1,7 +1,6 @@
 import asyncio
 import dns.asyncresolver
 import dns.exception
-from typing import Dict, List, Tuple, Optional
 import re
 import base64
 from core.dns.resolver import dns_manager
@@ -30,7 +29,7 @@ COMMON_DKIM_SELECTORS = [
 ]
 
 
-async def get_txt_records(domain: str, record_type: str = None) -> List[str]:
+async def get_txt_records(domain: str, record_type: str = None) -> list[str]:
     """
     Fetch TXT records for a domain and properly reassemble multi-part records.
     Returns:
@@ -66,7 +65,7 @@ async def get_txt_records(domain: str, record_type: str = None) -> List[str]:
         return []
 
 
-def extract_dkim_key_info(dkim_record: str) -> Dict:
+def extract_dkim_key_info(dkim_record: str) -> dict:
     """
     Extract key information from a DKIM record and evaluate its strength based on best practices.
 
@@ -156,7 +155,7 @@ def extract_dkim_key_info(dkim_record: str) -> Dict:
     return key_info
 
 
-async def check_dkim_selector(domain: str, selector: str) -> Optional[Dict]:
+async def check_dkim_selector(domain: str, selector: str) -> dict | None:
     dkim_domain = f"{selector}._domainkey.{domain}"
     txt_records = await get_txt_records(dkim_domain, "dkim")
 
@@ -172,7 +171,7 @@ async def check_dkim_selector(domain: str, selector: str) -> Optional[Dict]:
     return None
 
 
-async def check_dkim(domain: str) -> Dict:
+async def check_dkim(domain: str) -> dict:
     results = {
         "selectors_found": [],
         "records": {},
@@ -234,7 +233,7 @@ async def check_dkim(domain: str) -> Dict:
     return results
 
 
-async def check_dmarc(domain: str) -> Dict:
+async def check_dmarc(domain: str) -> dict:
     """
     Check DMARC record for a domain.
     Validates record syntax and ensures strict policy to prevent domain abuse.
@@ -345,7 +344,7 @@ async def check_dmarc(domain: str) -> Dict:
     return results
 
 
-async def run(domain: str) -> Tuple[Dict, Dict]:
+async def run(domain: str) -> tuple[dict, dict]:
     results = {}
     state = {}
 

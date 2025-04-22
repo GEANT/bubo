@@ -5,7 +5,6 @@ import ipaddress
 import os
 from datetime import timedelta
 from random import random
-from typing import Tuple, Optional
 
 from ipwhois import IPWhois
 
@@ -35,7 +34,7 @@ def is_valid_ip(ip_string: str) -> bool:
 
 async def get_asn_and_prefix(
     ip: str, ignore_cache: bool = False
-) -> Tuple[Optional[str], Optional[str]]:
+) -> tuple[str | None, str | None]:
     """
     Retrieve the ASN and prefix for a given IP using the ipwhois library or cache_manager.
 

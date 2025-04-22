@@ -6,7 +6,7 @@ of a given domain and port, consolidating results from various checks.
 """
 
 import asyncio
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any
 
 from core.logging.logger import setup_logger
 from core.tls.models import (
@@ -27,7 +27,7 @@ logger = setup_logger(__name__)
 
 async def run_protocol_checks(
     domain: str, port: int, config: TLSCheckConfig
-) -> Tuple[List[TLSProtocolResult], List[TLSProtocol]]:
+) -> tuple[list[TLSProtocolResult], list[TLSProtocol]]:
     """Run TLS protocol checks and process the results."""
     tls_protocols = list(TLSProtocol)
 
@@ -43,9 +43,9 @@ async def run_protocol_checks(
 async def run_cipher_checks(
     domain: str,
     port: int,
-    supported_protocols: List[TLSProtocol],
+    supported_protocols: list[TLSProtocol],
     config: TLSCheckConfig,
-) -> Tuple[Dict[str, List[Dict]], Dict[str, List[str]]]:
+) -> tuple[dict[str, list[dict]], dict[str, list[str]]]:
     """Run cipher checks for supported protocols and process results."""
     cipher_tasks = [
         asyncio.create_task(check_cipher(domain, port, protocol, config))
@@ -56,7 +56,7 @@ async def run_cipher_checks(
     return process_cipher_results(cipher_results, supported_protocols)
 
 
-def build_certificate_dict(cert_result: CertificateResult) -> Dict[str, Any]:
+def build_certificate_dict(cert_result: CertificateResult) -> dict[str, Any]:
     """Build a dictionary representation of certificate results."""
     cert_dict = {
         "subject": cert_result.subject,
@@ -102,8 +102,8 @@ def build_certificate_dict(cert_result: CertificateResult) -> Dict[str, Any]:
 
 
 def extract_protocol_status(
-    results: List[TLSProtocolResult],
-) -> Tuple[List[str], List[str]]:
+    results: list[TLSProtocolResult],
+) -> tuple[list[str], list[str]]:
     """Extract lists of secure and insecure protocols from results."""
     secure_protocols = [r.protocol_name for r in results if r.supported and r.secure]
     insecure_protocols = [
@@ -114,10 +114,10 @@ def extract_protocol_status(
 
 
 def build_protocol_dict(
-    processed_results: List[TLSProtocolResult],
-    secure_protocols: List[str],
-    insecure_protocols: List[str],
-) -> Dict[str, Any]:
+    processed_results: list[TLSProtocolResult],
+    secure_protocols: list[str],
+    insecure_protocols: list[str],
+) -> dict[str, Any]:
     """Build a dictionary of protocol support information."""
     return {
         "protocols": [
@@ -137,8 +137,8 @@ def build_protocol_dict(
 
 
 def build_cipher_dict(
-    ciphers_by_protocol: Dict[str, List[Dict]], cipher_strength: Dict[str, List[str]]
-) -> Dict[str, Any]:
+    ciphers_by_protocol: dict[str, list[dict]], cipher_strength: dict[str, list[str]]
+) -> dict[str, Any]:
     """Build a dictionary of cipher information."""
     return {
         "by_protocol": ciphers_by_protocol,
@@ -151,8 +151,8 @@ def build_cipher_dict(
 
 
 async def run(
-    domain: str, port: int = 443, config: Optional[TLSCheckConfig] = None
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    domain: str, port: int = 443, config: TLSCheckConfig | None = None
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Run comprehensive TLS security checks on the specified domain and port.
     Will try with www. prefix if the original domain fails to connect.

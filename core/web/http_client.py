@@ -2,16 +2,13 @@
 
 import aiohttp
 import asyncio
-from typing import Dict, Optional
 from core.logging.logger import setup_logger
 from core.web.headers import USER_AGENT
 
 logger = setup_logger(__name__)
 
 
-async def fetch_headers(
-    domain: str, port: int, timeout: int
-) -> Optional[Dict[str, str]]:
+async def fetch_headers(domain: str, port: int, timeout: int) -> dict[str, str] | None:
     """Make a single HTTP request and return all response headers."""
     url = f"https://{domain}"
     if port != 443:

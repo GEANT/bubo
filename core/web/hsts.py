@@ -2,7 +2,6 @@
 
 import re
 from core.logging.logger import setup_logger
-from typing import Dict, Optional
 from core.web.models import HSTSInfo
 
 
@@ -13,7 +12,7 @@ async def check_hsts(
     domain: str,
     port: int,
     timeout: int,
-    response_headers: Optional[Dict[str, str]] = None,
+    response_headers: dict[str, str] | None = None,
 ) -> HSTSInfo:
     """Check HSTS configuration from provided headers or fetch if not provided."""
     logger.debug(f"Checking HSTS for {domain}:{port}")

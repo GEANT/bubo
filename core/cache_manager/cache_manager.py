@@ -2,7 +2,7 @@ import json
 import os
 import gzip
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple, Any
+from typing import Any
 
 from core.logging.logger import setup_logger
 from core.report.json_utils import convert_sets_to_lists, json_dumps
@@ -39,7 +39,7 @@ class DomainResultsCache:
         sanitized_domain = domain.replace("/", "_").replace("\\", "_")
         return os.path.join(self.cache_dir, f"{sanitized_domain}_cache.json.gz")
 
-    def save_results(self, domain: str, results: Dict) -> None:
+    def save_results(self, domain: str, results: dict) -> None:
         serializable_results = convert_sets_to_lists(results)
         cache_data = {
             "timestamp": datetime.now().isoformat(),
@@ -72,7 +72,7 @@ class DomainResultsCache:
 
     def get_results(
         self, domain: str, ignore_cache: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Retrieve domain validation results from cache if valid.
         Handles both compressed and uncompressed cache formats.
@@ -108,7 +108,7 @@ class DomainResultsCache:
 
         elif os.path.exists(cache_path):
             try:
-                with open(cache_path, "r", encoding="utf-8") as f:
+                with open(cache_path, encoding="utf-8") as f:
                     cache_data = json.load(f)
 
                 cache_time = datetime.fromisoformat(cache_data["timestamp"])
@@ -177,9 +177,7 @@ class IPWhoisCache:
         except Exception as e:
             logger.error(f"Failed to save IPWhois cache for {ip}: {e}")
 
-    def get_result(
-        self, ip: str, ignore_cache: bool = False
-    ) -> Optional[Tuple[str, str]]:
+    def get_result(self, ip: str, ignore_cache: bool = False) -> tuple[str, str] | None:
         """
         Retrieve IPWhois result from cache if available and not expired.
 
@@ -199,7 +197,7 @@ class IPWhoisCache:
             return None
 
         try:
-            with open(cache_path, "r", encoding="utf-8") as f:
+            with open(cache_path, encoding="utf-8") as f:
                 cache_data = json.load(f)
 
             cache_time = datetime.fromisoformat(cache_data["timestamp"])

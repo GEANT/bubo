@@ -1,6 +1,5 @@
 # core/dns/records.py
 
-from typing import List, Optional, Tuple
 
 import dns.resolver
 
@@ -11,7 +10,7 @@ from core.network.ip_tools import is_valid_ip, get_asn_and_prefix
 logger = setup_logger(__name__)
 
 
-async def resolve_nameservers(domain: str, ignore_cache: bool = False) -> List[str]:
+async def resolve_nameservers(domain: str, ignore_cache: bool = False) -> list[str]:
     """
     Resolve nameservers for a domain or IP address.
 
@@ -49,7 +48,7 @@ async def resolve_nameservers(domain: str, ignore_cache: bool = False) -> List[s
         return []
 
 
-async def resolve_ips(nameserver: str) -> Tuple[List[str], List[str]]:
+async def resolve_ips(nameserver: str) -> tuple[list[str], list[str]]:
     """
     Resolve IPv4 and IPv6 addresses for a nameserver.
     If the nameserver is already an IP, return it directly.
@@ -83,7 +82,7 @@ async def resolve_ips(nameserver: str) -> Tuple[List[str], List[str]]:
     return ipv4, ipv6
 
 
-async def get_mx_records(domain: str) -> Optional[List[str]]:
+async def get_mx_records(domain: str) -> list[str] | None:
     """
     Retrieve MX records for the given domain.
 
@@ -130,7 +129,7 @@ async def translate_server_type(server_type: str) -> str:
 
 async def process_domain(
     domain: str,
-) -> Tuple[Optional[List[str]], Optional[List[str]], Optional[List[List[str]]]]:
+) -> tuple[list[str] | None, list[str] | None, list[list[str]] | None]:
     """
     Process a single domain to get its nameservers and mailservers.
 
