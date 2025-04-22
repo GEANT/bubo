@@ -79,7 +79,7 @@ async def test_get_spf_record_fallback_to_spf_type(mock_dns_manager):
 
     mock_dns_manager.resolve = AsyncMock(
         side_effect=[
-            [MockDNSRecord(["some-other-txt".encode()])],
+            [MockDNSRecord([b"some-other-txt"])],
             [MockDNSRecord([spf_txt.encode()])],
         ]
     )
@@ -98,8 +98,8 @@ async def test_get_spf_record_no_record(mock_dns_manager):
 
     mock_dns_manager.resolve = AsyncMock(
         side_effect=[
-            [MockDNSRecord(["some-txt-record".encode()])],
-            [MockDNSRecord(["some-other-record".encode()])],
+            [MockDNSRecord([b"some-txt-record"])],
+            [MockDNSRecord([b"some-other-record"])],
         ]
     )
 

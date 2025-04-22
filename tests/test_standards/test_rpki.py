@@ -9,7 +9,6 @@ from standards.rpki import (
     process_single_mode,
     process_batch_mode,
     run,
-    main,
 )
 import asyncio
 
@@ -20,7 +19,6 @@ async def test_rpki_validation_structure(
 ):
     with (
         patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
-        # These imports should point to core.network.ip_tools and core.dns.records in the standards.rpki module
         patch("standards.rpki.resolve_ips", new_callable=AsyncMock) as mock_resolve,
         patch("standards.rpki.get_asn_and_prefix", new_callable=AsyncMock) as mock_asn,
     ):
@@ -28,10 +26,10 @@ async def test_rpki_validation_structure(
 
         results, state = await rpki.run(
             sample_domain,
-            "single",
             sample_servers["domain_ns"],
             sample_servers["domain_mx"],
             sample_servers["mail_ns"],
+            routinator_url="http://localhost:8323",
         )
 
         assert isinstance(results, dict)
@@ -61,10 +59,10 @@ async def test_rpki_dns_resolution_failure(
 
         results, state = await rpki.run(
             sample_domain,
-            "single",
             sample_servers["domain_ns"],
             sample_servers["domain_mx"],
             sample_servers["mail_ns"],
+            routinator_url="http://localhost:8323",
         )
 
         for server_type in results[sample_domain].values():
@@ -92,10 +90,10 @@ async def test_rpki_mixed_validation_states(sample_domain, sample_servers):
 
         results, state = await rpki.run(
             sample_domain,
-            "single",
             sample_servers["domain_ns"],
             sample_servers["domain_mx"],
             sample_servers["mail_ns"],
+            routinator_url="http://localhost:8323",
         )
 
         assert state[sample_domain]["Nameserver of Domain"] == "partially-valid"
@@ -128,7 +126,9 @@ async def test_validate_rpki_successful_response():
             pass
 
     with patch("aiohttp.ClientSession", return_value=SessionContextManager()):
-        result = await rpki.validate_rpki("AS1234", "192.0.2.0/24")
+        result = await rpki.validate_rpki(
+            "AS1234", "192.0.2.0/24", "http://localhost:8323"
+        )
 
         assert result == mock_json_result
         mock_response.raise_for_status.assert_called_once()
@@ -162,7 +162,9 @@ async def test_validate_rpki_connection_error():
             pass
 
     with patch("aiohttp.ClientSession", return_value=SessionContextManager()):
-        result = await rpki.validate_rpki("AS1234", "192.0.2.0/24")
+        result = await rpki.validate_rpki(
+            "AS1234", "192.0.2.0/24", "http://localhost:8323"
+        )
 
         assert result is None
         mock_response.raise_for_status.assert_called_once()
@@ -204,10 +206,17 @@ async def test_type_validity_no_prefix_data():
 
 @pytest.mark.asyncio
 async def test_rpki_process_domain_no_servers():
-    with patch(
-        "standards.rpki.process_domain", new_callable=AsyncMock
-    ) as mock_process_domain:
+    with (
+        patch(
+            "standards.rpki.process_domain", new_callable=AsyncMock
+        ) as mock_process_domain,
+        patch(
+            "standards.rpki.process_server", new_callable=AsyncMock
+        ) as mock_process_server,
+    ):
         mock_process_domain.return_value = ([], None, None)
+        mock_process_server.return_value = None
+
         result = await rpki.rpki_process_domain("example.com")
         assert result == {}
 
@@ -326,8 +335,9 @@ async def test_process_server_no_ipv4():
         domain = "example.com"
         results = {}
         stype = "domain_ns"
+        routinator_url = "http://localhost:8323"
 
-        await process_server(server, domain, results, stype)
+        await process_server(server, domain, results, stype, routinator_url)
 
         assert domain in results
         assert stype in results[domain]
@@ -350,8 +360,9 @@ async def test_process_server_no_asn_prefix():
         domain = "example.com"
         results = {}
         stype = "domain_ns"
+        routinator_url = "http://localhost:8323"
 
-        await process_server(server, domain, results, stype)
+        await process_server(server, domain, results, stype, routinator_url)
 
         assert domain in results
         assert stype in results[domain]
@@ -378,8 +389,9 @@ async def test_process_server_rpki_validation_failure():
         domain = "example.com"
         results = {}
         stype = "domain_ns"
+        routinator_url = "http://localhost:8323"
 
-        await process_server(server, domain, results, stype)
+        await process_server(server, domain, results, stype, routinator_url)
 
         assert domain in results
         assert stype in results[domain]
@@ -418,7 +430,9 @@ async def test_rpki_process_domain_no_nameservers():
             [["ns1.mail.example.com"]],
         )
 
-        async def side_effect(server, domain, results, stype):
+        async def side_effect(
+            server, domain, results, stype, routinator_url="http://localhost:8323"
+        ):
             if domain not in results:
                 results[domain] = {}
             if stype not in results[domain]:
@@ -448,7 +462,9 @@ async def test_rpki_process_domain_no_mailservers():
             [["ns1.mail.example.com"]],
         )
 
-        async def side_effect(server, domain, results, stype):
+        async def side_effect(
+            server, domain, results, stype, routinator_url="http://localhost:8323"
+        ):
             if domain not in results:
                 results[domain] = {}
             if stype not in results[domain]:
@@ -478,7 +494,9 @@ async def test_rpki_process_domain_no_mail_nameservers():
             [],
         )
 
-        async def side_effect(server, domain, results, stype):
+        async def side_effect(
+            server, domain, results, stype, routinator_url="http://localhost:8323"
+        ):
             if domain not in results:
                 results[domain] = {}
             if stype not in results[domain]:
@@ -568,7 +586,7 @@ async def test_run_no_domain_ns():
         patch("standards.rpki.type_validity") as mock_validity,
     ):
 
-        async def side_effect(server, domain, results, stype):
+        async def side_effect(server, domain, results, stype, routinator_url):
             if domain not in results:
                 results[domain] = {}
             if stype not in results[domain]:
@@ -580,10 +598,10 @@ async def test_run_no_domain_ns():
 
         results, state = await run(
             "example.com",
-            "single",
             domain_ns=None,
             domain_mx=["mail.example.com"],
             mail_ns=[["ns1.mail.example.com"]],
+            routinator_url="http://localhost:8323",
         )
 
         assert "example.com" in results
@@ -600,7 +618,7 @@ async def test_run_no_domain_mx():
         patch("standards.rpki.type_validity") as mock_validity,
     ):
 
-        async def side_effect(server, domain, results, stype):
+        async def side_effect(server, domain, results, stype, routinator_url):
             if domain not in results:
                 results[domain] = {}
             if stype not in results[domain]:
@@ -612,10 +630,10 @@ async def test_run_no_domain_mx():
 
         results, state = await run(
             "example.com",
-            "single",
             domain_ns=["ns1.example.com"],
             domain_mx=None,
             mail_ns=[["ns1.mail.example.com"]],
+            routinator_url="http://localhost:8323",
         )
 
         assert "example.com" in results
@@ -632,7 +650,7 @@ async def test_run_no_mail_ns():
         patch("standards.rpki.type_validity") as mock_validity,
     ):
 
-        async def side_effect(server, domain, results, stype):
+        async def side_effect(server, domain, results, stype, routinator_url):
             if domain not in results:
                 results[domain] = {}
             if stype not in results[domain]:
@@ -644,50 +662,13 @@ async def test_run_no_mail_ns():
 
         results, state = await run(
             "example.com",
-            "single",
             domain_ns=["ns1.example.com"],
             domain_mx=["mail.example.com"],
             mail_ns=None,
+            routinator_url="http://localhost:8323",
         )
 
         assert "example.com" in results
         assert "domain_ns" in results["example.com"]
         assert "domain_mx" in results["example.com"]
         assert "mailserver_ns" not in results["example.com"]
-
-
-@pytest.mark.asyncio
-async def test_main_single_mode():
-    """Test main function with single mode."""
-    with (
-        patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
-        patch("standards.rpki.process_single_mode") as mock_single_mode,
-    ):
-        mock_args = MagicMock()
-        mock_args.single = "example.com"
-        mock_args.batch = None
-        mock_parse_args.return_value = mock_args
-
-        mock_single_mode.return_value = ({}, {})
-
-        await main()
-
-        mock_single_mode.assert_called_once_with("example.com")
-
-
-@pytest.mark.asyncio
-async def test_main_batch_mode():
-    with (
-        patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
-        patch("standards.rpki.process_batch_mode") as mock_batch_mode,
-    ):
-        mock_args = MagicMock()
-        mock_args.single = None
-        mock_args.batch = "domains.txt"
-        mock_parse_args.return_value = mock_args
-
-        mock_batch_mode.return_value = ({}, {})
-
-        await main()
-
-        mock_batch_mode.assert_called_once_with("domains.txt")
