@@ -134,9 +134,7 @@ async def test_main_batch_mode():
         patch("sys.argv", ["main.py"] + test_args),
         patch("main.DomainValidator") as mock_validator_class,
         patch("main.process_file", mock_process_file),
-        patch(
-            "main.generate_html_report", new_callable=AsyncMock
-        ) as mock_generate_report,
+        patch("main.generate_html_report", new_callable=AsyncMock),
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
         patch("core.io.file_processor.sanitize_file_path", mock_sanitize_file_path),
     ):
