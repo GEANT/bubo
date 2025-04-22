@@ -1,6 +1,5 @@
 # standards/rpki.py
 
-import argparse
 import asyncio
 
 import aiohttp
@@ -11,40 +10,52 @@ from core.network.ip_tools import get_asn_and_prefix
 
 logger = setup_logger(__name__)
 
+_rpki_validator_down = False  # Module-level flag to track validator status
 
-async def validate_rpki(asn, prefix):
-    """
-    Validate RPKI status for the ASN and prefix using the RPKI validation API.
 
-    :param asn: The ASN number.
-    :param prefix: The IP prefix in CIDR notation.
-    :return: Validation result as a dictionary.
+async def validate_rpki(asn, prefix, routinator_url):
     """
+    Validate RPKI status for the ASN and prefix using Routinator API.
+
+    Returns None if the validator is down or validation fails.
+    """
+    global _rpki_validator_down
+
+    # Skip if we already know the validator is down
+    if _rpki_validator_down:
+        return None
+
     try:
-        url = f"http://localhost:8323/api/v1/validity/{asn}/{prefix}"
+        url = f"{routinator_url}/api/v1/validity/{asn}/{prefix}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 response.raise_for_status()
                 return await response.json()
+
+    except aiohttp.ClientConnectorError as e:
+        if not _rpki_validator_down:
+            logger.error(f"RPKI validator is unavailable: {e}")
+            _rpki_validator_down = (
+                True  # Mark validator as down to avoid further attempts
+            )
+        return None
     except aiohttp.ClientError as e:
         logger.error(f"Validating RPKI for ASN {asn} and Prefix {prefix} failed: {e}")
         return None
 
 
-async def process_server(server, domain, results, stype):
+async def process_server(server, domain, results, stype, routinator_url):
     """
     Process a server (e.g., nameserver or mail server) to validate RPKI for its associated IPs.
     """
     # logger.info(f"Processing {stype}: {server}")
     ipv4, ipv6 = await resolve_ips(server)
 
-    # Initialize server entry with "No IPv4 addresses found" by default
     if domain not in results:
         results[domain] = {}
     if stype not in results[domain]:
         results[domain][stype] = {}
 
-    # If no IPv4 addresses found, set descriptive message
     if not ipv4:
         results[domain][stype][server] = {
             "ipv6": ipv6 if ipv6 else ["No IPv6"],
@@ -61,7 +72,7 @@ async def process_server(server, domain, results, stype):
             continue
 
         else:
-            validation_result = await validate_rpki(asn, prefix)
+            validation_result = await validate_rpki(asn, prefix, routinator_url)
             if not validation_result:
                 logger.debug(
                     f"Unable to validate RPKI for IP {ip}, ASN {asn}, and Prefix {prefix}."
@@ -72,7 +83,6 @@ async def process_server(server, domain, results, stype):
                 "state"
             ].capitalize()
 
-            # Add or update the prefix entry
             if prefix not in server_results["prefix"]:
                 server_results["prefix"][prefix] = {
                     "rpki_state": rpki_state,
@@ -87,7 +97,6 @@ async def process_server(server, domain, results, stype):
                 f"RPKI Validation Result for {server} (ASN: {asn}, Prefix: {prefix}): {rpki_state}"
             )
 
-    # Only add server results if we found any prefix information
     if server_results["prefix"]:
         results[domain][stype][server] = server_results
     else:
@@ -108,18 +117,15 @@ async def type_validity(domain_results):
         domain_state = {}
 
         for type_, servers in types.items():
-            # If no servers found
             if not servers:
                 domain_state[await translate_server_type(type_)] = None
                 continue
 
-            # Check if any server has valid RPKI records
             has_valid_records = False
             all_valid = True
             has_servers = False
 
             for server_data in servers.values():
-                # Check if server has prefix data
                 if "prefix" in server_data:
                     has_servers = True
                     prefix_states = [
@@ -127,7 +133,7 @@ async def type_validity(domain_results):
                         for prefix_data in server_data["prefix"].values()
                     ]
 
-                    if prefix_states:  # If any prefix states exist
+                    if prefix_states:
                         if any(prefix_states):
                             has_valid_records = True
                         if not all(prefix_states):
@@ -205,7 +211,6 @@ async def process_single_mode(domain):
         return {}, {}
 
 
-# ----------------------------------------------------------------
 async def process_batch_mode(domains):
     """
     Process a batch of domains from a .txt or .csv file.
@@ -229,74 +234,55 @@ async def process_batch_mode(domains):
         return {}, {}
 
 
-async def run(domain, check_mode, domain_ns=None, domain_mx=None, mail_ns=None):
+async def run(domain, domain_ns, domain_mx, mail_ns, routinator_url):
     """
     Run RPKI validation with pre-processed server information.
     """
-    results = {domain: {}}  # Initialize with just the domain
+    global _rpki_validator_down
 
+    if _rpki_validator_down:
+        logger.debug(f"Skipping RPKI validation for {domain} - validator is down")
+        return {}, {
+            domain: {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
+        }
+
+    results = {domain: {}}
     logger.info(f"Processing RPKI for domain: {domain}")
-    # Process domain nameservers
+
+    tasks = []
+
     if domain_ns:
-        nameserver_tasks = [
-            process_server(nameserver, domain, results, "domain_ns")
-            for nameserver in domain_ns
-        ]
-        await asyncio.gather(*nameserver_tasks)
-        # Only keep domain_ns if it has data
-        if not results[domain].get("domain_ns"):
-            del results[domain]["domain_ns"]
-
-    # Process mail servers
-    if domain_mx:
-        mailservers_tasks = [
-            process_server(mailserver, domain, results, "domain_mx")
-            for mailserver in domain_mx
-        ]
-        await asyncio.gather(*mailservers_tasks)
-        # Only keep domain_mx if it has data
-        if not results[domain].get("domain_mx"):
-            del results[domain]["domain_mx"]
-
-    # Process mail nameservers
-    if mail_ns:
-        mail_nameservers_tasks = [
-            process_server(nameserver, domain, results, "mailserver_ns")
-            for sublist in mail_ns
-            for nameserver in sublist
-        ]
-        await asyncio.gather(*mail_nameservers_tasks)
-        # Only keep mailserver_ns if it has data
-        if not results[domain].get("mailserver_ns"):
-            del results[domain]["mailserver_ns"]
-
-    rpki_state = await type_validity(results)
-
-    # If no results were found for the domain, return empty dicts
-    if not results[domain]:
-        return {}, {}
-
-    return results, rpki_state
-
-
-async def main():
-    parser = argparse.ArgumentParser(description="Check/Validate RPKI for domains.")
-    parser.add_argument("--single", type=str, help="Single domain name to check.")
-    parser.add_argument(
-        "--batch", type=str, help="Path to a file (txt/csv) containing domains."
-    )
-    args = parser.parse_args()
-
-    if args.single:
-        await process_single_mode(args.single)
-
-    elif args.batch:
-        await process_batch_mode(args.batch)
-    else:
-        logger.error(
-            "Invalid input. Please provide [--single DOMAIN_NAME ] or [--batch FILE_PATH]"
+        tasks.extend(
+            [
+                process_server(ns, domain, results, "domain_ns", routinator_url)
+                for ns in domain_ns
+            ]
         )
 
+    if domain_mx:
+        tasks.extend(
+            [
+                process_server(mx, domain, results, "domain_mx", routinator_url)
+                for mx in domain_mx
+            ]
+        )
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    if mail_ns:
+        tasks.extend(
+            [
+                process_server(ns, domain, results, "mailserver_ns", routinator_url)
+                for sublist in mail_ns
+                for ns in sublist
+            ]
+        )
+
+    await asyncio.gather(*tasks)
+
+    # If validator went down during processing or no results found
+    if _rpki_validator_down or not results[domain]:
+        return {}, {
+            domain: {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
+        }
+
+    rpki_state = await type_validity(results)
+    return results, rpki_state
