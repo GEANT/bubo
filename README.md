@@ -79,6 +79,7 @@ python main.py --batch path/to/domains.csv
 ```
 --batch [-b] FILE               Path to CSV file with domains to check
 --single [-d] DOMAIN            Domain to check
+--output-dir  [-o] DIR          Directory to save results (default: results/)
 --max-concurrent INTEGER        Maximum concurrent validations (default: 48)
 --ignore-cache                  Force fresh validation instead of using cached results (the cache is valid for 24 hours).
 --routinator-url or -ru URL     URL of the Routinator RPKI validator service (default: http://localhost:8323)
