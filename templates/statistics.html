@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Standards Statistics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/statistics.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+</head>
+<body>
+<div class="page-wrapper">
+    {% set header_title = "Statistics of Internet and Email Standards Report" %}
+    {% include 'partials/header.html' %}
+    <main class="main-content">
+        <div class="dashboard">
+
+
+            <!-- Domain Overview -->
+            <div class="dashboard-grid">
+                <!-- Summary Statistics -->
+                <section class="widget summary-widget">
+                    <div class="widget-header">
+                        <h2>Summary Statistics</h2>
+                        <span class="domain-count"><span id="domain-count">0</span> domain(s) analyzed</span>
+                    </div>
+
+                    <div class="summary-cards">
+                        <div class="metric-card">
+                            <div class="metric-icon secure-icon"></div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="dnssec-percent">0%</div>
+                                <div class="metric-label">DNSSEC Enabled</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon email-icon"></div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="email-percent">0%</div>
+                                <div class="metric-label">Email Standards Compliance</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon web-icon"></div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="web-percent">0%</div>
+                                <div class="metric-label">Secure Web Compliance</div>
+                                <div class="metric-domain">% of domains rated Good/Excellent</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="metric-icon shield-icon"></div>
+                            <div class="metric-content">
+                                <div class="metric-value" id="top-score">0.0</div>
+                                <div class="metric-label">Highest Compliance Score</div>
+                                <div class="metric-domain" id="top-domain">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Domain Compliance Scores Chart -->
+                <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>Standards Compliance Scores</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="domainScoresChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Standards Distribution -->
+                <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>Standards Adoption</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="standardsAdoptionChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- TLS Protocols Chart -->
+                <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>TLS Protocol Support</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="tlsProtocolChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Web Compliance Rating Chart -->
+                <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>Web Security Ratings</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="webRatingChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Email Standards Compliance Overview -->
+                <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>Email Standards Compliance</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="emailSecurityChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- SPF Policy Distribution -->
+                <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>SPF Policy Distribution</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="spfPolicyChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- DMARC Policy Distribution -->
+                <!-- <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>DMARC Policy Distribution</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dmarcPolicyChart"></canvas>
+                    </div>
+                </section>
+                -->
+
+
+                <!-- DANE Implementation Chart -->
+                <!-- <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>DANE Implementation</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="daneImplementationChart"></canvas>
+                    </div>
+                </section>
+                -->
+
+                <!-- RPKI Validation Chart -->
+                <!-- <section class="widget chart-widget">
+                    <div class="widget-header">
+                        <h2>RPKI Validation</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="rpkiValidationChart"></canvas>
+                    </div>
+                </section>
+                -->
+            </div>
+
+            <!-- Domain Comparison Section -->
+            <section class="widget full-width">
+                <div class="widget-header">
+                    <h2>Domain Comparison</h2>
+                </div>
+                <div class="comparison-controls">
+                    <div class="comparison-dropdown">
+                        <label for="domain1">Domain 1:</label>
+                        <select id="domain1" class="domain-select"></select>
+                    </div>
+                    <div class="comparison-dropdown">
+                        <label for="domain2">Domain 2:</label>
+                        <select id="domain2" class="domain-select"></select>
+                    </div>
+                    <div class="comparison-metric">
+                        <label for="comparisonMetric">Metric:</label>
+                        <select id="comparisonMetric">
+                            <option value="overall">Overall Compliance Score</option>
+                            <option value="dnssec">DNSSEC Implementation</option>
+                            <option value="email">Email Standards Compliance</option>
+                            <option value="web">Web Security</option>
+                            <option value="dane">DANE Implementation</option>
+                            <option value="rpki">RPKI Validation</option>
+                        </select>
+                    </div>
+                    <button id="compareButton" class="comparison-button">Compare</button>
+                </div>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Component Level Analysis Section -->
+            <section class="widget full-width">
+                <div class="widget-header">
+                    <h2>Component Level Analysis</h2>
+                </div>
+                <div class="tabs-container">
+                    <div class="tabs">
+                        <span class="tab" data-target="rpki-components">RPKI Components</span>
+                        <span class="tab" data-target="email-components">Email Components</span>
+                    </div>
+
+                    <div class="tab-content" id="dane-components">
+                        <div class="component-chart-container">
+                        </div>
+                        <div class="component-metrics">
+                            <div class="metric-group">
+                                <h3>Mail Server</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="dane-mx-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="dane-mx-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="dane-mx-invalid">0</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <h3>Nameserver</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="dane-ns-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="dane-ns-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="dane-ns-invalid">0</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <h3>Mail Server Nameservers</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="dane-ms-ns-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="dane-ms-ns-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="dane-ms-ns-invalid">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content active" id="rpki-components">
+                        <div class="component-chart-container">
+                            <canvas id="rpkiComponentsChart"></canvas>
+                        </div>
+                        <div class="component-metrics">
+                            <div class="metric-group">
+                                <h3>Mail Server</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="rpki-mx-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="rpki-mx-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="rpki-mx-invalid">0</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <h3>Nameserver</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="rpki-ns-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="rpki-ns-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="rpki-ns-invalid">0</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <h3>Mail Server Nameservers</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="rpki-ms-ns-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="rpki-ms-ns-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="rpki-ms-ns-invalid">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="email-components">
+                        <div class="component-chart-container">
+                            <canvas id="emailComponentsChart"></canvas>
+                        </div>
+                        <div class="component-metrics">
+                            <div class="metric-group">
+                                <h3>SPF</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="spf-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="spf-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="spf-invalid">0</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <h3>DKIM</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="dkim-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="dkim-invalid">0</span>
+                                </div>
+                            </div>
+                            <div class="metric-group">
+                                <h3>DMARC</h3>
+                                <div class="metric-item">
+                                    <span class="metric-label">Valid:</span>
+                                    <span class="metric-value" id="dmarc-valid">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Partially Valid:</span>
+                                    <span class="metric-value" id="dmarc-partial">0</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Not Valid:</span>
+                                    <span class="metric-value" id="dmarc-invalid">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Common Compliance Issues -->
+            <section class="widget full-width" id="issues-section">
+                <div class="widget-header">
+                    <h2>Web Security Issues</h2>
+                </div>
+                <div class="issues-container">
+                    <div class="chart-container">
+                        <canvas id="issuesChart"></canvas>
+                    </div>
+                    <div class="issues-list">
+                        <table class="issues-table" id="issues-table">
+                            <!-- Will be populated by JavaScript -->
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Web Compliance Rating Distribution -->
+            <section class="widget full-width">
+                <div class="widget-header">
+                    <h2>Web Security Rating Distribution</h2>
+                </div>
+                <div class="rating-distribution">
+                    <div class="chart-container">
+                        <canvas id="webRatingDistributionChart"></canvas>
+                    </div>
+                    <div class="rating-stats">
+                        <div class="rating-group excellent">
+                            <h3>Excellent</h3>
+                            <div class="rating-count" id="excellent-count">0</div>
+                            <div class="rating-percent" id="excellent-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                        <div class="rating-group good">
+                            <h3>Good</h3>
+                            <div class="rating-count" id="good-count">0</div>
+                            <div class="rating-percent" id="good-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                        <div class="rating-group fair">
+                            <h3>Fair</h3>
+                            <div class="rating-count" id="fair-count">0</div>
+                            <div class="rating-percent" id="fair-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                        <div class="rating-group poor">
+                            <h3>Poor</h3>
+                            <div class="rating-count" id="poor-count">0</div>
+                            <div class="rating-percent" id="poor-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="webSecurityModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="modalTitle">Web Security Rating: <span id="ratingCategory"></span></h2>
+                            <span class="close-modal">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <p><span id="domainCount"></span> domains with this rating</p>
+
+                            <div class="domain-list-container">
+                                <table class="domain-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Domain</th>
+                                        <th>Score</th>
+                                        <th>TLS</th>
+                                        <th>Certificate</th>
+                                        <th>Secure Protocols</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="domainListBody">
+                                    <!-- Will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="domain-issues-container">
+                                <div id="domainIssues">
+                                    <p>Select a domain to view issues</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </section>
+
+            <!-- Domain Standards Compliance Scorecard -->
+            <section class="widget full-width">
+                <div class="widget-header">
+                    <h2>Standards Compliance Scorecard</h2>
+                    <div class="widget-actions">
+                        <input type="text" id="domainSearch" placeholder="Search domains..." class="search-input">
+                        <select id="sortOptions" class="sort-select">
+                            <option value="score-desc">Sort by Score (High to Low)</option>
+                            <option value="score-asc">Sort by Score (Low to High)</option>
+                            <option value="alpha-asc">Sort Alphabetically (A-Z)</option>
+                            <option value="alpha-desc">Sort Alphabetically (Z-A)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="scorecard-table">
+                        <thead>
+                        <tr>
+                            <th class="domain-col">Domain</th>
+                            <th class="score-col">Compliance Score</th>
+                            <th>DNSSEC</th>
+                            <th>DANE</th>
+                            <th>SPF</th>
+                            <th>DKIM</th>
+                            <th>DMARC</th>
+                            <th>RPKI</th>
+                            <th>Web Security</th>
+                        </tr>
+                        </thead>
+                        <tbody id="scorecard-body">
+                        <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="dashboard-footer">
+                <p>Internet Standards Compliance Statistics Report &copy; <span id="footer-year"></span> | <i class="fas fa-shield-alt"></i> Made by GÉANT</p>
+            </footer>
+        </div>
+    </main>
+</div>
+
+<script>
+    const statsData = {{ stats_json|tojson|safe }};
+    let chartsInitialized = false;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!chartsInitialized) {
+            initializeDashboard();
+            chartsInitialized = true;
+        }
+    });
+</script>
+<script src="js/statistics.js"></script>
+</body>
+</html>
