@@ -1,5 +1,4 @@
 // modal_placeholders.js - Placeholder implementations for other modal types
-// These can be moved to their own files when implementing them fully
 
 /**
  * Create HTML for DNSSEC modal
