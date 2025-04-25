@@ -1,11 +1,3 @@
-{% from 'modals/rpki_modal.html' import rpki_modal %}
-{% from 'modals/dane_modal.html' import dane_modal %}
-{% from 'modals/dnssec_modal.html' import dnssec_modal %}
-{% from 'modals/email_security_modal.html' import email_security_modal %}
-{% from 'modals/web_security_modal.html' import web_security_modal %}
-{% from 'tooltips/column_tooltips.html' import tooltip_header %}
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,47 +8,56 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/modals.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
 <div class="page-wrapper">
-    {% include 'partials/header.html' %}
+    <header class="main-header">
+        {% include 'partials/header.html' %}
+    </header>
 
     <main class="main-content">
         <div class="container">
             <table class="validation-table">
-                <thead>
+                <thead id="table-headers">
                 <tr>
-                    <th>Country</th>
-                    <th>Institution</th>
-                    <th>Domain</th>
-                    {{ tooltip_header('RPKI', 'rpki-tooltip') }}
-                    {{ tooltip_header('DANE', 'dane-tooltip') }}
-                    {{ tooltip_header('DNSSEC', 'dnssec-tooltip') }}
-                    {{ tooltip_header('Email Security', 'email-security-tooltip') }}
-                    {{ tooltip_header('Web Security', 'web-security-tooltip') }}
+                    <!-- Headers will be added via JavaScript -->
                 </tr>
                 </thead>
-                <tbody>
-                {% for domain in validations.RPKI.state %}
-                    <tr class="service-row">
-                        <td>{{ domain_metadata[domain].country if domain_metadata and domain in domain_metadata else '' }}</td>
-                        <td>{{ domain_metadata[domain].institution if domain_metadata and domain in domain_metadata else '' }}</td>
-                        <td class="server-name">{{ domain }}</td>
-                        {% set show_dnssec = true %}
-                        {% set tab_id = 'all' %}
-                        {% set check_type = 'Nameserver of Domain' %}
-                        {% include 'status_columns.html' %}
-                    </tr>
-                {% endfor %}
+                <tbody id="validation-table-body">
+                    <!-- Table data will be populated by JavaScript -->
                 </tbody>
             </table>
         </div>
     </main>
 
-    {% include 'partials/footer.html' %}
+    <footer>
+        {% include 'partials/footer.html' %}
+    </footer>
 </div>
-{% include 'partials/scripts.html' %}
 
+<div id="modals-container"></div>
+
+<script>
+    window.validationData = {{ validations|tojson|safe }};
+    window.domainMetadata = {{ domain_metadata|tojson|safe }};
+    window.reportTimestamp = "{{ timestamp }}";
+    window.reportYear = "{{ year }}";
+</script>
+
+<script src="js/config.js"></script>
+<script src="js/tooltips.js"></script>
+<script src="js/collapsible.js"></script>
+
+<script src="js/modals/rpki_modal.js"></script>
+<script src="js/modals/dane_modal.js"></script>
+<script src="js/modals/dnssec_modal.js"></script>
+<script src="js/modals/email_security_modal.js"></script>
+<script src="js/modals/web_security_modal.js"></script>
+<script src="js/modals.js"></script>
+
+<script src="js/renderers.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
