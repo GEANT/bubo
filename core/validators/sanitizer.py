@@ -47,7 +47,7 @@ def sanitize_domain(domain: str) -> str:
     """
     domain = domain.strip().strip("'\"")
     if not re.match(r"^[a-zA-Z0-9.\-_]+$", domain):
-        raise ValueError(f"Invalid domain format: '{domain}'. Use correct form of a domain.")
+        raise ValueError(f"Invalid domain format: {domain}")
     return domain
 
 
