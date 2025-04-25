@@ -17,8 +17,8 @@ class CLIHandler:
         )
 
         input_group = parser.add_mutually_exclusive_group(required=True)
-        input_group.add_argument("--single", help="Single domain to validate")
-        input_group.add_argument("--batch", help="Path to file containing domains")
+        input_group.add_argument("--single", "-d" , help="Single domain to validate")
+        input_group.add_argument("--batch", "-b", help="Batch mode - Path to file containing domains")
 
         parser.add_argument(
             "--max-concurrent",
