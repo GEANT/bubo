@@ -162,8 +162,4 @@ cython_debug/
 #.idea/
 
 .idea
-results/
-domain.txt
-cache/
-ipwhois/
 venv/
