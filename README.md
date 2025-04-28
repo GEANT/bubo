@@ -96,11 +96,12 @@ The tool generates two types of reports:
 Both reports are saved in the results/ directory with timestamped directory and filenames.\
 The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a machine-readable format for further processing.
 
+To make it easy to access, you can also find the last generated report in results/ dir with `index.html` and `statistics.html` files.
 ___
 
 ## Cache
-Results are cached for 24 hours by default to speed up repeated checks. Use the `--ignore-cache` flag to force new validations.
-
+By default, results are cached for 24 hours to speed up repeated checks. Use the `--ignore-cache` flag to force fresh validation.
+When using the Docker image, you can create a persistent volume to retain cached data (see the Docker quick reference). Without a persistent volume, the cache is cleared between runs, so validations are always fresh and `--ignore-cache` is unnecessary.
 ___
 
 ## Docker quick reference
@@ -114,45 +115,51 @@ docker build -t compliance-checker .
 
 ### Single Domain Check
 ```bash
-# Basic usage (results in container only)
-docker run --rm compliance-checker --single example.com
+# Basic usage with persistent cache (recommended)
+docker volume create compliance_cache
+docker run --rm --network host \
+  -v "$(pwd)/results:/app/results" \
+  -v compliance_cache:/app/cache \
+  compliance-checker --single example.com
 
-# With results saved to host
-docker run --rm -v "$(pwd)/results:/app/results-docker" compliance-checker --single example.com
-
-# Using named volume
-docker volume create compliance_data
-docker run --rm -v compliance_data:/app/results-docker compliance-checker --single example.com
+# With both results and cache saved to host directories
+docker run --rm --network host \
+  -v "$(pwd)/results:/app/results" \
+  -v "$(pwd)/cache-data:/app/cache" \
+  compliance-checker --single example.com
 ```
 
 ### Batch Processing
 ```bash
 # Mount CSV file and save results
-docker run --rm \
-  -v "$(pwd)/domains.csv:/app/domains.csv" \
-  -v "$(pwd)/results:/app/results-docker" \
+docker run --rm  --network host\
+  -v "$(pwd)/results:/app/results" \
+  -v compliance_cache:/app/cache \
   compliance-checker --batch domains.csv
 ```
 
 ### Common Options
 ```bash
 # Ignore cache
-docker run --rm -v "$(pwd)/results:/app/results-docker" compliance-checker --single example.com --ignore-cache
-
+# Ignore cache
+docker run --rm --network host \
+  -v "$(pwd)/results:/app/results" \
+  -v compliance_cache:/app/cache \
+  compliance-checker --single example.com --ignore-cache
+  
 # Custom output directory
-docker run --rm -v "$(pwd)/custom-dir:/app/custom-dir" compliance-checker --single example.com -o custom-dir
+docker run --rm --network host \
+  -v "$(pwd)/custom-dir:/app/custom-dir" \
+  -v compliance_cache:/app/cache \
+  compliance-checker --single example.com -o custom-dir
 
 # Custom Routinator URL
-docker run --rm compliance-checker --single example.com -ru http://routinator-host:8323
+docker run --rm --network host \
+  -v "$(pwd)/results:/app/results" \
+  -v compliance_cache:/app/cache \
+  compliance-checker --single example.com -ru http://routinator-host:8323
 ```
 
-### Extract Results from Volume
-```bash
-docker run --rm \
-  -v compliance_data:/source \
-  -v "$(pwd)/extracted:/destination" \
-  alpine sh -c "cp -R /source/* /destination/"
-```
 
 </details>
 
