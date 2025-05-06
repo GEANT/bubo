@@ -24,13 +24,14 @@ class CLIHandler:
 
         parser.add_argument(
             "--max-concurrent",
+            "-mc",
             type=int,
             default=48,
             help="Maximum concurrent validations",
         )
 
         parser.add_argument(
-            "--ignore-cache", action="store_true", help="Force fresh validation"
+            "--ignore-cache", "-ic", action="store_true", help="Force fresh validation"
         )
 
         parser.add_argument(
