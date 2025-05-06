@@ -11,6 +11,7 @@ from core.dns.records import process_domain
 from core.io.file_processor import process_file
 from core.cli.handler import CLIHandler
 from standards import rpki, dane, dnssec, email_security, web
+from core.tls import cipher_utils
 import traceback
 
 
@@ -49,7 +50,7 @@ class DomainValidator:
         mode: str,
         domain_ns: list[str],
         domain_mx: list[str],
-        mail_ns: list[str],
+        mail_ns: list[str] | list[list[str]],
     ) -> dict[str, asyncio.Task]:
         """
         Creates async tasks for each validation type (RPKI, DANE, DNSSEC, EMAIL_SECURITY).
@@ -90,11 +91,13 @@ class DomainValidator:
         """
         domain = domain_info["Domain"]
 
-        async with self.domain_semaphore:  # Limit concurrent domain processing
+        async with self.domain_semaphore:
             domain_ns, domain_mx, mail_ns = await process_domain(domain)
 
             if not (domain_ns and domain_mx):
-                logger.warning(f"No nameservers found for domain: {domain}")
+                logger.warning(
+                    f"Both or one of the domain nameservers and mailservers are empty for {domain}. Skipping."
+                )
                 return None
 
             try:
@@ -243,6 +246,7 @@ async def main():
     Handles command line arguments and initiates domain processing.
     """
     load_dotenv()
+    await cipher_utils.initialize()
 
     cli_options = CLIHandler.parse_args()
 
@@ -295,5 +299,5 @@ async def main():
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except Exception as e:
-        logger.error(f"{str(e)}")
+    except Exception:
+        logger.error(f"Error: {traceback.format_exc()}")
