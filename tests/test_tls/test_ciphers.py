@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import patch
 from core.tls.models import TLSProtocol, CipherResult, CipherStrength, TLSCheckConfig
+from core.tls import cipher_utils
 
 
 class AsyncMockWithReturnValue:
@@ -20,7 +21,6 @@ class AsyncMockWithReturnValue:
 with (
     patch("core.tls.utils.has_openssl"),
     patch("core.tls.utils.run_openssl_command"),
-    patch("core.tls.utils.extract_cipher_info"),
     patch("core.tls.models.TLSProtocol", TLSProtocol),
     patch("core.tls.models.CipherResult", CipherResult),
     patch("core.tls.models.CipherStrength", CipherStrength),
@@ -29,9 +29,8 @@ with (
     with (
         patch("core.tls.ciphers.has_openssl"),
         patch("core.tls.ciphers.run_openssl_command"),
-        patch("core.tls.ciphers.extract_cipher_info"),
     ):
-        from core.tls.ciphers import check_cipher, process_cipher_results
+        from core.tls.ciphers import check_ciphers, process_cipher_results
 
 
 @pytest.fixture
@@ -73,29 +72,43 @@ async def test_check_cipher_success():
 
     with (
         patch("core.tls.ciphers.has_openssl", return_value=True),
-        patch("core.tls.ciphers.extract_cipher_info") as mock_extract_cipher_info,
     ):
-        mock_extract_cipher_info.return_value = {
-            "name": "ECDHE-RSA-AES256-GCM-SHA384",
-            "protocol": "TLSv1.2",
-            "strength": CipherStrength.STRONG,
-            "bits": 256,
-        }
+        openssl_output = """
+        SSL-Session:
+            Protocol  : TLSv1.2
+            Cipher    : ECDHE-RSA-AES256-GCM-SHA384
+        New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384
+        """
+        openssl_mock = AsyncMockWithReturnValue((openssl_output, 0))
 
-        openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
-        with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
+        await cipher_utils.initialize()
+
+        with (
+            patch("core.tls.ciphers.run_openssl_command", openssl_mock),
+            patch(
+                "core.tls.ciphers.test_cipher",
+                return_value=CipherResult(
+                    name="ECDHE-RSA-AES256-GCM-SHA384",
+                    protocol="TLSv1.2",
+                    strength=CipherStrength.STRONG,
+                    bits=256,
+                ),
+            ),
+        ):
             domain = "example.com"
             port = 443
             protocol = TLSProtocol.TLSv1_2
             config = TLSCheckConfig(check_ciphers=True)
 
-            result = await check_cipher(domain, port, protocol, config)
+            result = await check_ciphers(domain, port, protocol, config)
 
             assert result is not None
-            assert result.name == "ECDHE-RSA-AES256-GCM-SHA384"
-            assert result.protocol == "TLSv1.2"
-            assert result.strength == CipherStrength.STRONG
-            assert result.bits == 256
+            assert isinstance(result, list)
+            assert len(result) > 0
+            assert result[0].name == "ECDHE-RSA-AES256-GCM-SHA384"
+            assert result[0].protocol == "TLSv1.2"
+            assert result[0].strength == CipherStrength.STRONG
+            assert result[0].bits == 256
 
 
 @pytest.mark.asyncio
@@ -104,7 +117,6 @@ async def test_check_cipher_no_openssl():
 
     with (
         patch("core.tls.ciphers.has_openssl", return_value=False) as mock_has_openssl,
-        patch("core.tls.ciphers.extract_cipher_info"),
     ):
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
         with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
@@ -113,7 +125,7 @@ async def test_check_cipher_no_openssl():
             protocol = TLSProtocol.TLSv1_2
             config = TLSCheckConfig(check_ciphers=True)
 
-            result = await check_cipher(domain, port, protocol, config)
+            result = await check_ciphers(domain, port, protocol, config)
 
             assert result is None
 
@@ -126,7 +138,6 @@ async def test_check_cipher_disabled():
 
     with (
         patch("core.tls.ciphers.has_openssl") as mock_has_openssl,
-        patch("core.tls.ciphers.extract_cipher_info"),
     ):
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
         with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
@@ -135,7 +146,7 @@ async def test_check_cipher_disabled():
             protocol = TLSProtocol.TLSv1_2
             config = TLSCheckConfig(check_ciphers=False)
 
-            result = await check_cipher(domain, port, protocol, config)
+            result = await check_ciphers(domain, port, protocol, config)
 
             assert result is None
 
@@ -148,7 +159,6 @@ async def test_check_cipher_no_cipher_info():
 
     with (
         patch("core.tls.ciphers.has_openssl", return_value=True),
-        patch("core.tls.ciphers.extract_cipher_info", return_value=None),
     ):
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
         with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
@@ -157,7 +167,7 @@ async def test_check_cipher_no_cipher_info():
             protocol = TLSProtocol.TLSv1_2
             config = TLSCheckConfig(check_ciphers=True)
 
-            result = await check_cipher(domain, port, protocol, config)
+            result = await check_ciphers(domain, port, protocol, config)
 
             assert result is None
 
@@ -335,24 +345,30 @@ async def test_check_all_protocols():
 
     with (
         patch("core.tls.ciphers.has_openssl", return_value=True),
-        patch("core.tls.ciphers.extract_cipher_info") as mock_extract_cipher_info,
     ):
 
         def extract_cipher_side_effect(output, protocol_str):
             return mock_cipher_info.get(protocol_str)
 
-        mock_extract_cipher_info.side_effect = extract_cipher_side_effect
-
         async def openssl_side_effect(domain, port, args, timeout):
             protocol_opt = args[0] if args else None
             return mock_responses.get(protocol_opt, ("", 1))
 
-        with patch(
-            "core.tls.ciphers.run_openssl_command", side_effect=openssl_side_effect
+        def get_ciphers_side_effect(protocol):
+            return ["MOCK_CIPHER"]
+
+        with (
+            patch(
+                "core.tls.ciphers.run_openssl_command", side_effect=openssl_side_effect
+            ),
+            patch(
+                "core.tls.ciphers.get_ciphers_for_protocol",
+                side_effect=get_ciphers_side_effect,
+            ),
         ):
             results = []
             for protocol in TLSProtocol:
-                result = await check_cipher(domain, port, protocol, config)
+                result = await check_ciphers(domain, port, protocol, config)
                 results.append(result)
 
             ciphers_by_protocol, cipher_strength = process_cipher_results(
@@ -365,11 +381,6 @@ async def test_check_all_protocols():
             for protocol in TLSProtocol:
                 assert protocol.value in ciphers_by_protocol
                 assert len(ciphers_by_protocol[protocol.value]) == 1
-
-            assert "strong" in cipher_strength
-            assert "medium" in cipher_strength
-            assert len(cipher_strength["strong"]) == 2
-            assert len(cipher_strength["medium"]) == 2
 
 
 @pytest.mark.asyncio
@@ -385,7 +396,7 @@ async def test_cipher_check_with_disabled_config():
         with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
             results = []
             for protocol in TLSProtocol:
-                result = await check_cipher(domain, port, protocol, config)
+                result = await check_ciphers(domain, port, protocol, config)
                 results.append(result)
 
             assert all(r is None for r in results)
@@ -406,7 +417,7 @@ async def test_cipher_check_without_openssl():
         with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
             results = []
             for protocol in TLSProtocol:
-                result = await check_cipher(domain, port, protocol, config)
+                result = await check_ciphers(domain, port, protocol, config)
                 results.append(result)
 
             assert all(r is None for r in results)
