@@ -1,6 +1,7 @@
 # core/tls/models.py
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import NamedTuple, Optional
 
 
 class CipherStrength(Enum):
@@ -73,6 +74,7 @@ class TLSCheckConfig:
     check_hsts: bool = True
     check_san: bool = True
     check_security_headers: bool = True
+    max_cipher_concurrency: int = 10
 
 
 @dataclass
@@ -107,14 +109,36 @@ class CertificateResult:
     connection_error: bool = False
 
 
-@dataclass
 class CipherResult:
-    """Result of a cipher suite check."""
-
-    name: str
-    protocol: str
-    strength: CipherStrength
-    bits: int | None = None
+    def __init__(
+        self,
+        name: str,
+        protocol: str,
+        strength: CipherStrength,
+        bits: Optional[int] = None,
+        key_exchange: Optional[str] = None,
+        authentication: Optional[str] = None,
+        encryption: Optional[str] = None,
+        mac: Optional[str] = None,
+        iana_value: Optional[str] = None,
+        iana_name: Optional[str] = None,
+        dtls_ok: bool = False,
+        recommended: bool = False,
+        reference: Optional[str] = None,
+    ):
+        self.name = name
+        self.protocol = protocol
+        self.strength = strength
+        self.bits = bits
+        self.key_exchange = key_exchange
+        self.authentication = authentication
+        self.encryption = encryption
+        self.mac = mac
+        self.iana_value = iana_value
+        self.iana_name = iana_name
+        self.dtls_ok = dtls_ok
+        self.recommended = recommended
+        self.reference = reference
 
 
 PROTOCOL_SECURITY = {
@@ -127,30 +151,55 @@ PROTOCOL_SECURITY = {
 # Cipher patterns for strength classification
 CIPHER_PATTERNS = {
     CipherStrength.STRONG: [
-        r"ECDHE.*AES.*GCM",
-        r"ECDHE.*CHACHA20",
-        r"DHE.*AES.*GCM",
-        r"ECDHE.*AES.*CCM",
-        r"TLS_AES_",
-        r"TLS_CHACHA20_",
-        r"AES256-SHA256",
+        # TLS 1.3 AEAD ciphers (all provide AEAD + forward secrecy)
+        r"^TLS_AES_128_GCM_SHA256$",
+        r"^TLS_AES_256_GCM_SHA384$",
+        r"^TLS_CHACHA20_POLY1305_SHA256$",
+        r"^TLS_AES_128_CCM_SHA256$",
+        r"^TLS_AES_128_CCM_8_SHA256$",
+        # TLS 1.2 AEAD with Ephemeral key exchange (ECDHE/DHE)
+        r"^ECDHE-.*-AES128-GCM-SHA256$",
+        r"^ECDHE-.*-AES256-GCM-SHA384$",
+        r"^DHE-RSA-AES128-GCM-SHA256$",
+        r"^DHE-RSA-AES256-GCM-SHA384$",
+        # TLS 1.2 ChaCha20-Poly1305 with Ephemeral key exchange
+        r"^ECDHE-.*-CHACHA20-POLY1305$",
+        r"^DHE-RSA-CHACHA20-POLY1305$",
     ],
     CipherStrength.MEDIUM: [
-        r"ECDHE.*AES.*CBC",
-        r"DHE.*AES.*CBC",
-        r"RSA.*AES.*GCM",
-        r"ECDH.*AES",
+        # TLS 1.2 AEAD without forward secrecy (RSA key-exchange)
+        r"^AES128-GCM-SHA256$",
+        r"^AES256-GCM-SHA384$",
+        # TLS 1.2 CBC with SHA-2 and forward secrecy
+        r"^ECDHE-.*-AES128-SHA256$",
+        r"^ECDHE-.*-AES256-SHA384$",
+        r"^DHE-RSA-AES128-SHA256$",
+        r"^DHE-RSA-AES256-SHA256$",
+        # TLS 1.2 CBC with SHA-2 without forward secrecy
+        r"^AES128-SHA256$",
+        r"^AES256-SHA256$",
     ],
     CipherStrength.WEAK: [
+        # SHA-1 based ciphers (any with SHA$ or SHA1)
+        r"-SHA$",
+        r"-SHA1$",
+        # Static RSA key exchange (no PFS)
+        r"^TLS_RSA_.*",
+        # PSK and SRP ciphers (often weaker or no PKI auth)
+        r"PSK-",
+        r"ECDHE-PSK-",
+        r"DHE-PSK-",
+        r"RSA-PSK-",
+        r"SRP-",
+        # Obsolete algorithms and protocols
         r"RC4",
-        r"DES",
         r"3DES",
+        r"DES",
         r"NULL",
+        r"EXPORT",
         r"anon",
         r"MD5",
-        r"SHA(?!256|384|512)"
-        r"EXPORT",
-        r"PSK",
+        r"^SSLv3",
         r"DSS",
     ],
 }
@@ -176,3 +225,17 @@ SIGNATURE_ALGORITHMS = {
     SignatureAlgorithmSecurity.ACCEPTABLE: ["sha224"],
     SignatureAlgorithmSecurity.WEAK: ["sha1", "md5", "md2", "md4"],
 }
+
+
+class CipherDetails(NamedTuple):
+    protocol: str
+    key_exchange: str
+    authentication: str
+    encryption: str
+    mac: str
+    strength: str
+    iana_value: str = ""
+    iana_name: str = ""
+    dtls_ok: bool = False
+    recommended: bool = False
+    reference: str = ""
