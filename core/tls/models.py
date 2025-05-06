@@ -148,62 +148,6 @@ PROTOCOL_SECURITY = {
     TLSProtocol.TLSv1_3: True,
 }
 
-# Cipher patterns for strength classification
-CIPHER_PATTERNS = {
-    CipherStrength.STRONG: [
-        # TLS 1.3 AEAD ciphers (all provide AEAD + forward secrecy)
-        r"^TLS_AES_128_GCM_SHA256$",
-        r"^TLS_AES_256_GCM_SHA384$",
-        r"^TLS_CHACHA20_POLY1305_SHA256$",
-        r"^TLS_AES_128_CCM_SHA256$",
-        r"^TLS_AES_128_CCM_8_SHA256$",
-        # TLS 1.2 AEAD with Ephemeral key exchange (ECDHE/DHE)
-        r"^ECDHE-.*-AES128-GCM-SHA256$",
-        r"^ECDHE-.*-AES256-GCM-SHA384$",
-        r"^DHE-RSA-AES128-GCM-SHA256$",
-        r"^DHE-RSA-AES256-GCM-SHA384$",
-        # TLS 1.2 ChaCha20-Poly1305 with Ephemeral key exchange
-        r"^ECDHE-.*-CHACHA20-POLY1305$",
-        r"^DHE-RSA-CHACHA20-POLY1305$",
-    ],
-    CipherStrength.MEDIUM: [
-        # TLS 1.2 AEAD without forward secrecy (RSA key-exchange)
-        r"^AES128-GCM-SHA256$",
-        r"^AES256-GCM-SHA384$",
-        # TLS 1.2 CBC with SHA-2 and forward secrecy
-        r"^ECDHE-.*-AES128-SHA256$",
-        r"^ECDHE-.*-AES256-SHA384$",
-        r"^DHE-RSA-AES128-SHA256$",
-        r"^DHE-RSA-AES256-SHA256$",
-        # TLS 1.2 CBC with SHA-2 without forward secrecy
-        r"^AES128-SHA256$",
-        r"^AES256-SHA256$",
-    ],
-    CipherStrength.WEAK: [
-        # SHA-1 based ciphers (any with SHA$ or SHA1)
-        r"-SHA$",
-        r"-SHA1$",
-        # Static RSA key exchange (no PFS)
-        r"^TLS_RSA_.*",
-        # PSK and SRP ciphers (often weaker or no PKI auth)
-        r"PSK-",
-        r"ECDHE-PSK-",
-        r"DHE-PSK-",
-        r"RSA-PSK-",
-        r"SRP-",
-        # Obsolete algorithms and protocols
-        r"RC4",
-        r"3DES",
-        r"DES",
-        r"NULL",
-        r"EXPORT",
-        r"anon",
-        r"MD5",
-        r"^SSLv3",
-        r"DSS",
-    ],
-}
-
 KEY_LENGTH_RECOMMENDATIONS = {
     "RSA": 2048,
     "DSA": 2048,
