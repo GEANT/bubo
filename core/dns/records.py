@@ -13,6 +13,8 @@ logger = setup_logger(__name__)
 async def resolve_nameservers(domain: str, ignore_cache: bool = False) -> list[str]:
     """
     Resolve nameservers for a domain or IP address.
+    If a subdomain doesn't have its own NS records, it will recursively
+    check parent domains until NS records are found.
 
     Args:
         domain: Domain name or IP address
@@ -41,8 +43,18 @@ async def resolve_nameservers(domain: str, ignore_cache: bool = False) -> list[s
         logger.warning(f"[NS] Domain {domain} does not exist.")
         return []
     except dns.resolver.NoAnswer:
-        logger.info(f"No NS records for domain {domain}.")
-        return []
+        # If no NS records exist for this domain and it's a subdomain,
+        # try to get NS records from the parent domain
+        domain_parts = domain.split(".")
+        if len(domain_parts) > 2:
+            parent_domain = ".".join(domain_parts[1:])
+            logger.info(
+                f"No NS records for subdomain {domain}. Trying parent domain {parent_domain}."
+            )
+            return await resolve_nameservers(parent_domain, ignore_cache)
+        else:
+            logger.info(f"No NS records for domain {domain} and it's not a subdomain.")
+            return []
     except Exception as e:
         logger.error(f"Failed to resolve nameservers for {domain} after retries: {e}")
         return []
