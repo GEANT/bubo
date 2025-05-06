@@ -102,6 +102,11 @@ ___
 ## Cache
 By default, results are cached for 24 hours to speed up repeated checks. Use the `--ignore-cache` flag to force fresh validation.
 When using the Docker image, you can create a persistent volume to retain cached data (see the Docker quick reference). Without a persistent volume, the cache is cleared between runs, so validations are always fresh and `--ignore-cache` is unnecessary.
+
+- For cipher suites, we use IANA TLS cipher suite recommendations. The cache is valid for 30 days by default. You can change this by setting the `IANA_UPDATE_CACHE_DAYS` environment variable in `.env` file or in the shell:
+    ```bash
+    export IANA_UPDATE_CACHE_DAYS=7
+    ```
 ___
 
 ## Docker quick reference
