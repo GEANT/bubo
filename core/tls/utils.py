@@ -17,7 +17,6 @@ from core.tls.models import (
     SANInfo,
     SignatureAlgorithmInfo,
     SignatureAlgorithmSecurity,
-    CIPHER_PATTERNS,
     SIGNATURE_ALGORITHMS,
     KEY_LENGTH_RECOMMENDATIONS,
 )
@@ -29,6 +28,7 @@ from core.logging.logger import setup_logger
 logger = setup_logger(__name__)
 
 T = TypeVar("T")
+_openssl_timeout_occurred = []
 
 
 async def with_retries(
@@ -171,30 +171,10 @@ async def get_openssl_version() -> tuple[int, int, int]:
 
 
 def categorize_cipher_strength(cipher_name: str) -> CipherStrength:
-    """
-    Categorize a cipher suite's strength based on patterns.
+    """Categorize cipher strength."""
+    from core.tls.cipher_utils import classify_cipher
 
-    Args:
-        cipher_name: Name of the cipher suite
-
-    Returns:
-        CipherStrength enum value
-    """
-    cipher_upper = cipher_name.upper()
-
-    for pattern in CIPHER_PATTERNS[CipherStrength.WEAK]:
-        if re.search(pattern, cipher_upper):
-            return CipherStrength.WEAK
-
-    for pattern in CIPHER_PATTERNS[CipherStrength.STRONG]:
-        if re.search(pattern, cipher_upper):
-            return CipherStrength.STRONG
-
-    for pattern in CIPHER_PATTERNS[CipherStrength.MEDIUM]:
-        if re.search(pattern, cipher_upper):
-            return CipherStrength.MEDIUM
-
-    return CipherStrength.UNKNOWN
+    return classify_cipher(cipher_name)
 
 
 def categorize_signature_algorithm(sig_alg: str) -> SignatureAlgorithmSecurity:
@@ -215,41 +195,6 @@ def categorize_signature_algorithm(sig_alg: str) -> SignatureAlgorithmSecurity:
                 return category
 
     return SignatureAlgorithmSecurity.UNKNOWN
-
-
-def extract_cipher_info(output: str, protocol: str) -> dict[str, Any] | None:
-    """
-    Extract cipher information from OpenSSL output.
-
-    Args:
-        output: OpenSSL command output
-        protocol: Protocol name
-
-    Returns:
-        Dictionary with cipher info or None if not found
-    """
-    cipher_match = re.search(r"New,.*Cipher\s+is\s+(\S+)", output)
-    if not cipher_match:
-        cipher_match = re.search(r"Cipher\s+:\s+(.+?)[\r\n]", output)
-
-    if cipher_match:
-        cipher_name = cipher_match.group(1).strip()
-        if cipher_name and cipher_name != "(NONE)":
-            bits = None
-            bits_match = re.search(r"(\d+) bit", output)
-            if bits_match:
-                bits = int(bits_match.group(1))
-
-            strength = categorize_cipher_strength(cipher_name)
-
-            return {
-                "name": cipher_name,
-                "protocol": protocol,
-                "strength": strength,
-                "bits": bits,
-            }
-
-    return None
 
 
 # ------------------------------------------------------------------------------
@@ -443,38 +388,47 @@ async def run_openssl_command(
     domain: str, port: int, args: list[str], timeout: int, retries: int = 1
 ) -> tuple[str, int]:
     """
-    Run OpenSSL command asynchronously with retries.
+    Run OpenSSL command asynchronously with optimized retry logic.
+
+    Uses different strategies for cipher tests vs. regular TLS connectivity checks.
+
+    Args:
+        domain: Target domain
+        port: Target port
+        args: OpenSSL arguments
+        timeout: Initial timeout in seconds
+        retries: Maximum number of retries
+
+    Returns:
+        Tuple of (command_output, return_code)
     """
+    global _openssl_timeout_occurred
     if not has_openssl():
         return "OpenSSL not available", 1
 
-    allowed_args = {
-        "-tls1",
-        "-tls1_1",
-        "-tls1_2",
-        "-tls1_3",
-        "-cipher",
-        "DEFAULT:@SECLEVEL=0",
-        "-verify_return_error",
-        "-showcerts",
-    }
-
-    if not all(arg in allowed_args for arg in args if arg):
-        return "Invalid OpenSSL arguments", 1
-
-    base_cmd = [
-        "openssl",
-        "s_client",
-        "-connect",
-        f"{domain}:{port}",
-    ]
-
+    base_cmd = ["openssl", "s_client", "-connect", f"{domain}:{port}"]
     valid_args = [arg for arg in args if arg]
     cmd = base_cmd + valid_args
-    logger.debug(f"Running OpenSSL command: {' '.join(cmd)}")
+    cmd_str = " ".join(cmd)
 
-    attempt = 0
-    while attempt <= retries:
+    # Detect if this is a cipher test
+    is_cipher_test = any("-cipher" in arg for arg in valid_args)
+
+    # Use optimized parameters for cipher tests
+    if is_cipher_test:
+        # Cipher tests get shorter timeouts and fewer retries
+        effective_timeout = min(2.0, timeout)
+        effective_retries = min(1, retries)
+        retry_delay = 0.5  # Very short retry delay for ciphers
+    else:
+        # Normal connectivity tests use standard values
+        effective_timeout = timeout
+        effective_retries = retries
+        retry_delay = 2.0
+
+    logger.debug(f"Running OpenSSL command: {cmd_str}")
+
+    for attempt in range(effective_retries + 1):
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -487,7 +441,7 @@ async def run_openssl_command(
                 # Use newline to complete handshake
                 stdin_data = b"\n"
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(input=stdin_data), timeout=timeout
+                    proc.communicate(input=stdin_data), timeout=effective_timeout
                 )
                 output = stdout.decode(errors="replace") + stderr.decode(
                     errors="replace"
@@ -499,24 +453,26 @@ async def run_openssl_command(
                     proc.kill()
                 except Exception:
                     pass
-                logger.warning(
-                    f"Command timeout for {domain}:{port} (attempt {attempt + 1}/{retries + 1})"
-                )
 
-                attempt += 1
-                if attempt <= retries:
-                    await asyncio.sleep(
-                        min(max(5, 5 + random() * (2**attempt - 5)), 15)
-                    )
+                if attempt < effective_retries:
+                    if domain not in _openssl_timeout_occurred:
+                        _openssl_timeout_occurred.append(domain)
+                        logger.info(
+                            f"Command timeout for {domain}:{port} (attempt {attempt + 1}/{effective_retries + 1}). "
+                            f"Retrying in {retry_delay:.2f} seconds..."
+                        )
+                    await asyncio.sleep(retry_delay)
                     continue
+
                 return "Command timed out", 1
 
         except Exception as e:
             logger.error(f"Error running OpenSSL for {domain}:{port}: {e}")
-            attempt += 1
-            if attempt <= retries:
-                await asyncio.sleep(min(max(5, 5 + random() * (2**attempt - 5)), 15))
+
+            if attempt < effective_retries:
+                await asyncio.sleep(retry_delay)
                 continue
+
             return f"Error running OpenSSL: {str(e)}", 1
 
     return "All retry attempts failed", 1
