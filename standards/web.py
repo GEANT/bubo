@@ -18,7 +18,7 @@ from core.tls.models import (
 from datetime import datetime
 from core.tls.protocols import check_protocol, process_protocol_results
 from core.tls.certificates import check_certificate
-from core.tls.ciphers import check_cipher, process_cipher_results
+from core.tls.ciphers import check_ciphers, process_cipher_results
 from core.web.utils import build_security_assessment, resolve_domain
 from core.web.http_security import run_http_security_checks, build_http_security_dicts
 
@@ -48,7 +48,7 @@ async def run_cipher_checks(
 ) -> tuple[dict[str, list[dict]], dict[str, list[str]]]:
     """Run cipher checks for supported protocols and process results."""
     cipher_tasks = [
-        asyncio.create_task(check_cipher(domain, port, protocol, config))
+        asyncio.create_task(check_ciphers(domain, port, protocol, config))
         for protocol in supported_protocols
     ]
 
@@ -154,7 +154,7 @@ async def run(
     domain: str, port: int = 443, config: TLSCheckConfig | None = None
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
-    Run comprehensive TLS security checks on the specified domain and port.
+    Run TLS security checks on the specified domain and port.
     Will try with www. prefix if the original domain fails to connect.
     """
     if config is None:
