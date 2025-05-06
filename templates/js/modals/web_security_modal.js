@@ -712,8 +712,8 @@ function createProtocolsTabContent(results) {
                 </td>
                 <td>
                     ${protocol.secure ?
-                        `<i class="fas fa-shield-alt status-valid"></i> Secure` :
-                        `<i class="fas fa-exclamation-triangle status-not-valid"></i> Insecure`
+                        `Secure` :
+                        `Insecure`
                     }
                 </td>
             </tr>`;
@@ -740,6 +740,9 @@ function createProtocolsTabContent(results) {
     if (results.ciphers && results.ciphers.by_protocol) {
         const hasStrongCiphers = results.ciphers.has_strong_ciphers || false;
         const hasWeakCiphers = results.ciphers.has_weak_ciphers || false;
+        const hasRecommendedCiphers = Object.values(results.ciphers.by_protocol)
+            .flat()
+            .some(cipher => cipher.recommended);
 
         html += `
         <div class="summary-content">
@@ -750,6 +753,10 @@ function createProtocolsTabContent(results) {
             <div class="flex items-center gap-2 mb-4">
                 <i class="fas fa-${!hasWeakCiphers ? 'check-circle status-valid' : 'exclamation-triangle status-not-valid'} me-2"></i>
                 <strong>Weak Ciphers:</strong> ${!hasWeakCiphers ? 'No' : 'Yes'}
+            </div>
+            <div class="flex items-center gap-2 mb-4">
+                <i class="fas fa-${hasRecommendedCiphers ? 'check-circle status-valid' : 'info-circle'} me-2"></i>
+                <strong>IANA Recommended Ciphers:</strong> ${hasRecommendedCiphers ? 'Yes' : 'No'}
             </div>`;
 
         // Create collapsible sections for each protocol's ciphers
@@ -763,34 +770,192 @@ function createProtocolsTabContent(results) {
                         <i class="fas fa-chevron-down collapse-icon"></i>
                     </div>
                     <div class="record-card-body">
-                        <table class="validation-table details-table">
-                            <thead>
-                            <tr>
-                                <th>Cipher</th>
-                                <th>Bits</th>
-                                <th>Strength</th>
-                            </tr>
-                            </thead>
-                            <tbody>`;
+                        <!-- Add responsive table wrapper -->
+                        <div class="table-responsive">
+                            <table class="validation-table details-table">
+                                <thead>
+                                <tr>
+                                    <th style="min-width: 180px;">Cipher</th>
+                                    <th>Key Exchange</th>
+                                    <th>Auth</th>
+                                    <th>Encryption</th>
+                                    <th>MAC</th>
+                                    <th>Bits</th>
+                                    <th>Strength</th>
+                                    <th>IANA Recommended</th>
+                                    <th>DTLS Compatible</th>
+                                </tr>
+                                </thead>
+                                <tbody>`;
 
                 ciphers.forEach(cipher => {
                     html += `
                     <tr>
-                        <td class="monospace">${cipher.name}</td>
-                        <td>${cipher.bits}</td>
+                        <td class="monospace nowrap" title="${cipher.name}">${cipher.name}</td>
+                        <td>${cipher.key_exchange || 'N/A'}</td>
+                        <td>${cipher.authentication || 'N/A'}</td>
+                        <td>${cipher.encryption || 'N/A'}</td>
+                        <td>${cipher.mac || 'N/A'}</td>
+                        <td>${cipher.bits || 'N/A'}</td>
                         <td>
-                            <span class="status-badge ${cipher.strength === 'strong' ? 'status-valid' : 'status-not-valid'}">
-                                <i class="fas fa-${cipher.strength === 'strong' ? 'shield-alt' : 'exclamation-triangle'}"></i>
+                            <span class="status-badge ${cipher.strength === 'strong' ? 'status-valid' : cipher.strength === 'medium' ? 'status-partially-valid' : 'status-not-valid'}">
+                                <i class="fas fa-${cipher.strength === 'strong' ? 'shield-alt' : cipher.strength === 'medium' ? 'exclamation-circle' : 'exclamation-triangle'}"></i>
                                 ${capitalize(cipher.strength)}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${cipher.recommended ? 'status-valid' : ''}">
+                                <i class="fas fa-${cipher.recommended ? 'thumbs-up' : 'thumbs-down'}"></i>
+                                ${cipher.recommended ? 'Yes' : 'No'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${cipher.dtls_ok ? 'status-valid' : ''}">
+                                <i class="fas fa-${cipher.dtls_ok ? 'check' : 'times'}"></i>
+                                ${cipher.dtls_ok ? 'Yes' : 'No'}
                             </span>
                         </td>
                     </tr>`;
                 });
 
-                html += `</tbody></table></div></div>`;
+                html += `</tbody></table></div></div></div>`;
             }
         }
 
+        // Add cipher classification information section
+        html += `
+        <div class="record-card mb-5">
+            <div class="record-card-header collapsible collapsed" onclick="toggleCollapse(this)">
+                <i class="fas fa-shield-alt"></i>
+                <span>Cipher Classification Information</span>
+                <i class="fas fa-chevron-down collapse-icon"></i>
+            </div>
+            <div class="record-card-body" style="max-height: 0px; padding: 0px 16px; overflow: hidden;">
+                <!-- Classification References Section -->
+                <div class="cipherinfo-section mb-5">
+                    <h4 class="cipherinfo-title mb-3">Classification References</h4>
+                    <p class="mb-4">Our cipher strength classification (Strong/Medium/Weak) is based on these authoritative sources:</p>
+                    
+                    <div class="cipherinfo-ref-container">
+                        <div class="cipherinfo-ref-card mb-3 p-3 border rounded">
+                            <h5 class="cipherinfo-ref-title">
+                                <a href="https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-4" target="_blank" class="cipherinfo-link">
+                                    <i class="fas fa-external-link-alt me-2"></i>IANA TLS Cipher Suite Registry
+                                </a>
+                            </h5>
+                            <p class="cipherinfo-ref-desc mt-2">
+                                Used for the "Recommended" flag and DTLS compatibility status. IANA explicitly notes that if a cipher suite isn't marked as "Recommended," it doesn't necessarily mean it's flawed, but rather that it "has not been through the IETF consensus process, has limited applicability, or is intended only for specific use cases."
+                            </p>
+                            
+                            <h5 class="cipherinfo-ref-title">
+                                <a href="https://csrc.nist.gov/publications/detail/sp/800-52/rev-2/final" target="_blank" class="cipherinfo-link">
+                                    <i class="fas fa-external-link-alt me-2"></i>NIST SP 800-52r2
+                                </a>
+                            </h5>
+                            <p class="cipherinfo-ref-desc mt-2">
+                                Provides our baseline for cipher security classification, particularly the recommendation to "prefer ephemeral keys over static keys (i.e., prefer DHE over DH, and prefer ECDHE over ECDH)" for forward secrecy.
+                            </p>
+                            
+                            <h5 class="cipherinfo-ref-title">
+                                <a href="https://english.ncsc.nl/publications/publications/2021/january/19/it-security-guidelines-for-transport-layer-security-2.1" target="_blank" class="cipherinfo-link">
+                                    <i class="fas fa-external-link-alt me-2"></i>NCSC-NL TLS Guidelines
+                                </a>
+                            </h5>
+                            <p class="cipherinfo-ref-desc mt-2">
+                                Our classification framework closely aligns with NCSC's four-tier security level system.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+        
+                
+                <!-- Strength Classification Criteria Section -->
+                <div class="cipherinfo-section mb-5">
+                    <h4 class="cipherinfo-title mb-3">Strength Classification Criteria</h4>
+                    <p class="mb-3">Our cipher classification applies these specific rules:</p>
+                    
+                    <div class="cipherinfo-strength-grid">
+                        <div class="cipherinfo-strength-card cipherinfo-strong p-3 border rounded">
+                            <h5 class="d-flex align-items-center">
+                                <span class="cipherinfo-badge cipherinfo-badge-success me-2 px-2 py-1 rounded">Strong</span>
+                            </h5>
+                            <p class="mt-2 mb-0">
+                                Cipher suites using AEAD encryption (GCM, CCM, CHACHA20-POLY1305), modern key exchange with forward secrecy (ECDHE, DHE), and secure hash functions (SHA-256, SHA-384, SHA-512).
+                            </p>
+                        </div>
+                        
+                        <div class="cipherinfo-strength-card cipherinfo-medium p-3 border rounded mt-2">
+                            <h5 class="d-flex align-items-center">
+                                <span class="cipherinfo-badge cipherinfo-badge-warning me-2 px-2 py-1 rounded">Medium</span>
+                            </h5>
+                            <p class="mt-2 mb-0">
+                                Cipher suites with CBC mode encryption with forward secrecy, or AEAD encryption without forward secrecy.
+                            </p>
+                        </div>
+                        
+                        <div class="cipherinfo-strength-card cipherinfo-weak p-3 border rounded mt-2">
+                            <h5 class="d-flex align-items-center">
+                                <span class="cipherinfo-badge cipherinfo-badge-danger me-2 px-2 py-1 rounded">Weak</span>
+                            </h5>
+                            <p class="mt-2 mb-0">
+                                Cipher suites containing vulnerable components (NULL, RC4, 3DES, EXPORT, anonymous methods, MD5), static key exchange without forward secrecy, or obsolete hash functions (SHA-1).
+                            </p>
+                        </div>
+                        
+                        <div class="cipherinfo-strength-card cipherinfo-protocol p-3 border rounded mt-2">
+                            <h5 class="d-flex align-items-center">
+                                <span class="cipherinfo-badge cipherinfo-badge-info me-2 px-2 py-1 rounded">Protocol Impact</span>
+                            </h5>
+                            <p class="mt-2 mb-0">
+                                TLS 1.3 cipher suites are classified as Strong, while TLS 1.0/1.1 cipher suites are classified no higher than Medium regardless of other components.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+        
+                <!-- Table Column Legend Section -->
+                <div class="cipherinfo-section">
+                    <h4 class="cipherinfo-title mb-3">Table Column Legend</h4>
+                    
+                    <div class="cipherinfo-legend-table">
+                        <div class="cipherinfo-legend-row">
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">Key Exchange:</div>
+                                <div class="cipherinfo-legend-desc">Key exchange algorithm (e.g., ECDHE, DHE, RSA)</div>
+                            </div>
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">Auth:</div>
+                                <div class="cipherinfo-legend-desc">Authentication method (e.g., RSA, ECDSA)</div>
+                            </div>
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">Encryption:</div>
+                                <div class="cipherinfo-legend-desc">Bulk encryption algorithm and mode (e.g., AES-GCM)</div>
+                            </div>
+                        </div>
+                        <div class="cipherinfo-legend-row">
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">MAC:</div>
+                                <div class="cipherinfo-legend-desc">Message Authentication Code algorithm</div>
+                            </div>
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">Bits:</div>
+                                <div class="cipherinfo-legend-desc">Encryption key size in bits</div>
+                            </div>
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">IANA Recommended:</div>
+                                <div class="cipherinfo-legend-desc">Cipher suites officially recommended by IANA</div>
+                            </div>
+                        </div>
+                        <div class="cipherinfo-legend-row">
+                            <div class="cipherinfo-legend-cell">
+                                <div class="cipherinfo-legend-term">DTLS Compatible:</div>
+                                <div class="cipherinfo-legend-desc">Cipher suites compatible with Datagram TLS</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`
         html += `</div></div>`;
     } else {
         html += `

@@ -160,37 +160,79 @@
                 -->
             </div>
 
-            <!-- Domain Comparison Section -->
+
+            <!-- Web Compliance Rating Distribution -->
             <section class="widget full-width">
                 <div class="widget-header">
-                    <h2>Domain Comparison</h2>
+                    <h2>Web Security Rating Distribution</h2>
                 </div>
-                <div class="comparison-controls">
-                    <div class="comparison-dropdown">
-                        <label for="domain1">Domain 1:</label>
-                        <select id="domain1" class="domain-select"></select>
+                <div class="rating-distribution">
+                    <div class="chart-container">
+                        <canvas id="webRatingDistributionChart"></canvas>
                     </div>
-                    <div class="comparison-dropdown">
-                        <label for="domain2">Domain 2:</label>
-                        <select id="domain2" class="domain-select"></select>
+                    <div class="rating-stats">
+                        <div class="rating-group excellent">
+                            <h3>Excellent</h3>
+                            <div class="rating-count" id="excellent-count">0</div>
+                            <div class="rating-percent" id="excellent-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                        <div class="rating-group good">
+                            <h3>Good</h3>
+                            <div class="rating-count" id="good-count">0</div>
+                            <div class="rating-percent" id="good-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                        <div class="rating-group fair">
+                            <h3>Fair</h3>
+                            <div class="rating-count" id="fair-count">0</div>
+                            <div class="rating-percent" id="fair-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
+                        <div class="rating-group poor">
+                            <h3>Poor</h3>
+                            <div class="rating-count" id="poor-count">0</div>
+                            <div class="rating-percent" id="poor-percent">0%</div>
+                            <div class="click-indicator">Click for details</div>
+                        </div>
                     </div>
-                    <div class="comparison-metric">
-                        <label for="comparisonMetric">Metric:</label>
-                        <select id="comparisonMetric">
-                            <option value="overall">Overall Compliance Score</option>
-                            <option value="dnssec">DNSSEC Implementation</option>
-                            <option value="email">Email Standards Compliance</option>
-                            <option value="web">Web Security</option>
-                            <option value="dane">DANE Implementation</option>
-                            <option value="rpki">RPKI Validation</option>
-                        </select>
-                    </div>
-                    <button id="compareButton" class="comparison-button">Compare</button>
                 </div>
-                <div class="chart-container" style="height: 400px;">
-                    <canvas id="comparisonChart"></canvas>
+                <div id="webSecurityModal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2 id="modalTitle">Web Security Rating: <span id="ratingCategory"></span></h2>
+                            <span class="close-modal">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <p><span id="domainCount"></span> domains with this rating</p>
+
+                            <div class="domain-list-container">
+                                <table class="domain-table">
+                                    <thead>
+                                    <tr>
+                                        <th>Domain</th>
+                                        <th>Score</th>
+                                        <th>TLS</th>
+                                        <th>Certificate</th>
+                                        <th>Secure Protocols</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="domainListBody">
+                                    <!-- Will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="domain-issues-container">
+                                <div id="domainIssues">
+                                    <p>Select a domain to view issues</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
+
 
             <!-- Component Level Analysis Section -->
             <section class="widget full-width">
@@ -376,79 +418,39 @@
                 </div>
             </section>
 
-            <!-- Web Compliance Rating Distribution -->
+
+            <!-- Domain Comparison Section -->
             <section class="widget full-width">
                 <div class="widget-header">
-                    <h2>Web Security Rating Distribution</h2>
+                    <h2>Domain Comparison</h2>
                 </div>
-                <div class="rating-distribution">
-                    <div class="chart-container">
-                        <canvas id="webRatingDistributionChart"></canvas>
+                <div class="comparison-controls">
+                    <div class="comparison-dropdown">
+                        <label for="domain1">Domain 1:</label>
+                        <select id="domain1" class="domain-select"></select>
                     </div>
-                    <div class="rating-stats">
-                        <div class="rating-group excellent">
-                            <h3>Excellent</h3>
-                            <div class="rating-count" id="excellent-count">0</div>
-                            <div class="rating-percent" id="excellent-percent">0%</div>
-                            <div class="click-indicator">Click for details</div>
-                        </div>
-                        <div class="rating-group good">
-                            <h3>Good</h3>
-                            <div class="rating-count" id="good-count">0</div>
-                            <div class="rating-percent" id="good-percent">0%</div>
-                            <div class="click-indicator">Click for details</div>
-                        </div>
-                        <div class="rating-group fair">
-                            <h3>Fair</h3>
-                            <div class="rating-count" id="fair-count">0</div>
-                            <div class="rating-percent" id="fair-percent">0%</div>
-                            <div class="click-indicator">Click for details</div>
-                        </div>
-                        <div class="rating-group poor">
-                            <h3>Poor</h3>
-                            <div class="rating-count" id="poor-count">0</div>
-                            <div class="rating-percent" id="poor-percent">0%</div>
-                            <div class="click-indicator">Click for details</div>
-                        </div>
+                    <div class="comparison-dropdown">
+                        <label for="domain2">Domain 2:</label>
+                        <select id="domain2" class="domain-select"></select>
                     </div>
+                    <div class="comparison-metric">
+                        <label for="comparisonMetric">Metric:</label>
+                        <select id="comparisonMetric">
+                            <option value="overall">Overall Compliance Score</option>
+                            <option value="dnssec">DNSSEC Implementation</option>
+                            <option value="email">Email Standards Compliance</option>
+                            <option value="web">Web Security</option>
+                            <option value="dane">DANE Implementation</option>
+                            <option value="rpki">RPKI Validation</option>
+                        </select>
+                    </div>
+                    <button id="compareButton" class="comparison-button">Compare</button>
                 </div>
-                <div id="webSecurityModal" class="modal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2 id="modalTitle">Web Security Rating: <span id="ratingCategory"></span></h2>
-                            <span class="close-modal">&times;</span>
-                        </div>
-                        <div class="modal-body">
-                            <p><span id="domainCount"></span> domains with this rating</p>
-
-                            <div class="domain-list-container">
-                                <table class="domain-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Domain</th>
-                                        <th>Score</th>
-                                        <th>TLS</th>
-                                        <th>Certificate</th>
-                                        <th>Secure Protocols</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="domainListBody">
-                                    <!-- Will be populated by JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            <div class="domain-issues-container">
-                                <div id="domainIssues">
-                                    <p>Select a domain to view issues</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="comparisonChart"></canvas>
                 </div>
-
-
             </section>
+
 
             <!-- Domain Standards Compliance Scorecard -->
             <section class="widget full-width">
@@ -488,7 +490,7 @@
             </section>
 
             <footer class="dashboard-footer">
-                <p>Internet Standards Compliance Statistics Report &copy; <span id="footer-year"></span> | <i class="fas fa-shield-alt"></i> Made by GÉANT</p>
+                <p>Internet Standards and Compliance Statistics Report &copy; <span id="footer-year"></span> | <i class="fas fa-shield-alt"></i> Made by GÉANT</p>
             </footer>
         </div>
     </main>
