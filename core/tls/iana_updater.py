@@ -18,7 +18,10 @@ logger = setup_logger(__name__)
 
 DEFAULT_CACHE_DURATION_DAYS = 30
 CSV_URL = "https://www.iana.org/assignments/tls-parameters/tls-parameters-4.csv"
-IANA_TLS_PARAMETERS_URL = "https://www.iana.org/assignments/tls-parameters/tls-parameters.txt"
+IANA_TLS_PARAMETERS_URL = (
+    "https://www.iana.org/assignments/tls-parameters/tls-parameters.txt"
+)
+
 
 async def get_iana_last_updated_date() -> datetime | None:
     """
@@ -191,7 +194,7 @@ async def check_and_update_iana_csv(
             return True
 
         if stored_iana_date:
-            csv_url = (CSV_URL)
+            csv_url = CSV_URL
             return await download_iana_csv(csv_url, csv_path)
 
     logger.debug("Checking for IANA TLS parameters updates")
