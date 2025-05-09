@@ -740,9 +740,6 @@ function createProtocolsTabContent(results) {
     if (results.ciphers && results.ciphers.by_protocol) {
         const hasStrongCiphers = results.ciphers.has_strong_ciphers || false;
         const hasWeakCiphers = results.ciphers.has_weak_ciphers || false;
-        const hasRecommendedCiphers = Object.values(results.ciphers.by_protocol)
-            .flat()
-            .some(cipher => cipher.recommended);
 
         html += `
         <div class="summary-content">
@@ -753,10 +750,6 @@ function createProtocolsTabContent(results) {
             <div class="flex items-center gap-2 mb-4">
                 <i class="fas fa-${!hasWeakCiphers ? 'check-circle status-valid' : 'exclamation-triangle status-not-valid'} me-2"></i>
                 <strong>Weak Ciphers:</strong> ${!hasWeakCiphers ? 'No' : 'Yes'}
-            </div>
-            <div class="flex items-center gap-2 mb-4">
-                <i class="fas fa-${hasRecommendedCiphers ? 'check-circle status-valid' : 'info-circle'} me-2"></i>
-                <strong>IANA Recommended Ciphers:</strong> ${hasRecommendedCiphers ? 'Yes' : 'No'}
             </div>`;
 
         // Create collapsible sections for each protocol's ciphers
