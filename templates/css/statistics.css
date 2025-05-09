@@ -1,6 +1,16 @@
 :root {
   /* Color palette */
   --primary: #0062cc;
+  --primary-600: #3b82f6;  /* Main blue color */
+  --primary-50: #eff6ff;   /* Lightest blue for subtle backgrounds */
+  --primary-100: #dbeafe; /* Light blue */
+  --primary-200: #bfdbfe; /* Lighter blue */
+  --primary-300: #93c5fd; /* Medium light blue */
+  --primary-400: #60a5fa; /* Medium blue */
+  --primary-500: #3b82f6; /* Standard blue (same as 600) */
+  --primary-700: #2563eb; /* Darker blue for hover states */
+  --primary-800: #1d4ed8; /* Dark blue */
+  --primary-900: #1e3a8a; /* Darkest blue */
   --primary-light: #e6f2ff;
   --primary-dark: #004c9e;
   --secondary: #6c757d;
@@ -84,19 +94,19 @@ body {
   font-size: var(--font-size-md);
   line-height: 1.6;
   margin: 0;
-  padding: 10px;
+  padding: 0;
   color: var(--neutral-800);
   background-color: var(--neutral-100);
 }
 
 /* Override header padding in statistics page */
 .site-header .header-content {
-  padding: 1rem 2rem;  /* Match the padding from main.css */
+  padding: 1.4rem 0;  /* Match the padding from main.css */
 }
 
 /* Ensure security bar has consistent spacing */
 .site-header .security-bar {
-  padding: 1rem 2rem;  /* Match the padding horizontally */
+  padding: 0.94rem 0;  /* Match the padding horizontally */
   margin-top: 0;       /* Remove any top margin */
 }
 
@@ -175,6 +185,40 @@ body {
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--neutral-800);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.main-report-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--neutral-100);
+  color: var(--primary-600);
+  text-decoration: none;
+  border-radius: var(--border-radius-sm);
+  transition: all 0.2s ease;
+}
+
+.main-report-icon:hover {
+  background-color: var(--primary-900);
+  color: white;
+}
+
+.main-report-icon i {
+    font-size: 16px;
+    margin-right: 8px;
+}
+
+.main-report-icon span {
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .domain-count {

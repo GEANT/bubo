@@ -1,0 +1,24 @@
+.validation-report-sticky-table {
+  width: 100%;
+  border-spacing: 0;
+}
+
+.validation-report-sticky-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.validation-report-sticky-table th {
+  background-color: #0d4091;
+  color: white;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+  border-color: #ddd;
+  padding: 12px;
+  text-align: left;
+  font-weight: bold;
+}
+
+.validation-report-sticky-table .tooltip-content {
+  z-index: 20;
+}

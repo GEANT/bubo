@@ -12,8 +12,10 @@ function createDANEModal(modalId, domain, data) {
         return `
         <div id="${modalId}" class="modal">
             <div class="modal-content">
+              <div class="modal-header">
                 <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
                 <h3>DANE Details - ${domain}</h3>
+                </div>
                 <p>No DANE data available for this domain.</p>
             </div>
         </div>`;
@@ -127,9 +129,10 @@ function createDANEModal(modalId, domain, data) {
     return `
     <div id="${modalId}" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
-            <h3>DANE Details - ${domain}</h3>
-
+            <div class="modal-header">
+                <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
+                <h3>DANE Details - ${domain}</h3>
+            </div>
             <div class="tab-container">
                 <div class="tab-buttons">
                     ${tabButtons}

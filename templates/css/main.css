@@ -82,7 +82,7 @@ body {
   font-size: var(--font-size-md);
   line-height: 1.6;
   margin: 0;
-  padding: 10px;
+  padding: 0;
   color: var(--neutral-800);
   background-color: var(--neutral-100);
 }
@@ -1256,15 +1256,21 @@ tr[data-show="false"] {
 }
 
 .info-icon {
-    cursor: help;
-    position: relative;
-    color: #007bff;
-    font-size: 0.9em;
-    z-index: 1000; /* Ensure icon is above other elements */
+  cursor: help;
+  position: relative;
+  color: rgb(229, 229, 229);
+  font-size: 18px;
+  z-index: 1000;
 }
 
 .info-icon:hover {
-    color: #0056b3;
+    color: rgba(241, 241, 241, 0.69);
+}
+
+.info-content p {
+  margin: 0;
+  color: #333;
+  line-height: 1.5;
 }
 
 .tooltip-content {
@@ -2289,17 +2295,6 @@ tr[data-show="false"] {
   margin-top: 1.5rem;
 }
 
-.info-icon {
-  color: #0d6efd;
-  margin-right: 12px;
-  font-size: 18px;
-}
-
-.info-content p {
-  margin: 0;
-  color: #333;
-  line-height: 1.5;
-}
 
 /* Status colors */
 .text-success {

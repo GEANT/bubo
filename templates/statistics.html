@@ -23,10 +23,16 @@
             <div class="dashboard-grid">
                 <!-- Summary Statistics -->
                 <section class="widget summary-widget">
-                    <div class="widget-header">
-                        <h2>Summary Statistics</h2>
-                        <span class="domain-count"><span id="domain-count">0</span> domain(s) analyzed</span>
-                    </div>
+                        <div class="widget-header">
+                            <h2>Summary Statistics</h2>
+                            <div class="header-actions">
+                                <a href="index.html" class="main-report-icon" title="Main Report">
+                                    <i class="fas fa-table"></i>
+                                    <span>Main Report</span>
+                                </a>
+                                <span class="domain-count"><span id="domain-count">0</span> domain(s) analyzed</span>
+                            </div>
+                        </div>
 
                     <div class="summary-cards">
                         <div class="metric-card">
@@ -473,12 +479,12 @@
                         <tr>
                             <th class="domain-col">Domain</th>
                             <th class="score-col">Compliance Score</th>
-                            <th>DNSSEC</th>
+                            <th>RPKI</th>
                             <th>DANE</th>
+                            <th>DNSSEC</th>
                             <th>SPF</th>
                             <th>DKIM</th>
                             <th>DMARC</th>
-                            <th>RPKI</th>
                             <th>Web Security</th>
                         </tr>
                         </thead>

@@ -229,14 +229,20 @@ function createScorecardTable() {
         `;
         row.appendChild(scoreCell);
 
-        // DNSSEC status
-        const dnssecCell = createStatusCell(statsData.dnssec_state[domain]?.DNSSEC);
-        row.appendChild(dnssecCell);
+        // RPKI status - pass the actual status value, not just a boolean
+        const rpkiStatus = statsData.rpki_state[domain]?.['Nameserver of Domain'] || 'not-valid';
+        const rpkiCell = createStatusCell(rpkiStatus, 'rpki');
+        row.appendChild(rpkiCell);
+
 
         // DANE status - pass the actual status value, not just a boolean
         const daneStatus = statsData.dane_state[domain]?.['Mail Server of Domain'] || 'not-valid';
         const daneCell = createStatusCell(daneStatus, 'dane');
         row.appendChild(daneCell);
+
+        // DNSSEC status
+        const dnssecCell = createStatusCell(statsData.dnssec_state[domain]?.DNSSEC);
+        row.appendChild(dnssecCell);
 
         // SPF status - pass the actual status value, not just a boolean
         const spfStatus = statsData.email_state[domain]?.SPF || 'not-valid';
@@ -253,19 +259,14 @@ function createScorecardTable() {
         const dmarcCell = createStatusCell(dmarcStatus, 'email');
         row.appendChild(dmarcCell);
 
-        // RPKI status - pass the actual status value, not just a boolean
-        const rpkiStatus = statsData.rpki_state[domain]?.['Nameserver of Domain'] || 'not-valid';
-        const rpkiCell = createStatusCell(rpkiStatus, 'rpki');
-        row.appendChild(rpkiCell);
-
         // Web Security status using rating for a more nuanced display
         const webRating = statsData.web_state[domain]?.rating || 'poor';
         const webCell = createStatusCell(webRating, 'web');
 
         // Add tooltip with more details if available
-        if (statsData.web_results[domain]?.security_assessment?.issues) {
+        if (statsData.web_security_issues[domain] && statsData.web_security_issues[domain].length > 0) {
             webCell.title = `Rating: ${webRating.toUpperCase()}\nIssues: ${
-                statsData.web_results[domain].security_assessment.issues.join('\n')
+                statsData.web_security_issues[domain].join('\n')
             }`;
         } else {
             webCell.title = `Rating: ${webRating.toUpperCase()}`;

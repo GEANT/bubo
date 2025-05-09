@@ -2,7 +2,7 @@
 .site-header {
     background: linear-gradient(to right, #1a237e, #0d47a1);
     color: white;
-    border-radius: var(--border-radius-lg);
+    /* border-radius: var(--border-radius-sm); */
     margin-bottom: var(--spacing-xl);
     box-shadow: var(--box-shadow-md);
     overflow: hidden;

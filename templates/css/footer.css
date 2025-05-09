@@ -1,6 +1,6 @@
 /* Footer styling */
 .site-footer {
-    margin-top: auto;
+    margin-top: var(--spacing-xl);
     background: #f8f9fa;
     padding: 2rem 0;
     border-top: 1px solid #dee2e6;
@@ -37,7 +37,6 @@
 
 .footer-bottom {
     text-align: center;
-    padding-top: 2rem;
-    margin-top: 2rem;
     border-top: 1px solid #dee2e6;
+    margin-bottom: auto;
 }

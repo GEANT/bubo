@@ -12,8 +12,10 @@ function createRPKIModal(modalId, domain, data) {
         return `
         <div id="${modalId}" class="modal">
             <div class="modal-content">
-                <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
-                <h3>RPKI Details - ${domain}</h3>
+                <div class="modal-header">
+                    <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
+                    <h3>RPKI Details - ${domain}</h3>
+                </div>
                 <p>No RPKI data available for this domain.</p>
             </div>
         </div>`;
@@ -136,9 +138,10 @@ function createRPKIModal(modalId, domain, data) {
     return `
     <div id="${modalId}" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
-            <h3>RPKI Details - ${domain}</h3>
-
+            <div class="modal-header">
+                <span class="close-modal" onclick="closeModal('${modalId}')">&times;</span>
+                <h3>RPKI Details - ${domain}</h3>
+            </div>
             <div class="tab-container">
                 <div class="tab-buttons">
                     ${tabButtons}
@@ -210,12 +213,12 @@ function createRPKIServerRows(serverData) {
                     </td>
                     <td rowspan="${prefixCount}">
                         ${ipv6Addresses.map(ip => {
-                            if (ip !== 'No IPv6') {
-                                return `<span class="ip-address">${ip}</span>`;
-                            } else {
-                                return `<span class="status-not-found">${ip}</span>`;
-                            }
-                        }).join('')}
+                    if (ip !== 'No IPv6') {
+                        return `<span class="ip-address">${ip}</span>`;
+                    } else {
+                        return `<span class="status-not-found">${ip}</span>`;
+                    }
+                }).join('')}
                     </td>`;
             }
 

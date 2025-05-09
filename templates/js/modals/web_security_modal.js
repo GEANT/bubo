@@ -1204,7 +1204,7 @@ function createHeadersTabContent(results) {
         html += `</tbody></table>
         
         <div class="headers-info-box">
-            <div class="info-icon">
+            <div class="info-icon" style="margin-right: 8px; color: #0263CBFF">
                 <i class="fas fa-info-circle"></i>
             </div>
             <div class="info-content">
