@@ -4,8 +4,8 @@ import asyncio
 
 import aiohttp
 
-from core.logging.logger import setup_logger
 from core.dns.records import process_domain, resolve_ips, translate_server_type
+from core.logging.logger import setup_logger
 from core.network.ip_tools import get_asn_and_prefix
 
 logger = setup_logger(__name__)

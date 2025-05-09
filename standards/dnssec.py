@@ -7,9 +7,8 @@ import dns.flags
 import dns.name
 import dns.resolver
 
-from core.logging.logger import setup_logger
 from core.dns.resolver import dns_manager
-
+from core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 

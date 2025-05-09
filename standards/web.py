@@ -6,21 +6,21 @@ of a given domain and port, consolidating results from various checks.
 """
 
 import asyncio
+from datetime import datetime
 from typing import Any
 
 from core.logging.logger import setup_logger
-from core.tls.models import (
-    TLSProtocol,
-    TLSCheckConfig,
-    TLSProtocolResult,
-    CertificateResult,
-)
-from datetime import datetime
-from core.tls.protocols import check_protocol, process_protocol_results
 from core.tls.certificates import check_certificate
 from core.tls.ciphers import check_ciphers, process_cipher_results
+from core.tls.models import (
+    CertificateResult,
+    TLSCheckConfig,
+    TLSProtocol,
+    TLSProtocolResult,
+)
+from core.tls.protocols import check_protocol, process_protocol_results
+from core.web.http_security import build_http_security_dicts, run_http_security_checks
 from core.web.utils import build_security_assessment, resolve_domain
-from core.web.http_security import run_http_security_checks, build_http_security_dicts
 
 logger = setup_logger(__name__)
 
@@ -172,7 +172,7 @@ async def run(
 
         if hasattr(cert_result, "connection_error") and cert_result.connection_error:
             logger.error(
-                f"Certificate check failed for all domain variations of {domain}:{port}"
+                f"Certificate check failed for all domain variations of {domain}:{port}. Domain is not reachable."
             )
             processed_results = []
             supported_protocols = []

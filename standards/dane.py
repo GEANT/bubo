@@ -113,7 +113,9 @@ async def process_servers(
             results[server] = {
                 "tlsa_records": [
                     {"record": record, "valid": valid}
-                    for record, valid in zip(tlsa_records, validation_results)
+                    for record, valid in zip(
+                        tlsa_records, validation_results, strict=False
+                    )
                 ],
                 "validation": any(validation_results),
             }

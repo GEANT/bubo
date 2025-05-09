@@ -1,8 +1,10 @@
 import asyncio
+import base64
+import re
+
 import dns.asyncresolver
 import dns.exception
-import re
-import base64
+
 from core.dns.resolver import dns_manager
 from core.logging.logger import setup_logger
 from standards.spf import check_spf

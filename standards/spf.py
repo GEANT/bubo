@@ -1,7 +1,7 @@
 import asyncio
+
 from core.dns.resolver import dns_manager
 from core.logging.logger import setup_logger
-
 
 logger = setup_logger(__name__)
 
