@@ -1,19 +1,19 @@
 import asyncio
 import os
+import traceback
 from datetime import datetime, timedelta
 from typing import Any
+
 from dotenv import load_dotenv
 
 from core.cache_manager.cache_manager import DomainResultsCache
-from core.logging.logger import setup_logger
-from core.report.generator import generate_html_report
+from core.cli.handler import CLIHandler
 from core.dns.records import process_domain
 from core.io.file_processor import process_file
-from core.cli.handler import CLIHandler
-from standards import rpki, dane, dnssec, email_security, web
+from core.logging.logger import setup_logger
+from core.report.generator import generate_html_report
 from core.tls import cipher_utils
-import traceback
-
+from standards import dane, dnssec, email_security, rpki, web
 
 logger = setup_logger("domain_validator")
 
@@ -38,9 +38,7 @@ class DomainValidator:
         max_concurrent: int = 64,
         routinator_url: str = "http://localhost:8323",
     ):
-        self.cache = DomainResultsCache(
-            cache_dir=cache_dir, cache_duration=cache_duration
-        )
+        self.cache = DomainResultsCache(cache_dir=cache_dir, cache_duration=cache_duration)
         self.domain_semaphore = asyncio.Semaphore(max_concurrent)
         self.routinator_url = routinator_url
 
@@ -56,9 +54,7 @@ class DomainValidator:
         Creates async tasks for each validation type (RPKI, DANE, DNSSEC, EMAIL_SECURITY).
         Returns a dictionary of validation tasks.
         """
-        effective_mail_ns = (
-            None if not mail_ns or all(not ns for ns in mail_ns) else mail_ns
-        )
+        effective_mail_ns = None if not mail_ns or all(not ns for ns in mail_ns) else mail_ns
 
         tasks = {}
         for v_type, v_func in self.VALIDATION_TYPES.items():
@@ -82,9 +78,7 @@ class DomainValidator:
 
         return tasks
 
-    async def process_single_domain(
-        self, domain_info: dict[str, str]
-    ) -> dict[str, Any] | None:
+    async def process_single_domain(self, domain_info: dict[str, str]) -> dict[str, Any] | None:
         """
         Processes a single domain by running all validations and returning combined results.
         Returns None if domain processing fails.
@@ -109,7 +103,7 @@ class DomainValidator:
                 task_values = list(validation_tasks.values())
                 task_results = await asyncio.gather(*task_values)
 
-                validation_results = dict(zip(task_keys, task_results))
+                validation_results = dict(zip(task_keys, task_results, strict=False))
 
                 return {
                     "domain": domain,
@@ -212,9 +206,7 @@ class DomainValidator:
                 domain_results = self.extract_domain_results(domain, all_results)
                 self.cache.save_results(domain, domain_results)
 
-    def extract_domain_results(
-        self, domain: str, all_results: dict[str, Any]
-    ) -> dict[str, Any]:
+    def extract_domain_results(self, domain: str, all_results: dict[str, Any]) -> dict[str, Any]:
         """
         Extracts results for a specific domain from the combined results.
         """
@@ -223,9 +215,7 @@ class DomainValidator:
                 v_type: {
                     "results": {
                         k: v
-                        for k, v in all_results["validations"][v_type][
-                            "results"
-                        ].items()
+                        for k, v in all_results["validations"][v_type]["results"].items()
                         if domain in k
                     },
                     "state": {
@@ -259,11 +249,7 @@ async def main():
     )
 
     check_mode = "single" if cli_options.single else "batch"
-    domains = (
-        cli_options.single
-        if cli_options.single
-        else await process_file(cli_options.batch)
-    )
+    domains = cli_options.single if cli_options.single else await process_file(cli_options.batch)
 
     if not domains:
         logger.error("No domains to process")
@@ -287,9 +273,7 @@ async def main():
             f"_report_{datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.html"
         )
 
-        await generate_html_report(
-            results, output_file, output_dir=cli_options.output_dir
-        )
+        await generate_html_report(results, output_file, output_dir=cli_options.output_dir)
 
     except Exception as e:
         logger.error(f"Error processing domains: {str(e)}")
@@ -299,5 +283,8 @@ async def main():
 if __name__ == "__main__":
     try:
         asyncio.run(main())
+
+    except KeyboardInterrupt:
+        logger.info("Process interrupted by user.")
     except Exception:
         logger.error(f"Error: {traceback.format_exc()}")
