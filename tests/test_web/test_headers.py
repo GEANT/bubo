@@ -1,6 +1,6 @@
+import asyncio
 import unittest
 from unittest.mock import patch
-import asyncio
 
 from core.web.headers import check_security_headers
 

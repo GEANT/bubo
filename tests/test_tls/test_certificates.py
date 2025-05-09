@@ -1,21 +1,22 @@
-import pytest
-from unittest.mock import MagicMock, patch
 import asyncio
 import datetime
 import socket
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from core.tls.certificates import (
-    check_certificate_with_socket,
-    check_certificate_chain,
     check_certificate,
+    check_certificate_chain,
+    check_certificate_with_socket,
 )
 from core.tls.models import (
     CertificateResult,
-    TLSCheckConfig,
     KeyInfo,
+    SANInfo,
     SignatureAlgorithmInfo,
     SignatureAlgorithmSecurity,
-    SANInfo,
+    TLSCheckConfig,
 )
 
 

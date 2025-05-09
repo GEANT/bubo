@@ -1,7 +1,9 @@
 # tests/test_file_processing.py
 
+from unittest.mock import mock_open, patch
+
 import pytest
-from unittest.mock import patch, mock_open
+
 from core.io.file_processor import process_file
 
 

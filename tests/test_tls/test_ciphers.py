@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import patch
-from core.tls.models import TLSProtocol, CipherResult, CipherStrength, TLSCheckConfig
+
+import pytest
+
 from core.tls import cipher_utils
+from core.tls.models import CipherResult, CipherStrength, TLSCheckConfig, TLSProtocol
 
 
 class AsyncMockWithReturnValue:

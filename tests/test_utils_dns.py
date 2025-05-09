@@ -1,9 +1,11 @@
 # tests/test_utils_dns.py
 
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import dns.resolver
-from core.dns.records import resolve_ips, resolve_nameservers, get_mx_records
+import pytest
+
+from core.dns.records import get_mx_records, resolve_ips, resolve_nameservers
 from core.dns.resolver import dns_manager
 
 

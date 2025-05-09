@@ -1,10 +1,11 @@
 # tests/test_utils_asn.py
 from datetime import timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+
+from core.dns.records import process_domain, translate_server_type
 from core.network.ip_tools import get_asn_and_prefix
-from core.dns.records import translate_server_type, process_domain
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,9 @@
-import pytest
 from unittest.mock import AsyncMock, patch
-from standards import dane
+
 import dns
+import pytest
+
+from standards import dane
 
 
 @pytest.mark.asyncio

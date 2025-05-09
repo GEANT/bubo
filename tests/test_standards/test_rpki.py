@@ -1,16 +1,18 @@
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import aiohttp
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+
 from standards import rpki
 from standards.rpki import (
-    process_server,
-    type_validity,
-    rpki_process_domain,
-    process_single_mode,
     process_batch_mode,
+    process_server,
+    process_single_mode,
+    rpki_process_domain,
     run,
+    type_validity,
 )
-import asyncio
 
 
 @pytest.mark.asyncio

@@ -1,10 +1,11 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 from standards.email_security import (
+    check_dmarc,
     extract_dkim_key_info,
     get_txt_records,
-    check_dmarc,
     run,
 )
 

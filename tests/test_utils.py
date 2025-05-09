@@ -1,12 +1,13 @@
 import os
-import pytest
 import tempfile
-from unittest.mock import patch, AsyncMock
-import dns.resolver
+from unittest.mock import AsyncMock, patch
 
-from core.io.file_processor import process_file
+import dns.resolver
+import pytest
+
 from core.dns.records import process_domain
 from core.dns.resolver import dns_manager
+from core.io.file_processor import process_file
 
 
 @pytest.fixture

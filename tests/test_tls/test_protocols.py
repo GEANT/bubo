@@ -1,19 +1,20 @@
-import pytest
 import asyncio
-import ssl
 import socket
-from unittest.mock import patch, MagicMock
+import ssl
+from unittest.mock import MagicMock, patch
 
-from core.tls.protocols import (
-    check_protocol_with_socket,
-    check_protocol_with_openssl,
-    check_protocol,
-    process_protocol_results,
-)
+import pytest
+
 from core.tls.models import (
+    TLSCheckConfig,
     TLSProtocol,
     TLSProtocolResult,
-    TLSCheckConfig,
+)
+from core.tls.protocols import (
+    check_protocol,
+    check_protocol_with_openssl,
+    check_protocol_with_socket,
+    process_protocol_results,
 )
 
 

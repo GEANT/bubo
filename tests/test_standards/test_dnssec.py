@@ -1,13 +1,14 @@
-from standards import dnssec
-import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
-import dns.resolver
-import dns.name
-import dns.rdatatype
-import dns.rdataclass
-import dns.dnssec
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import dns.dnssec
+import dns.name
+import dns.rdataclass
+import dns.rdatatype
+import dns.resolver
+import pytest
+
+from standards import dnssec
 from standards.dnssec import DNSSECChecker, run
 
 

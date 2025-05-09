@@ -4,10 +4,12 @@ from datetime import timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import pytest
-from unittest.mock import patch, AsyncMock
 import argparse
-from main import main, DomainValidator
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from main import DomainValidator, main
 
 
 @pytest.fixture

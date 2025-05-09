@@ -1,6 +1,6 @@
+import asyncio
 import unittest
 from unittest.mock import patch
-import asyncio
 
 from core.web.hsts import check_hsts
 

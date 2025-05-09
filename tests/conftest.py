@@ -1,9 +1,11 @@
 # tests/conftest.py
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from core.cache_manager.cache_manager import DomainResultsCache
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from core.cache_manager.cache_manager import DomainResultsCache
 from core.tls.models import (
     TLSCheckConfig,
 )

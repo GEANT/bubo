@@ -1,15 +1,16 @@
-import pytest
 import asyncio
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from standards.spf import (
-    get_spf_record,
-    parse_spf_record,
-    count_dns_lookups,
+    MAX_DNS_LOOKUPS,
+    check_domains,
     check_policy_strictness,
     check_spf,
-    check_domains,
-    MAX_DNS_LOOKUPS,
+    count_dns_lookups,
+    get_spf_record,
+    parse_spf_record,
 )
 
 
