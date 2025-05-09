@@ -1,9 +1,12 @@
 from typing import Any
-from core.tls.models import TLSProtocolResult, CertificateResult
-from core.web.models import HSTSInfo, SecurityHeadersInfo, SecurityRating
-from core.tls.models import SignatureAlgorithmSecurity
-from core.logging.logger import setup_logger
 
+from core.logging.logger import setup_logger
+from core.tls.models import (
+    CertificateResult,
+    SignatureAlgorithmSecurity,
+    TLSProtocolResult,
+)
+from core.web.models import HSTSInfo, SecurityHeadersInfo, SecurityRating
 
 logger = setup_logger(__name__)
 
@@ -194,9 +197,7 @@ def _determine_rating(
 
     if total_issues == 0 or (num_critical == 0 and num_major == 0 and num_minor <= 2):
         return SecurityRating.EXCELLENT.value
-    elif num_critical > 0:
-        return SecurityRating.POOR.value
-    elif num_major > 3 or total_issues > 5:
+    elif num_critical > 0 or num_major > 3 or total_issues > 5:
         return SecurityRating.POOR.value
     elif num_major > 2 or total_issues > 3:
         return SecurityRating.FAIR.value

@@ -3,15 +3,15 @@ import asyncio
 import re
 import socket
 import ssl
+
 from core.logging.logger import setup_logger
 from core.tls.models import (
+    PROTOCOL_SECURITY,
+    TLSCheckConfig,
     TLSProtocol,
     TLSProtocolResult,
-    TLSCheckConfig,
-    PROTOCOL_SECURITY,
 )
 from core.tls.utils import has_openssl, run_openssl_command
-
 
 logger = setup_logger(__name__)
 

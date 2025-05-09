@@ -1,9 +1,9 @@
 # core/web/hsts.py
 
 import re
+
 from core.logging.logger import setup_logger
 from core.web.models import HSTSInfo
-
 
 logger = setup_logger(__name__)
 

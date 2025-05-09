@@ -2,14 +2,14 @@
 
 import os
 from datetime import datetime
+from shutil import copytree
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
 from core.logging.logger import setup_logger
-from core.report.json_utils import json_dumps, convert_sets_to_lists
+from core.report.json_utils import convert_sets_to_lists, json_dumps
 from core.report.statistics import generate_statistics_report
-from shutil import copytree
 
 logger = setup_logger(__name__)
 

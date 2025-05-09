@@ -4,8 +4,8 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
-from core.report.json_utils import json_dumps, convert_sets_to_lists
 from core.logging.logger import setup_logger
+from core.report.json_utils import convert_sets_to_lists, json_dumps
 
 logger = setup_logger(__name__)
 
@@ -347,31 +347,230 @@ def get_domain_web_detail(domain: str, state: dict, web_results: dict) -> dict:
         web_results: Detailed web security results
 
     Returns:
-        Dictionary with domain security details
+        Dictionary with comprehensive domain security details
     """
+    # Return early if domain data not available
+    if domain not in web_results:
+        return {
+            "domain": domain,
+            "score": 0,
+            "issues": [],
+            "tls_secure": False,
+            "cert_valid": False,
+            "uses_secure_protocols": False,
+        }
 
-    issues = []
-    if domain in web_results and "security_assessment" in web_results[domain]:
-        if "issues" in web_results[domain]["security_assessment"]:
-            issues = web_results[domain]["security_assessment"]["issues"]
+    domain_data = web_results[domain]
+    security_assessment = domain_data.get("security_assessment", {})
 
-    tls_secure = 30 if state.get("tls_secure", False) else 0
-    cert_valid = 20 if state.get("cert_valid", False) else 0
-    secure_protocols = 20 if state.get("uses_secure_protocols", False) else 0
+    # Extract issues by severity if available
+    issues = security_assessment.get("issues", [])
+    critical_count = security_assessment.get("critical_issues_count", 0)
+    major_count = security_assessment.get("major_issues_count", 0)
+    minor_count = security_assessment.get("minor_issues_count", 0)
 
-    rating = state["rating"]
-    rating_score = {"excellent": 30, "good": 20, "fair": 10, "poor": 0}.get(rating, 0)
+    # Extract certificate information
+    cert_data = domain_data.get("certificate", {})
+    cert_valid = cert_data.get("is_valid", False)
+    days_until_expiry = cert_data.get("days_until_expiry", 0)
 
-    total_score = tls_secure + cert_valid + secure_protocols + rating_score
+    # Extract protocol information
+    protocol_data = domain_data.get("protocol_support", {})
+    uses_secure_protocols = protocol_data.get("has_secure_protocols", False)
+    has_insecure_protocols = protocol_data.get("has_insecure_protocols", False)
+    secure_protocols = protocol_data.get("secure_protocols", [])
+
+    # Extract cipher information
+    cipher_data = domain_data.get("ciphers", {})
+    has_weak_ciphers = cipher_data.get("has_weak_ciphers", False)
+    has_strong_ciphers = cipher_data.get("has_strong_ciphers", False)
+
+    # Extract HSTS information
+    hsts_data = domain_data.get("hsts", {})
+    hsts_enabled = hsts_data.get("enabled", False)
+    hsts_includes_subdomains = hsts_data.get("include_subdomains", False)
+    hsts_preload = hsts_data.get("preload", False)
+
+    # Extract security headers
+    security_headers = list(domain_data.get("security_headers", {}).keys())
+
+    # Calculate score with detailed breakdown
+    score_breakdown = {
+        "certificate": 0,
+        "protocols": 0,
+        "ciphers": 0,
+        "hsts": 0,
+        "headers": 0,
+        "issues_penalty": 0,
+    }
+
+    # Certificate scoring (max 25 points)
+    if cert_valid:
+        score_breakdown["certificate"] += 15
+
+        # Key strength bonus
+        key_info = cert_data.get("key_info", {})
+        if key_info.get("secure", False) and key_info.get("length", 0) >= 2048:
+            score_breakdown["certificate"] += 5
+
+        # Expiry bonus
+        if days_until_expiry > 30:
+            score_breakdown["certificate"] += 5
+
+    # Protocol scoring (max 25 points)
+    if not has_insecure_protocols:
+        score_breakdown["protocols"] += 15
+
+    if uses_secure_protocols:
+        score_breakdown["protocols"] += 5
+
+    if "TLSv1.3" in secure_protocols:
+        score_breakdown["protocols"] += 5
+
+    # Cipher scoring (max 20 points)
+    if not has_weak_ciphers:
+        score_breakdown["ciphers"] += 15
+
+    if has_strong_ciphers:
+        score_breakdown["ciphers"] += 5
+
+    # HSTS scoring (max 15 points)
+    if hsts_enabled:
+        score_breakdown["hsts"] += 5
+
+        if hsts_data.get("max_age", 0) >= 15768000:  # 6 months
+            score_breakdown["hsts"] += 3
+
+        if hsts_includes_subdomains:
+            score_breakdown["hsts"] += 3
+
+        if hsts_preload:
+            score_breakdown["hsts"] += 4
+
+    # Headers scoring (max 15 points)
+    important_headers = [
+        "content_security_policy",
+        "x_content_type_options",
+        "x_frame_options",
+        "referrer_policy",
+    ]
+
+    for header in important_headers:
+        if header in security_headers:
+            score_breakdown["headers"] += 3
+
+    # Cap headers score at 15
+    score_breakdown["headers"] = min(15, score_breakdown["headers"])
+
+    # Issue penalties (up to -30 points)
+    issue_penalty = critical_count * 10 + major_count * 5 + minor_count * 1
+    score_breakdown["issues_penalty"] = -min(30, issue_penalty)
+
+    # Calculate total score (0-100)
+    total_score = sum(score_breakdown.values())
+    total_score = max(0, min(100, total_score))
+
+    # Generate recommendations
+    recommendations = []
+
+    if not cert_valid:
+        recommendations.append("Obtain a valid SSL certificate")
+    elif days_until_expiry < 30:
+        recommendations.append(
+            f"Renew SSL certificate soon (expires in {days_until_expiry} days)"
+        )
+
+    if has_insecure_protocols:
+        recommendations.append("Disable insecure TLS protocols (TLSv1.0, TLSv1.1)")
+
+    if has_weak_ciphers:
+        recommendations.append("Disable weak cipher suites")
+
+    if not hsts_enabled:
+        recommendations.append("Enable HTTP Strict Transport Security (HSTS)")
+    elif not hsts_includes_subdomains:
+        recommendations.append("Enable HSTS includeSubDomains directive")
+
+    # Generate summary based on score
+    if total_score >= 90:
+        rating_desc = "excellent"
+    elif total_score >= 80:
+        rating_desc = "very good"
+    elif total_score >= 70:
+        rating_desc = "good"
+    elif total_score >= 50:
+        rating_desc = "fair"
+    else:
+        rating_desc = "poor"
+
+    # Create summary text
+    if critical_count > 0:
+        issue_desc = (
+            f"with {critical_count} critical issues requiring immediate attention"
+        )
+    elif major_count > 0:
+        issue_desc = f"with {major_count} major issues to address"
+    elif issues:
+        issue_desc = f"with {len(issues)} issues to consider"
+    else:
+        issue_desc = "with no detected issues"
+
+    summary = f"Domain has {rating_desc} security configuration {issue_desc}."
 
     return {
         "domain": domain,
         "score": total_score,
+        "rating": security_assessment.get("rating", "unknown"),
+        "summary": summary,
+        "tls_secure": not has_insecure_protocols,
+        "cert_valid": cert_valid,
+        "uses_secure_protocols": uses_secure_protocols,
         "issues": issues,
-        "tls_secure": state.get("tls_secure", False),
-        "cert_valid": state.get("cert_valid", False),
-        "uses_secure_protocols": state.get("uses_secure_protocols", False),
+        "score_breakdown": score_breakdown,
+        "recommendations": recommendations,
+        "security_features": {
+            "certificate": {
+                "valid": cert_valid,
+                "days_until_expiry": days_until_expiry,
+                "key_info": cert_data.get("key_info", {}),
+            },
+            "protocols": {
+                "secure_only": not has_insecure_protocols,
+                "secure_protocols": secure_protocols,
+            },
+            "ciphers": {"has_weak": has_weak_ciphers, "has_strong": has_strong_ciphers},
+            "hsts": {
+                "enabled": hsts_enabled,
+                "include_subdomains": hsts_includes_subdomains,
+                "preload": hsts_preload,
+            },
+            "security_headers": security_headers,
+        },
     }
+
+
+def extract_web_security_issues(web_results: dict) -> dict[str, list[str]]:
+    """
+    Extract only the security assessment issues from web results to reduce payload size.
+
+    Args:
+        web_results: Web security validation detailed results
+
+    Returns:
+        Dictionary with domain names as keys and lists of security issues as values
+    """
+    domain_issues = {}
+
+    for domain, result in web_results.items():
+        if (
+            "security_assessment" in result
+            and "issues" in result["security_assessment"]
+        ):
+            domain_issues[domain] = result["security_assessment"]["issues"]
+        else:
+            domain_issues[domain] = []
+
+    return domain_issues
 
 
 def get_web_rating_distribution_details(
@@ -777,10 +976,7 @@ def prepare_statistics_context(results: dict) -> dict:
     rpki_state = results["validations"]["RPKI"]["state"]
     web_state = results["validations"]["WEB_SECURITY"]["state"]
 
-    dnssec_results = results["validations"]["DNSSEC"]["results"]
-    dane_results = results["validations"]["DANE"]["results"]
     email_results = results["validations"]["EMAIL_SECURITY"]["results"]
-    rpki_results = results["validations"]["RPKI"]["results"]
     web_results = results["validations"]["WEB_SECURITY"]["results"]
 
     dnssec_stats = analyze_dnssec_stats(dnssec_state, domain_count)
@@ -827,6 +1023,7 @@ def prepare_statistics_context(results: dict) -> dict:
     common_issues = get_common_web_issues(web_results)
 
     web_rating_counts = get_web_rating_counts(web_state)
+    web_security_issues = extract_web_security_issues(web_results)
 
     dane_mail_server_state, rpki_mail_server_state = extract_server_states(
         dane_state, rpki_state
@@ -840,11 +1037,7 @@ def prepare_statistics_context(results: dict) -> dict:
         "email_state": email_state,
         "rpki_state": rpki_state,
         "web_state": web_state,
-        "dnssec_results": dnssec_results,
-        "dane_results": dane_results,
-        "email_results": email_results,
-        "rpki_results": rpki_results,
-        "web_results": web_results,
+        "web_security_issues": web_security_issues,
         "dnssec_stats": dnssec_stats,
         "dane_stats": dane_stats,
         "dane_mx_stats": dane_mx_stats,

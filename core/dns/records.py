@@ -48,7 +48,7 @@ async def resolve_nameservers(domain: str, ignore_cache: bool = False) -> list[s
         domain_parts = domain.split(".")
         if len(domain_parts) > 2:
             parent_domain = ".".join(domain_parts[1:])
-            logger.info(
+            logger.debug(
                 f"No NS records for subdomain {domain}. Trying parent domain {parent_domain}."
             )
             return await resolve_nameservers(parent_domain, ignore_cache)

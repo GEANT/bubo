@@ -202,7 +202,7 @@ class IPWhoisCache:
 
             cache_time = datetime.fromisoformat(cache_data["timestamp"])
             if datetime.now() - cache_time > self.cache_duration:
-                logger.info(f"IPWhois cache expired for {ip}")
+                logger.debug(f"IPWhois cache expired for {ip}")
                 return None
 
             logger.debug(f"Using cached IPWhois results for {ip}")

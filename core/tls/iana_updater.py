@@ -5,12 +5,14 @@ This module checks for updates to the IANA TLS parameters and downloads the late
 Updates are cached and only checked once per month to reduce network overhead.
 """
 
+import json
 import os
 import re
-import json
-import aiohttp
 from datetime import datetime, timedelta
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
+
+import aiohttp
+
 from core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)

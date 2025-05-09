@@ -9,22 +9,22 @@ from typing import Any
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
+
 from core.logging.logger import setup_logger
 from core.tls.models import (
     CertificateResult,
     TLSCheckConfig,
 )
 from core.tls.utils import (
-    has_openssl,
-    run_openssl_command,
     create_error_cert_result,
     extract_key_info,
-    extract_signature_algorithm,
     extract_san_info,
-    format_x509_name,
+    extract_signature_algorithm,
     format_serial_number,
+    format_x509_name,
+    has_openssl,
+    run_openssl_command,
 )
-
 
 logger = setup_logger(__name__)
 

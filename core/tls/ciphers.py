@@ -1,22 +1,22 @@
-from collections import defaultdict
 import asyncio
 import re
+from collections import defaultdict
+
+from core.logging.logger import setup_logger
+from core.tls.cipher_utils import (
+    get_cipher_details,
+    get_cipher_strength,
+    get_protocol_ciphers,
+)
+from core.tls.models import (
+    CipherResult,
+    TLSCheckConfig,
+    TLSProtocol,
+)
 from core.tls.utils import (
     has_openssl,
     run_openssl_command,
 )
-from core.tls.cipher_utils import (
-    get_protocol_ciphers,
-    get_cipher_strength,
-    get_cipher_details,
-)
-from core.logging.logger import setup_logger
-from core.tls.models import (
-    TLSProtocol,
-    CipherResult,
-    TLSCheckConfig,
-)
-
 
 logger = setup_logger(__name__)
 

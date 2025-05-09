@@ -1,7 +1,9 @@
 # core/web/http_client.py
 
-import aiohttp
 import asyncio
+
+import aiohttp
+
 from core.logging.logger import setup_logger
 from core.web.headers import USER_AGENT
 

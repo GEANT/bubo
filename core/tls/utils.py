@@ -7,23 +7,23 @@ import asyncio
 import functools
 import re
 import shutil
+from collections.abc import Awaitable, Callable
 from random import random
 from typing import Any, TypeVar
-from collections.abc import Awaitable, Callable
+
+from cryptography import x509
+
+from core.logging.logger import setup_logger
 from core.tls.models import (
+    KEY_LENGTH_RECOMMENDATIONS,
+    SIGNATURE_ALGORITHMS,
     CertificateResult,
     CipherStrength,
     KeyInfo,
     SANInfo,
     SignatureAlgorithmInfo,
     SignatureAlgorithmSecurity,
-    SIGNATURE_ALGORITHMS,
-    KEY_LENGTH_RECOMMENDATIONS,
 )
-
-from cryptography import x509
-
-from core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 

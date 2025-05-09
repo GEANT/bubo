@@ -56,9 +56,7 @@ def convert_sets_to_lists(obj: Any) -> Any:
     """
     if isinstance(obj, dict):
         return {k: convert_sets_to_lists(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_sets_to_lists(item) for item in obj]
-    elif isinstance(obj, set):
+    elif isinstance(obj, list) or isinstance(obj, set):
         return [convert_sets_to_lists(item) for item in obj]
     elif isinstance(obj, tuple):
         return tuple(convert_sets_to_lists(item) for item in obj)
