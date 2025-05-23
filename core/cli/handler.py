@@ -59,6 +59,9 @@ class CLIHandler:
 
         if not args.routinator_url:
             args.routinator_url = os.getenv("ROUTINATOR_URL", "http://localhost:8323")
+        else:
+            if not args.routinator_url.startswith(('http://', 'https://')):
+                args.routinator_url = "http://" + args.routinator_url
 
         if args.output_dir:
             args.output_dir = os.path.abspath(args.output_dir)

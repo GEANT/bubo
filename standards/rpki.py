@@ -1,5 +1,3 @@
-# standards/rpki.py
-
 import asyncio
 
 import aiohttp
@@ -10,7 +8,9 @@ from core.network.ip_tools import get_asn_and_prefix
 
 logger = setup_logger(__name__)
 
-_rpki_validator_down = False  # Module-level flag to track validator status
+_rpki_validator_down = False
+_timeout_count = 0
+_timeout_threshold = 3
 
 
 async def validate_rpki(asn, prefix, routinator_url):
@@ -19,9 +19,8 @@ async def validate_rpki(asn, prefix, routinator_url):
 
     Returns None if the validator is down or validation fails.
     """
-    global _rpki_validator_down
+    global _rpki_validator_down, _timeout_count
 
-    # Skip if we already know the validator is down
     if _rpki_validator_down:
         return None
 
@@ -30,17 +29,33 @@ async def validate_rpki(asn, prefix, routinator_url):
         async with aiohttp.ClientSession() as session:
             async with session.get(url, timeout=10) as response:
                 response.raise_for_status()
+
+                _timeout_count = 0
                 return await response.json()
 
     except aiohttp.ClientConnectorError as e:
         if not _rpki_validator_down:
             logger.error(f"RPKI validator is unavailable: {e}")
-            _rpki_validator_down = (
-                True  # Mark validator as down to avoid further attempts
-            )
+            _rpki_validator_down = True
         return None
     except aiohttp.ClientError as e:
-        logger.error(f"Validating RPKI for ASN {asn} and Prefix {prefix} failed: {e}")
+        logger.error(f"ClientError caught: {type(e).__name__}")
+        return None
+    except asyncio.TimeoutError:
+        if not _rpki_validator_down:
+            _timeout_count += 1
+            logger.error(
+                f"RPKI validation request timed out. Timeout count: {_timeout_count}/{_timeout_threshold}"
+            )
+
+            if _timeout_count >= _timeout_threshold:
+                logger.error(
+                    f"RPKI validator marked as down due to {_timeout_count} consecutive timeouts"
+                )
+                _rpki_validator_down = True
+        else:
+            pass
+
         return None
 
 
@@ -48,7 +63,7 @@ async def process_server(server, domain, results, stype, routinator_url):
     """
     Process a server (e.g., nameserver or mail server) to validate RPKI for its associated IPs.
     """
-    # logger.info(f"Processing {stype}: {server}")
+
     ipv4, ipv6 = await resolve_ips(server)
 
     if domain not in results:
@@ -139,7 +154,6 @@ async def type_validity(domain_results):
                         if not all(prefix_states):
                             all_valid = False
 
-            # Determine final state
             if not has_servers:
                 state = None
             elif not has_valid_records:
@@ -220,7 +234,7 @@ async def process_batch_mode(domains):
     domain_results_list = await asyncio.gather(*tasks)
 
     for domain_results in domain_results_list:
-        if isinstance(domain_results, dict):  # Filter successful results
+        if isinstance(domain_results, dict):
             batch_results.update(domain_results)
         elif isinstance(domain_results, Exception):
             logger.error(f"Error in processing: {domain_results}")
@@ -278,7 +292,6 @@ async def run(domain, domain_ns, domain_mx, mail_ns, routinator_url):
 
     await asyncio.gather(*tasks)
 
-    # If validator went down during processing or no results found
     if _rpki_validator_down or not results[domain]:
         return {}, {
             domain: {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
