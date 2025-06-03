@@ -8,15 +8,15 @@ import dns.rdatatype
 import dns.resolver
 import pytest
 
-from standards import dnssec
-from standards.dnssec import DNSSECChecker, run
+from bubo.standards import dnssec
+from bubo.standards.dnssec import DNSSECChecker, run
 
 
 @pytest.fixture(autouse=True)
 def mock_dns_manager():
     # Update the import path to match the new structure
     with patch(
-        "standards.dnssec.dns_manager.resolve_dnssec", new_callable=AsyncMock
+        "bubo.standards.dnssec.dns_manager.resolve_dnssec", new_callable=AsyncMock
     ) as mock_resolve:
         mock_resolve.return_value = None
         yield mock_resolve
@@ -107,25 +107,27 @@ async def test_dnssec_validation_structure(sample_domain):
     mock_response.response = MagicMock()
     mock_response.response.find_rrset.return_value = [mock_rrsig]
 
-    with patch(
-        "dns.asyncresolver.Resolver.resolve", AsyncMock(return_value=mock_response)
-    ):
-        with patch(
-            "core.dns.resolver.dns_manager.resolve_dnssec",
+    with (
+        patch(
+            "dns.asyncresolver.Resolver.resolve", AsyncMock(return_value=mock_response)
+        ),
+        patch(
+            "bubo.core.dns.resolver.dns_manager.resolve_dnssec",
             AsyncMock(return_value=mock_response),
-        ):
-            results, state = await dnssec.run(sample_domain)
+        ),
+    ):
+        results, state = await dnssec.run(sample_domain)
 
-            assert isinstance(results, dict)
-            assert isinstance(state, dict)
-            assert sample_domain in results
-            assert "dnssec_status" in results[sample_domain]
+        assert isinstance(results, dict)
+        assert isinstance(state, dict)
+        assert sample_domain in results
+        assert "dnssec_status" in results[sample_domain]
 
-            status = results[sample_domain]["dnssec_status"]
-            assert "is_signed" in status
-            assert isinstance(status["is_signed"], bool)
-            assert "registrar" in status
-            assert "nameservers" in status
+        status = results[sample_domain]["dnssec_status"]
+        assert "is_signed" in status
+        assert isinstance(status["is_signed"], bool)
+        assert "registrar" in status
+        assert "nameservers" in status
 
 
 @pytest.mark.asyncio
@@ -540,7 +542,7 @@ async def test_run_success():
     }
 
     with patch(
-        "standards.dnssec.DNSSECChecker.check_dnssec", new_callable=AsyncMock
+        "bubo.standards.dnssec.DNSSECChecker.check_dnssec", new_callable=AsyncMock
     ) as mock_check:
         mock_check.return_value = expected_result
         results, state = await run("example.com")
@@ -553,7 +555,7 @@ async def test_run_success():
 @pytest.mark.asyncio
 async def test_run_exception():
     with patch(
-        "standards.dnssec.DNSSECChecker.check_dnssec", new_callable=AsyncMock
+        "bubo.standards.dnssec.DNSSECChecker.check_dnssec", new_callable=AsyncMock
     ) as mock_check:
         mock_check.side_effect = Exception("Test exception")
         results, state = await run("example.com")

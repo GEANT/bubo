@@ -2,9 +2,12 @@ import asyncio
 import unittest
 from unittest.mock import patch
 
-from core.tls.models import TLSCheckConfig
-from core.web.http_security import build_http_security_dicts, run_http_security_checks
-from core.web.models import HSTSInfo, SecurityHeadersInfo
+from bubo.core.tls.models import TLSCheckConfig
+from bubo.core.web.http_security import (
+    build_http_security_dicts,
+    run_http_security_checks,
+)
+from bubo.core.web.models import HSTSInfo, SecurityHeadersInfo
 
 
 class TestHttpSecurity(unittest.TestCase):
@@ -42,9 +45,9 @@ class TestHttpSecurity(unittest.TestCase):
             "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
         }
 
-    @patch("core.web.http_security.check_security_headers")
-    @patch("core.web.http_security.check_hsts")
-    @patch("core.web.http_security.fetch_headers")
+    @patch("bubo.core.web.http_security.check_security_headers")
+    @patch("bubo.core.web.http_security.check_hsts")
+    @patch("bubo.core.web.http_security.fetch_headers")
     async def _test_run_http_security_checks_both_enabled(
         self, mock_fetch_headers, mock_check_hsts, mock_check_security_headers
     ):
@@ -77,9 +80,9 @@ class TestHttpSecurity(unittest.TestCase):
         """Test running checks with both HSTS and security headers enabled."""
         asyncio.run(self._test_run_http_security_checks_both_enabled())
 
-    @patch("core.web.http_security.check_security_headers")
-    @patch("core.web.http_security.check_hsts")
-    @patch("core.web.http_security.fetch_headers")
+    @patch("bubo.core.web.http_security.check_security_headers")
+    @patch("bubo.core.web.http_security.check_hsts")
+    @patch("bubo.core.web.http_security.fetch_headers")
     async def _test_run_http_security_checks_hsts_only(
         self, mock_fetch_headers, mock_check_hsts, mock_check_security_headers
     ):
@@ -108,9 +111,9 @@ class TestHttpSecurity(unittest.TestCase):
         """Test running checks with only HSTS enabled."""
         asyncio.run(self._test_run_http_security_checks_hsts_only())
 
-    @patch("core.web.http_security.check_security_headers")
-    @patch("core.web.http_security.check_hsts")
-    @patch("core.web.http_security.fetch_headers")
+    @patch("bubo.core.web.http_security.check_security_headers")
+    @patch("bubo.core.web.http_security.check_hsts")
+    @patch("bubo.core.web.http_security.fetch_headers")
     async def _test_run_http_security_checks_security_headers_only(
         self, mock_fetch_headers, mock_check_hsts, mock_check_security_headers
     ):
@@ -139,7 +142,7 @@ class TestHttpSecurity(unittest.TestCase):
         """Test running checks with only security headers enabled."""
         asyncio.run(self._test_run_http_security_checks_security_headers_only())
 
-    @patch("core.web.http_security.fetch_headers")
+    @patch("bubo.core.web.http_security.fetch_headers")
     async def _test_run_http_security_checks_both_disabled(self, mock_fetch_headers):
         """Helper for testing when both checks are disabled."""
 
@@ -160,7 +163,7 @@ class TestHttpSecurity(unittest.TestCase):
         """Test running checks with both checks disabled."""
         asyncio.run(self._test_run_http_security_checks_both_disabled())
 
-    @patch("core.web.http_security.fetch_headers")
+    @patch("bubo.core.web.http_security.fetch_headers")
     async def _test_run_http_security_checks_fetch_headers_returns_none(
         self, mock_fetch_headers
     ):

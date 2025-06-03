@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from core.cache_manager.cache_manager import DomainResultsCache
+from bubo.core.cache_manager.cache_manager import DomainResultsCache
 
 
 @pytest.fixture

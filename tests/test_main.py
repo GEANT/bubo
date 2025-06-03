@@ -9,12 +9,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from main import DomainValidator, main
+from bubo.main import DomainValidator, start
 
 
 @pytest.fixture
 def domain_validator(mock_cache_generator):
-    with patch("main.DomainResultsCache", return_value=mock_cache_generator):
+    with patch("bubo.main.DomainResultsCache", return_value=mock_cache_generator):
         validator = DomainValidator(
             cache_dir="test_cache",
             cache_duration=timedelta(days=1),
@@ -53,16 +53,16 @@ async def test_process_single_domain(
 
     with (
         patch(
-            "core.dns.records.process_domain", new_callable=AsyncMock
+            "bubo.core.dns.records.process_domain", new_callable=AsyncMock
         ) as mock_process_domain,
         patch(
-            "main.DomainValidator.VALIDATION_TYPES", new={}
+            "bubo.main.DomainValidator.VALIDATION_TYPES", new={}
         ),  # Clear the validation types first
-        patch("main.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
-        patch("main.dane.run", new_callable=AsyncMock) as mock_dane_run,
-        patch("main.dnssec.run", new_callable=AsyncMock) as mock_dnssec_run,
+        patch("bubo.main.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
+        patch("bubo.main.dane.run", new_callable=AsyncMock) as mock_dane_run,
+        patch("bubo.main.dnssec.run", new_callable=AsyncMock) as mock_dnssec_run,
         patch(
-            "main.email_security.run", new_callable=AsyncMock
+            "bubo.main.email_security.run", new_callable=AsyncMock
         ) as mock_email_security_run,
     ):
         domain_validator.VALIDATION_TYPES = {
@@ -107,7 +107,9 @@ async def test_process_single_domain_no_nameservers(
         return (None, None, None)
 
     with (
-        patch("main.process_domain", new_callable=AsyncMock) as mock_process_domain,
+        patch(
+            "bubo.main.process_domain", new_callable=AsyncMock
+        ) as mock_process_domain,
         patch.object(
             domain_validator, "create_validation_tasks", new_callable=AsyncMock
         ),
@@ -133,12 +135,14 @@ async def test_main_batch_mode():
     mock_process_file = AsyncMock(side_effect=mock_process_file_impl)
 
     with (
-        patch("sys.argv", ["main.py"] + test_args),
-        patch("main.DomainValidator") as mock_validator_class,
-        patch("main.process_file", mock_process_file),
-        patch("main.generate_html_report", new_callable=AsyncMock),
+        patch("sys.argv", ["bubo.main.py", *test_args]),
+        patch("bubo.main.DomainValidator") as mock_validator_class,
+        patch("bubo.main.process_file", mock_process_file),
+        patch("bubo.main.generate_html_report", new_callable=AsyncMock),
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
-        patch("core.io.file_processor.sanitize_file_path", mock_sanitize_file_path),
+        patch(
+            "bubo.core.io.file_processor.sanitize_file_path", mock_sanitize_file_path
+        ),
     ):
         mock_validator = AsyncMock()
         mock_validator_class.return_value = mock_validator
@@ -167,4 +171,4 @@ async def test_main_batch_mode():
             output_dir="results",
         )
 
-        await main()
+        await start()

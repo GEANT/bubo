@@ -2,8 +2,8 @@
 
 import pytest
 
-from core.network.ip_tools import is_valid_ip
-from core.validators.sanitizer import validate_hostname
+from bubo.core.network.ip_tools import is_valid_ip
+from bubo.core.validators.sanitizer import validate_hostname
 
 
 @pytest.mark.asyncio

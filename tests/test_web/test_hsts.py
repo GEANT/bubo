@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch
 
-from core.web.hsts import check_hsts
+from bubo.core.web.hsts import check_hsts
 
 
 class TestHSTS(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestHSTS(unittest.TestCase):
         self.port = 443
         self.timeout = 10
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_complete_hsts_header(self, mock_logger):
         """Test when a complete HSTS header is present."""
 
@@ -34,7 +34,7 @@ class TestHSTS(unittest.TestCase):
             result.header_value, "max-age=31536000; includeSubDomains; preload"
         )
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_partial_hsts_header_max_age_only(self, mock_logger):
         """Test when HSTS header only contains max-age directive."""
 
@@ -50,7 +50,7 @@ class TestHSTS(unittest.TestCase):
         self.assertFalse(result.preload)
         self.assertEqual(result.header_value, "max-age=15768000")
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_partial_hsts_header_with_subdomains(self, mock_logger):
         """Test when HSTS header contains max-age and includeSubDomains."""
 
@@ -67,7 +67,7 @@ class TestHSTS(unittest.TestCase):
         self.assertTrue(result.include_subdomains)
         self.assertFalse(result.preload)
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_case_insensitivity(self, mock_logger):
         """Test that header parsing is case-insensitive."""
 
@@ -84,7 +84,7 @@ class TestHSTS(unittest.TestCase):
         self.assertTrue(result.include_subdomains)
         self.assertTrue(result.preload)
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_no_hsts_header(self, mock_logger):
         """Test when HSTS header is not present in response headers."""
 
@@ -100,7 +100,7 @@ class TestHSTS(unittest.TestCase):
         self.assertFalse(result.preload)
         self.assertIsNone(result.header_value)
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_no_response_headers(self, mock_logger):
         """Test when response headers are None."""
 
@@ -114,7 +114,7 @@ class TestHSTS(unittest.TestCase):
 
         mock_logger.warning.assert_called_once()
 
-    @patch("core.web.hsts.logger")
+    @patch("bubo.core.web.hsts.logger")
     def test_log_messages(self, mock_logger):
         """Test that appropriate log messages are generated."""
 

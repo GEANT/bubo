@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import dns
 import pytest
 
-from standards import dane
+from bubo.standards import dane
 
 
 @pytest.mark.asyncio
@@ -58,9 +58,11 @@ async def test_validate_tlsa_hash_failure():
 @pytest.mark.asyncio
 async def test_process_servers_with_valid_records(mock_dane_valid):
     with (
-        patch("standards.dane.check_tlsa_record", new_callable=AsyncMock) as mock_check,
         patch(
-            "standards.dane.validate_tlsa_hash", new_callable=AsyncMock
+            "bubo.standards.dane.check_tlsa_record", new_callable=AsyncMock
+        ) as mock_check,
+        patch(
+            "bubo.standards.dane.validate_tlsa_hash", new_callable=AsyncMock
         ) as mock_validate,
     ):
         await mock_dane_valid(mock_check, mock_validate)
@@ -75,7 +77,7 @@ async def test_process_servers_with_valid_records(mock_dane_valid):
 @pytest.mark.asyncio
 async def test_process_servers_no_records():
     with patch(
-        "standards.dane.check_tlsa_record", new_callable=AsyncMock
+        "bubo.standards.dane.check_tlsa_record", new_callable=AsyncMock
     ) as mock_check:
         mock_check.return_value = []
         servers = ["ns1.example.com"]
@@ -89,7 +91,7 @@ async def test_process_servers_no_records():
 @pytest.mark.asyncio
 async def test_run_successful_validation(sample_domain, sample_servers):
     with patch(
-        "standards.dane.process_servers", new_callable=AsyncMock
+        "bubo.standards.dane.process_servers", new_callable=AsyncMock
     ) as mock_process:
         mock_process.return_value = {
             "ns1.example.com": {
@@ -113,7 +115,7 @@ async def test_run_successful_validation(sample_domain, sample_servers):
 @pytest.mark.asyncio
 async def test_run_failed_validation(sample_domain, sample_servers):
     with patch(
-        "standards.dane.process_servers", new_callable=AsyncMock
+        "bubo.standards.dane.process_servers", new_callable=AsyncMock
     ) as mock_process:
         mock_process.side_effect = [
             {"ns1.example.com": {"tlsa_records": [], "validation": False}},

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from standards.email_security import (
+from bubo.standards.email_security import (
     check_dmarc,
     extract_dkim_key_info,
     get_txt_records,
@@ -22,7 +22,7 @@ def mock_dmarc_answer():
 @pytest.fixture(autouse=True)
 def mock_dns_manager():
     with patch(
-        "core.dns.resolver.dns_manager.resolve", new_callable=AsyncMock
+        "bubo.core.dns.resolver.dns_manager.resolve", new_callable=AsyncMock
     ) as mock_resolve:
         mock_resolve.return_value = []
         yield mock_resolve
@@ -41,7 +41,7 @@ def mock_dns_answer():
 @pytest.mark.asyncio
 async def test_get_txt_records_success(mock_dns_answer):
     with patch(
-        "standards.email_security.dns_manager.resolve", new_callable=AsyncMock
+        "bubo.standards.email_security.dns_manager.resolve", new_callable=AsyncMock
     ) as mock_resolve:
         mock_resolve.return_value = mock_dns_answer
         result = await get_txt_records("example.com")
@@ -110,13 +110,15 @@ async def test_run_with_vulnerable_dkim():
     }
 
     with (
-        patch("core.dns.resolver.dns_manager.resolve", new_callable=AsyncMock),
-        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
+        patch("bubo.core.dns.resolver.dns_manager.resolve", new_callable=AsyncMock),
         patch(
-            "standards.email_security.check_dkim", new_callable=AsyncMock
+            "bubo.standards.email_security.check_spf", new_callable=AsyncMock
+        ) as mock_spf,
+        patch(
+            "bubo.standards.email_security.check_dkim", new_callable=AsyncMock
         ) as mock_dkim,
         patch(
-            "standards.email_security.check_dmarc", new_callable=AsyncMock
+            "bubo.standards.email_security.check_dmarc", new_callable=AsyncMock
         ) as mock_dmarc,
     ):
         mock_spf.return_value = spf_result
@@ -139,7 +141,7 @@ async def test_run_with_vulnerable_dkim():
 @pytest.mark.asyncio
 async def test_check_dmarc_valid(mock_dmarc_answer):
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = [
             "v=DMARC1; p=reject; sp=quarantine; pct=100; rua=mailto:reports@example.com"
@@ -164,7 +166,7 @@ async def test_check_dmarc_valid(mock_dmarc_answer):
 async def test_check_dmarc_invalid_policy():
     """Test checking DMARC with 'none' policy."""
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; p=none; pct=100;"]
 
@@ -182,7 +184,7 @@ async def test_check_dmarc_invalid_policy():
 @pytest.mark.asyncio
 async def test_check_dmarc_partial_enforcement():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; p=quarantine; pct=50;"]
 
@@ -201,7 +203,7 @@ async def test_check_dmarc_partial_enforcement():
 @pytest.mark.asyncio
 async def test_check_dmarc_subdomain_none_policy():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; p=reject; sp=none; pct=100;"]
 
@@ -220,7 +222,7 @@ async def test_check_dmarc_subdomain_none_policy():
 @pytest.mark.asyncio
 async def test_check_dmarc_missing_record():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = []
 
@@ -234,7 +236,7 @@ async def test_check_dmarc_missing_record():
 @pytest.mark.asyncio
 async def test_check_dmarc_multiple_records():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = [
             "v=DMARC1; p=reject; pct=100;",
@@ -251,7 +253,7 @@ async def test_check_dmarc_multiple_records():
 @pytest.mark.asyncio
 async def test_check_dmarc_invalid_syntax():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1 p=reject pct=100"]
 
@@ -265,7 +267,7 @@ async def test_check_dmarc_invalid_syntax():
 @pytest.mark.asyncio
 async def test_check_dmarc_missing_policy():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; pct=100;"]
 
@@ -279,7 +281,7 @@ async def test_check_dmarc_missing_policy():
 @pytest.mark.asyncio
 async def test_check_dmarc_invalid_percentage():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; p=reject; pct=101;"]
 
@@ -293,7 +295,7 @@ async def test_check_dmarc_invalid_percentage():
 @pytest.mark.asyncio
 async def test_check_dmarc_exception():
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.side_effect = Exception("Test exception")
         result = await check_dmarc("example.com")
@@ -359,13 +361,15 @@ async def test_run_success():
     }
 
     with (
-        patch("core.dns.resolver.dns_manager.resolve", new_callable=AsyncMock),
-        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
+        patch("bubo.core.dns.resolver.dns_manager.resolve", new_callable=AsyncMock),
         patch(
-            "standards.email_security.check_dkim", new_callable=AsyncMock
+            "bubo.standards.email_security.check_spf", new_callable=AsyncMock
+        ) as mock_spf,
+        patch(
+            "bubo.standards.email_security.check_dkim", new_callable=AsyncMock
         ) as mock_dkim,
         patch(
-            "standards.email_security.check_dmarc", new_callable=AsyncMock
+            "bubo.standards.email_security.check_dmarc", new_callable=AsyncMock
         ) as mock_dmarc,
     ):
         mock_spf.return_value = spf_result
@@ -406,12 +410,14 @@ async def test_run_with_invalid_checks():
     }
 
     with (
-        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
         patch(
-            "standards.email_security.check_dkim", new_callable=AsyncMock
+            "bubo.standards.email_security.check_spf", new_callable=AsyncMock
+        ) as mock_spf,
+        patch(
+            "bubo.standards.email_security.check_dkim", new_callable=AsyncMock
         ) as mock_dkim,
         patch(
-            "standards.email_security.check_dmarc", new_callable=AsyncMock
+            "bubo.standards.email_security.check_dmarc", new_callable=AsyncMock
         ) as mock_dmarc,
     ):
         mock_spf.return_value = spf_result
@@ -428,7 +434,7 @@ async def test_run_with_invalid_checks():
 @pytest.mark.asyncio
 async def test_run_exception():
     with patch(
-        "standards.email_security.check_spf", new_callable=AsyncMock
+        "bubo.standards.email_security.check_spf", new_callable=AsyncMock
     ) as mock_spf:
         mock_spf.side_effect = Exception("Test exception")
         results, state = await run("example.com")
@@ -447,7 +453,7 @@ async def test_run_exception():
 async def test_get_txt_records_exception_without_record_type():
     """Test get_txt_records with general exception and no record_type"""
     with patch(
-        "standards.email_security.dns_manager.resolve", new_callable=AsyncMock
+        "bubo.standards.email_security.dns_manager.resolve", new_callable=AsyncMock
     ) as mock_resolve:
         mock_resolve.side_effect = Exception("Test general exception")
         result = await get_txt_records("example.com")
@@ -496,7 +502,8 @@ def test_extract_dkim_key_info_empty_public_key():
 def test_extract_dkim_key_info_general_exception():
     """Test general exception handling in extract_dkim_key_info"""
     with patch(
-        "standards.email_security.re.search", side_effect=Exception("Regex failure")
+        "bubo.standards.email_security.re.search",
+        side_effect=Exception("Regex failure"),
     ):
         result = extract_dkim_key_info(
             "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
@@ -631,7 +638,7 @@ def test_extract_dkim_key_info_fallback_exception(monkeypatch):
 async def test_check_dmarc_invalid_policy_value():
     """Test check_dmarc with an invalid policy value"""
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; p=invalid; pct=100;"]
 
@@ -647,7 +654,7 @@ async def test_check_dmarc_invalid_policy_value():
 async def test_check_dmarc_valid_quarantine_policy():
     """Test check_dmarc with a valid quarantine policy"""
     with patch(
-        "standards.email_security.get_txt_records", new_callable=AsyncMock
+        "bubo.standards.email_security.get_txt_records", new_callable=AsyncMock
     ) as mock_get_txt:
         mock_get_txt.return_value = ["v=DMARC1; p=quarantine; pct=100;"]
 
@@ -718,12 +725,14 @@ async def test_run_with_acceptable_dkim():
     }
 
     with (
-        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
         patch(
-            "standards.email_security.check_dkim", new_callable=AsyncMock
+            "bubo.standards.email_security.check_spf", new_callable=AsyncMock
+        ) as mock_spf,
+        patch(
+            "bubo.standards.email_security.check_dkim", new_callable=AsyncMock
         ) as mock_dkim,
         patch(
-            "standards.email_security.check_dmarc", new_callable=AsyncMock
+            "bubo.standards.email_security.check_dmarc", new_callable=AsyncMock
         ) as mock_dmarc,
     ):
         mock_spf.return_value = spf_result
@@ -801,12 +810,14 @@ async def test_run_with_future_proof_dkim():
     }
 
     with (
-        patch("standards.email_security.check_spf", new_callable=AsyncMock) as mock_spf,
         patch(
-            "standards.email_security.check_dkim", new_callable=AsyncMock
+            "bubo.standards.email_security.check_spf", new_callable=AsyncMock
+        ) as mock_spf,
+        patch(
+            "bubo.standards.email_security.check_dkim", new_callable=AsyncMock
         ) as mock_dkim,
         patch(
-            "standards.email_security.check_dmarc", new_callable=AsyncMock
+            "bubo.standards.email_security.check_dmarc", new_callable=AsyncMock
         ) as mock_dmarc,
     ):
         mock_spf.return_value = spf_result

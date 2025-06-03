@@ -4,7 +4,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from core.io.file_processor import process_file
+from bubo.core.io.file_processor import process_file
 
 
 @pytest.mark.asyncio

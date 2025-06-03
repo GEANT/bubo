@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 import dns.resolver
 import pytest
 
-from core.dns.records import process_domain
-from core.dns.resolver import dns_manager
-from core.io.file_processor import process_file
+from bubo.core.dns.records import process_domain
+from bubo.core.dns.resolver import dns_manager
+from bubo.core.io.file_processor import process_file
 
 
 @pytest.fixture
@@ -112,37 +112,42 @@ async def test_process_file_file_not_found():
 async def test_dns_resolver_manager_resolve_exception_handling():
     manager = dns_manager
 
-    # Test handling of NoNameservers exception
-    with patch.object(
-        manager.resolver, "resolve", AsyncMock(side_effect=dns.resolver.NoNameservers())
+    with (
+        patch.object(
+            manager.resolver,
+            "resolve",
+            AsyncMock(side_effect=dns.resolver.NoNameservers()),
+        ),
+        pytest.raises(dns.resolver.NoNameservers),
     ):
-        with pytest.raises(dns.resolver.NoNameservers):
-            await manager.resolve("example.com", "A")
+        await manager.resolve("example.com", "A")
 
-    # Test handling of NXDOMAIN exception
-    with patch.object(
-        manager.resolver, "resolve", AsyncMock(side_effect=dns.resolver.NXDOMAIN())
+    with (
+        patch.object(
+            manager.resolver, "resolve", AsyncMock(side_effect=dns.resolver.NXDOMAIN())
+        ),
+        pytest.raises(dns.resolver.NXDOMAIN),
     ):
-        with pytest.raises(dns.resolver.NXDOMAIN):
-            await manager.resolve("example.com", "A")
+        await manager.resolve("example.com", "A")
 
-    # Test handling of NoAnswer exception
-    with patch.object(
-        manager.resolver, "resolve", AsyncMock(side_effect=dns.resolver.NoAnswer())
+    with (
+        patch.object(
+            manager.resolver, "resolve", AsyncMock(side_effect=dns.resolver.NoAnswer())
+        ),
+        pytest.raises(dns.resolver.NoAnswer),
     ):
-        with pytest.raises(dns.resolver.NoAnswer):
-            await manager.resolve("example.com", "A")
+        await manager.resolve("example.com", "A")
 
 
 @pytest.mark.asyncio
 async def test_process_domain_email_extraction(sample_email):
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.dns.records.resolve_nameservers",
+            "bubo.core.dns.records.resolve_nameservers",
             AsyncMock(return_value=["ns1.example.com"]),
         ),
-        patch("core.dns.records.get_mx_records", AsyncMock(return_value=None)),
+        patch("bubo.core.dns.records.get_mx_records", AsyncMock(return_value=None)),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain(sample_email)
 
@@ -153,19 +158,19 @@ async def test_process_domain_email_extraction(sample_email):
 @pytest.mark.asyncio
 async def test_process_domain_mail_nameservers():
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.dns.records.resolve_nameservers",
+            "bubo.core.dns.records.resolve_nameservers",
             side_effect=[
                 ["ns1.example.com"],  # First call for domain nameservers
                 ["ns1.mail-domain.com"],  # Second call for mail server's domain
             ],
         ),
         patch(
-            "core.dns.records.get_mx_records",
+            "bubo.core.dns.records.get_mx_records",
             AsyncMock(return_value=["mail.mail-domain.com"]),
         ),
-        patch("core.network.ip_tools.is_valid_ip", return_value=False),
+        patch("bubo.core.network.ip_tools.is_valid_ip", return_value=False),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -177,9 +182,9 @@ async def test_process_domain_mail_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_all_empty_mail_nameservers():
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.dns.records.resolve_nameservers",
+            "bubo.core.dns.records.resolve_nameservers",
             side_effect=[
                 ["ns1.example.com"],  # First call for domain nameservers
                 [],  # Empty result for first mail server
@@ -187,10 +192,10 @@ async def test_process_domain_all_empty_mail_nameservers():
             ],
         ),
         patch(
-            "core.dns.records.get_mx_records",
+            "bubo.core.dns.records.get_mx_records",
             AsyncMock(return_value=["mail1.example.com", "mail2.example.com"]),
         ),
-        patch("core.network.ip_tools.is_valid_ip", return_value=False),
+        patch("bubo.core.network.ip_tools.is_valid_ip", return_value=False),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -202,19 +207,19 @@ async def test_process_domain_all_empty_mail_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_mail_nameservers():
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.dns.records.resolve_nameservers",
+            "bubo.core.dns.records.resolve_nameservers",
             side_effect=[
                 ["ns1.example.com"],  # First call for domain nameservers
                 Exception("DNS error"),  # Exception during mail nameserver resolution
             ],
         ),
         patch(
-            "core.dns.records.get_mx_records",
+            "bubo.core.dns.records.get_mx_records",
             AsyncMock(return_value=["mail.example.com"]),
         ),
-        patch("core.network.ip_tools.is_valid_ip", return_value=False),
+        patch("bubo.core.network.ip_tools.is_valid_ip", return_value=False),
     ):  # Mock logger to prevent actual logging
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 
@@ -226,12 +231,13 @@ async def test_process_domain_exception_in_mail_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_domain_nameservers():
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.dns.records.resolve_nameservers", side_effect=Exception("DNS error")
+            "bubo.core.dns.records.resolve_nameservers",
+            side_effect=Exception("DNS error"),
         ),
         patch(
-            "core.dns.records.get_mx_records",
+            "bubo.core.dns.records.get_mx_records",
             AsyncMock(return_value=["mail.example.com"]),
         ),
     ):  # Mock logger to prevent actual logging
@@ -245,12 +251,14 @@ async def test_process_domain_exception_in_domain_nameservers():
 @pytest.mark.asyncio
 async def test_process_domain_exception_in_mx_records():
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
         patch(
-            "core.dns.records.resolve_nameservers",
+            "bubo.core.dns.records.resolve_nameservers",
             AsyncMock(return_value=["ns1.example.com"]),
         ),
-        patch("core.dns.records.get_mx_records", side_effect=Exception("DNS error")),
+        patch(
+            "bubo.core.dns.records.get_mx_records", side_effect=Exception("DNS error")
+        ),
     ):  # Mock logger to prevent actual logging
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
 

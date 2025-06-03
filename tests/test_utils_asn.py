@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from core.dns.records import process_domain, translate_server_type
-from core.network.ip_tools import get_asn_and_prefix
+from bubo.core.dns.records import process_domain, translate_server_type
+from bubo.core.network.ip_tools import get_asn_and_prefix
 
 
 @pytest.mark.asyncio
@@ -16,7 +16,7 @@ async def test_get_asn_and_prefix_cached():
     mock_cache.get_result.return_value = ("12345", "192.168.0.0/24")
 
     # Patch the global _ipwhois_cache variable
-    with patch("core.network.ip_tools._ipwhois_cache", mock_cache):
+    with patch("bubo.core.network.ip_tools._ipwhois_cache", mock_cache):
         # Call the function
         asn, prefix = await get_asn_and_prefix("192.168.0.1")
 
@@ -47,9 +47,9 @@ async def test_get_asn_and_prefix_lookup_success():
 
     # Set up patches
     with (
-        patch("core.network.ip_tools._ipwhois_cache", mock_cache),
-        patch("core.network.ip_tools.IPWhois", return_value=mock_ipwhois),
-        patch("core.network.ip_tools.asyncio.get_event_loop") as mock_loop,
+        patch("bubo.core.network.ip_tools._ipwhois_cache", mock_cache),
+        patch("bubo.core.network.ip_tools.IPWhois", return_value=mock_ipwhois),
+        patch("bubo.core.network.ip_tools.asyncio.get_event_loop") as mock_loop,
     ):
         # Mock run_in_executor to actually call the function passed to it
         async def mock_run_in_executor(executor, func, *args, **kwargs):
@@ -93,13 +93,13 @@ async def test_get_asn_and_prefix_ignore_cache():
 
     # Setup direct patching
     with (
-        patch("core.network.ip_tools._ipwhois_cache", mock_cache),
-        patch("core.network.ip_tools.logger"),
-        patch("core.network.ip_tools.asyncio.sleep", AsyncMock()),
+        patch("bubo.core.network.ip_tools._ipwhois_cache", mock_cache),
+        patch("bubo.core.network.ip_tools.logger"),
+        patch("bubo.core.network.ip_tools.asyncio.sleep", AsyncMock()),
     ):
         # Create a mock IPWhois that returns our controlled data
         mock_ipwhois = MagicMock()
-        with patch("core.network.ip_tools.IPWhois", return_value=mock_ipwhois):
+        with patch("bubo.core.network.ip_tools.IPWhois", return_value=mock_ipwhois):
             # Hook the actual executor to return our controlled data
             async def mock_executor(executor, func, *args):
                 # Return the data we want without calling the real function
@@ -111,7 +111,7 @@ async def test_get_asn_and_prefix_ignore_cache():
 
             with patch("asyncio.get_event_loop", return_value=mock_loop):
                 # Import after patching to ensure we use mocked versions
-                from core.network.ip_tools import get_asn_and_prefix
+                from bubo.core.network.ip_tools import get_asn_and_prefix
 
                 # Execute the function
                 asn, prefix = await get_asn_and_prefix("192.168.0.1", ignore_cache=True)
@@ -150,13 +150,13 @@ async def test_get_asn_and_prefix_init_cache():
 
     # Set up patches
     with (
-        patch("core.network.ip_tools._ipwhois_cache", None),
-        patch("core.network.ip_tools.IPWhoisCache", mock_cache_class),
-        patch("core.network.ip_tools.IPWhois", return_value=mock_ipwhois),
-        patch("core.network.ip_tools.asyncio.get_event_loop") as mock_loop,
-        patch("core.network.ip_tools.os.path.dirname", return_value="/mock/path"),
+        patch("bubo.core.network.ip_tools._ipwhois_cache", None),
+        patch("bubo.core.network.ip_tools.IPWhoisCache", mock_cache_class),
+        patch("bubo.core.network.ip_tools.IPWhois", return_value=mock_ipwhois),
+        patch("bubo.core.network.ip_tools.asyncio.get_event_loop") as mock_loop,
+        patch("bubo.core.network.ip_tools.os.path.dirname", return_value="/mock/path"),
         patch(
-            "core.network.ip_tools.os.path.join",
+            "bubo.core.network.ip_tools.os.path.join",
             return_value="/mock/path/cache_manager",
         ),
     ):
@@ -201,9 +201,14 @@ async def test_translate_server_type():
 @pytest.mark.asyncio
 async def test_process_domain_valid(sample_domain):
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
-        patch("core.dns.records.resolve_nameservers", return_value=["ns1.example.com"]),
-        patch("core.dns.records.get_mx_records", return_value=["mail.example.com"]),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
+        patch(
+            "bubo.core.dns.records.resolve_nameservers",
+            return_value=["ns1.example.com"],
+        ),
+        patch(
+            "bubo.core.dns.records.get_mx_records", return_value=["mail.example.com"]
+        ),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain(sample_domain)
         assert domain_ns == ["ns1.example.com"]
@@ -213,7 +218,7 @@ async def test_process_domain_valid(sample_domain):
 
 @pytest.mark.asyncio
 async def test_process_domain_invalid():
-    with patch("core.validators.sanitizer.validate_hostname", return_value=False):
+    with patch("bubo.core.validators.sanitizer.validate_hostname", return_value=False):
         domain_ns, domain_mx, mail_ns = await process_domain("invalid@domain")
         assert domain_ns is None
         assert domain_mx is None
@@ -223,9 +228,14 @@ async def test_process_domain_invalid():
 @pytest.mark.asyncio
 async def test_process_domain_email_input(sample_domain):
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
-        patch("core.dns.records.resolve_nameservers", return_value=["ns1.example.com"]),
-        patch("core.dns.records.get_mx_records", return_value=["mail.example.com"]),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
+        patch(
+            "bubo.core.dns.records.resolve_nameservers",
+            return_value=["ns1.example.com"],
+        ),
+        patch(
+            "bubo.core.dns.records.get_mx_records", return_value=["mail.example.com"]
+        ),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain(f"user@{sample_domain}")
         assert domain_ns == ["ns1.example.com"]
@@ -237,13 +247,15 @@ async def test_process_domain_email_input(sample_domain):
 async def test_process_domain_ip_input():
     """Test processing a domain when input is an IP address."""
     # Patch at the location where process_domain imports these functions
-    with patch("core.dns.records.is_valid_ip", return_value=True) as mock_is_valid_ip:
+    with patch(
+        "bubo.core.dns.records.is_valid_ip", return_value=True
+    ) as mock_is_valid_ip:
         # Create async mock for get_asn_and_prefix
         mock_get_asn = AsyncMock(return_value=("12345", "192.168.0.0/24"))
 
-        with patch("core.dns.records.get_asn_and_prefix", mock_get_asn):
+        with patch("bubo.core.dns.records.get_asn_and_prefix", mock_get_asn):
             # Import the function after patching
-            from core.dns.records import process_domain
+            from bubo.core.dns.records import process_domain
 
             # Call the function with an IP
             domain_ns, domain_mx, mail_ns = await process_domain("192.168.1.1")
@@ -261,9 +273,9 @@ async def test_process_domain_ip_input():
 @pytest.mark.asyncio
 async def test_process_domain_dns_failure():
     with (
-        patch("core.validators.sanitizer.validate_hostname", return_value=True),
-        patch("core.dns.records.resolve_nameservers", return_value=[]),
-        patch("core.dns.records.get_mx_records", return_value=None),
+        patch("bubo.core.validators.sanitizer.validate_hostname", return_value=True),
+        patch("bubo.core.dns.records.resolve_nameservers", return_value=[]),
+        patch("bubo.core.dns.records.get_mx_records", return_value=None),
     ):
         domain_ns, domain_mx, mail_ns = await process_domain("example.com")
         assert domain_ns == []

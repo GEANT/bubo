@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from standards import rpki
-from standards.rpki import (
+from bubo.standards import rpki
+from bubo.standards.rpki import (
     process_batch_mode,
     process_server,
     process_single_mode,
@@ -20,9 +20,15 @@ async def test_rpki_validation_structure(
     sample_domain, sample_servers, mock_rpki_valid
 ):
     with (
-        patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
-        patch("standards.rpki.resolve_ips", new_callable=AsyncMock) as mock_resolve,
-        patch("standards.rpki.get_asn_and_prefix", new_callable=AsyncMock) as mock_asn,
+        patch(
+            "bubo.standards.rpki.validate_rpki", new_callable=AsyncMock
+        ) as mock_validate,
+        patch(
+            "bubo.standards.rpki.resolve_ips", new_callable=AsyncMock
+        ) as mock_resolve,
+        patch(
+            "bubo.standards.rpki.get_asn_and_prefix", new_callable=AsyncMock
+        ) as mock_asn,
     ):
         await mock_rpki_valid(mock_validate, mock_resolve, mock_asn)
 
@@ -42,7 +48,7 @@ async def test_rpki_validation_structure(
             for key in ["domain_ns", "domain_mx", "mailserver_ns"]
         )
 
-        for server_type, status in state[sample_domain].items():
+        for _server_type, status in state[sample_domain].items():
             assert status in ["valid", "not-valid", "partially-valid", None]
 
 
@@ -51,9 +57,15 @@ async def test_rpki_dns_resolution_failure(
     sample_domain, sample_servers, mock_rpki_valid_response
 ):
     with (
-        patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
-        patch("standards.rpki.resolve_ips", new_callable=AsyncMock) as mock_resolve,
-        patch("standards.rpki.get_asn_and_prefix", new_callable=AsyncMock) as mock_asn,
+        patch(
+            "bubo.standards.rpki.validate_rpki", new_callable=AsyncMock
+        ) as mock_validate,
+        patch(
+            "bubo.standards.rpki.resolve_ips", new_callable=AsyncMock
+        ) as mock_resolve,
+        patch(
+            "bubo.standards.rpki.get_asn_and_prefix", new_callable=AsyncMock
+        ) as mock_asn,
     ):
         mock_resolve.return_value = ([], ["No IPv6"])
         mock_validate.return_value = mock_rpki_valid_response
@@ -76,9 +88,15 @@ async def test_rpki_dns_resolution_failure(
 @pytest.mark.asyncio
 async def test_rpki_mixed_validation_states(sample_domain, sample_servers):
     with (
-        patch("standards.rpki.validate_rpki", new_callable=AsyncMock) as mock_validate,
-        patch("standards.rpki.resolve_ips", new_callable=AsyncMock) as mock_resolve,
-        patch("standards.rpki.get_asn_and_prefix", new_callable=AsyncMock) as mock_asn,
+        patch(
+            "bubo.standards.rpki.validate_rpki", new_callable=AsyncMock
+        ) as mock_validate,
+        patch(
+            "bubo.standards.rpki.resolve_ips", new_callable=AsyncMock
+        ) as mock_resolve,
+        patch(
+            "bubo.standards.rpki.get_asn_and_prefix", new_callable=AsyncMock
+        ) as mock_asn,
     ):
         mock_resolve.return_value = (["192.0.2.1"], ["2001:db8::1"])
         mock_asn.return_value = ("AS64496", "192.0.2.0/24")
@@ -210,10 +228,10 @@ async def test_type_validity_no_prefix_data():
 async def test_rpki_process_domain_no_servers():
     with (
         patch(
-            "standards.rpki.process_domain", new_callable=AsyncMock
+            "bubo.standards.rpki.process_domain", new_callable=AsyncMock
         ) as mock_process_domain,
         patch(
-            "standards.rpki.process_server", new_callable=AsyncMock
+            "bubo.standards.rpki.process_server", new_callable=AsyncMock
         ) as mock_process_server,
     ):
         mock_process_domain.return_value = ([], None, None)
@@ -228,7 +246,7 @@ async def test_process_batch_mode_success():
     domains = ["example.com", "example.org"]
 
     with patch(
-        "standards.rpki.rpki_process_domain", new_callable=AsyncMock
+        "bubo.standards.rpki.rpki_process_domain", new_callable=AsyncMock
     ) as mock_process:
         mock_process.side_effect = [
             {
@@ -278,7 +296,7 @@ async def test_process_batch_mode_with_errors():
 
     with (
         patch(
-            "standards.rpki.rpki_process_domain", new_callable=AsyncMock
+            "bubo.standards.rpki.rpki_process_domain", new_callable=AsyncMock
         ) as mock_process,
         patch("asyncio.gather", side_effect=mock_gather_implementation) as mock_gather,
     ):
@@ -330,7 +348,7 @@ def event_loop():
 @pytest.mark.asyncio
 async def test_process_server_no_ipv4():
     """Test process_server when no IPv4 addresses are found."""
-    with patch("standards.rpki.resolve_ips") as mock_resolve:
+    with patch("bubo.standards.rpki.resolve_ips") as mock_resolve:
         mock_resolve.return_value = ([], ["2001:db8::1"])
 
         server = "test.example.com"
@@ -352,8 +370,8 @@ async def test_process_server_no_ipv4():
 async def test_process_server_no_asn_prefix():
     """Test process_server when ASN and prefix retrieval fails."""
     with (
-        patch("standards.rpki.resolve_ips") as mock_resolve,
-        patch("standards.rpki.get_asn_and_prefix") as mock_get_asn,
+        patch("bubo.standards.rpki.resolve_ips") as mock_resolve,
+        patch("bubo.standards.rpki.get_asn_and_prefix") as mock_get_asn,
     ):
         mock_resolve.return_value = (["192.168.1.1"], [])
         mock_get_asn.return_value = (None, None)
@@ -379,9 +397,9 @@ async def test_process_server_no_asn_prefix():
 async def test_process_server_rpki_validation_failure():
     """Test process_server when RPKI validation fails."""
     with (
-        patch("standards.rpki.resolve_ips") as mock_resolve,
-        patch("standards.rpki.get_asn_and_prefix") as mock_get_asn,
-        patch("standards.rpki.validate_rpki") as mock_validate,
+        patch("bubo.standards.rpki.resolve_ips") as mock_resolve,
+        patch("bubo.standards.rpki.get_asn_and_prefix") as mock_get_asn,
+        patch("bubo.standards.rpki.validate_rpki") as mock_validate,
     ):
         mock_resolve.return_value = (["192.168.1.1"], [])
         mock_get_asn.return_value = ("AS12345", "192.168.1.0/24")
@@ -407,7 +425,7 @@ async def test_process_server_rpki_validation_failure():
 @pytest.mark.asyncio
 async def test_type_validity_no_servers():
     """Test type_validity when no servers are found for a type."""
-    with patch("standards.rpki.translate_server_type") as mock_translate:
+    with patch("bubo.standards.rpki.translate_server_type") as mock_translate:
         mock_translate.return_value = "Domain Nameservers"
 
         domain_results = {"example.com": {"domain_ns": {}}}
@@ -423,8 +441,8 @@ async def test_type_validity_no_servers():
 async def test_rpki_process_domain_no_nameservers():
     """Test rpki_process_domain when no domain nameservers exist."""
     with (
-        patch("standards.rpki.process_domain") as mock_process_domain,
-        patch("standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.process_domain") as mock_process_domain,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
     ):
         mock_process_domain.return_value = (
             [],
@@ -455,8 +473,8 @@ async def test_rpki_process_domain_no_nameservers():
 async def test_rpki_process_domain_no_mailservers():
     """Test rpki_process_domain when no mail servers exist."""
     with (
-        patch("standards.rpki.process_domain") as mock_process_domain,
-        patch("standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.process_domain") as mock_process_domain,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
     ):
         mock_process_domain.return_value = (
             ["ns1.example.com"],
@@ -487,8 +505,8 @@ async def test_rpki_process_domain_no_mailservers():
 async def test_rpki_process_domain_no_mail_nameservers():
     """Test rpki_process_domain when no mail nameservers exist."""
     with (
-        patch("standards.rpki.process_domain") as mock_process_domain,
-        patch("standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.process_domain") as mock_process_domain,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
     ):
         mock_process_domain.return_value = (
             ["ns1.example.com"],
@@ -519,8 +537,8 @@ async def test_rpki_process_domain_no_mail_nameservers():
 async def test_rpki_process_domain_no_results():
     """Test rpki_process_domain when no results are found."""
     with (
-        patch("standards.rpki.process_domain") as mock_process_domain,
-        patch("standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.process_domain") as mock_process_domain,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
     ):
         mock_process_domain.return_value = (
             ["ns1.example.com"],
@@ -539,8 +557,8 @@ async def test_rpki_process_domain_no_results():
 async def test_process_single_mode_with_results():
     """Test process_single_mode when results are found."""
     with (
-        patch("standards.rpki.rpki_process_domain") as mock_rpki,
-        patch("standards.rpki.type_validity") as mock_validity,
+        patch("bubo.standards.rpki.rpki_process_domain") as mock_rpki,
+        patch("bubo.standards.rpki.type_validity") as mock_validity,
     ):
         test_results = {"example.com": {"domain_ns": {"ns1.example.com": {}}}}
         test_state = {"example.com": {"Domain Nameservers": "valid"}}
@@ -559,7 +577,7 @@ async def test_process_single_mode_with_results():
 @pytest.mark.asyncio
 async def test_process_single_mode_no_results():
     """Test process_single_mode when no results are found."""
-    with patch("standards.rpki.rpki_process_domain") as mock_rpki:
+    with patch("bubo.standards.rpki.rpki_process_domain") as mock_rpki:
         mock_rpki.return_value = {}
 
         results, state = await process_single_mode("example.com")
@@ -571,7 +589,7 @@ async def test_process_single_mode_no_results():
 @pytest.mark.asyncio
 async def test_process_batch_mode_no_results():
     """Test process_batch_mode when no results are found."""
-    with patch("standards.rpki.rpki_process_domain") as mock_rpki:
+    with patch("bubo.standards.rpki.rpki_process_domain") as mock_rpki:
         mock_rpki.return_value = {}
 
         results, state = await process_batch_mode(["example.com"])
@@ -584,8 +602,8 @@ async def test_process_batch_mode_no_results():
 async def test_run_no_domain_ns():
     """Test run when no domain nameservers are provided."""
     with (
-        patch("standards.rpki.process_server") as mock_process_server,
-        patch("standards.rpki.type_validity") as mock_validity,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.type_validity") as mock_validity,
     ):
 
         async def side_effect(server, domain, results, stype, routinator_url):
@@ -616,8 +634,8 @@ async def test_run_no_domain_ns():
 async def test_run_no_domain_mx():
     """Test run when no mail servers are provided."""
     with (
-        patch("standards.rpki.process_server") as mock_process_server,
-        patch("standards.rpki.type_validity") as mock_validity,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.type_validity") as mock_validity,
     ):
 
         async def side_effect(server, domain, results, stype, routinator_url):
@@ -648,8 +666,8 @@ async def test_run_no_domain_mx():
 async def test_run_no_mail_ns():
     """Test run when no mail nameservers are provided."""
     with (
-        patch("standards.rpki.process_server") as mock_process_server,
-        patch("standards.rpki.type_validity") as mock_validity,
+        patch("bubo.standards.rpki.process_server") as mock_process_server,
+        patch("bubo.standards.rpki.type_validity") as mock_validity,
     ):
 
         async def side_effect(server, domain, results, stype, routinator_url):

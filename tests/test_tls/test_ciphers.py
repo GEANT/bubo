@@ -2,8 +2,13 @@ from unittest.mock import patch
 
 import pytest
 
-from core.tls import cipher_utils
-from core.tls.models import CipherResult, CipherStrength, TLSCheckConfig, TLSProtocol
+from bubo.core.tls import cipher_utils
+from bubo.core.tls.models import (
+    CipherResult,
+    CipherStrength,
+    TLSCheckConfig,
+    TLSProtocol,
+)
 
 
 class AsyncMockWithReturnValue:
@@ -21,18 +26,16 @@ class AsyncMockWithReturnValue:
 
 
 with (
-    patch("core.tls.utils.has_openssl"),
-    patch("core.tls.utils.run_openssl_command"),
-    patch("core.tls.models.TLSProtocol", TLSProtocol),
-    patch("core.tls.models.CipherResult", CipherResult),
-    patch("core.tls.models.CipherStrength", CipherStrength),
-    patch("core.tls.models.TLSCheckConfig", TLSCheckConfig),
+    patch("bubo.core.tls.utils.has_openssl"),
+    patch("bubo.core.tls.utils.run_openssl_command"),
+    patch("bubo.core.tls.models.TLSProtocol", TLSProtocol),
+    patch("bubo.core.tls.models.CipherResult", CipherResult),
+    patch("bubo.core.tls.models.CipherStrength", CipherStrength),
+    patch("bubo.core.tls.models.TLSCheckConfig", TLSCheckConfig),
+    patch("bubo.core.tls.ciphers.has_openssl"),
+    patch("bubo.core.tls.ciphers.run_openssl_command"),
 ):
-    with (
-        patch("core.tls.ciphers.has_openssl"),
-        patch("core.tls.ciphers.run_openssl_command"),
-    ):
-        from core.tls.ciphers import check_ciphers, process_cipher_results
+    from bubo.core.tls.ciphers import check_ciphers, process_cipher_results
 
 
 @pytest.fixture
@@ -73,7 +76,7 @@ async def test_check_cipher_success():
     """Test successful cipher check."""
 
     with (
-        patch("core.tls.ciphers.has_openssl", return_value=True),
+        patch("bubo.core.tls.ciphers.has_openssl", return_value=True),
     ):
         openssl_output = """
         SSL-Session:
@@ -86,9 +89,9 @@ async def test_check_cipher_success():
         await cipher_utils.initialize()
 
         with (
-            patch("core.tls.ciphers.run_openssl_command", openssl_mock),
+            patch("bubo.core.tls.ciphers.run_openssl_command", openssl_mock),
             patch(
-                "core.tls.ciphers.test_cipher",
+                "bubo.core.tls.ciphers.test_cipher",
                 return_value=CipherResult(
                     name="ECDHE-RSA-AES256-GCM-SHA384",
                     protocol="TLSv1.2",
@@ -118,10 +121,12 @@ async def test_check_cipher_no_openssl():
     """Test cipher check when OpenSSL is not available."""
 
     with (
-        patch("core.tls.ciphers.has_openssl", return_value=False) as mock_has_openssl,
+        patch(
+            "bubo.core.tls.ciphers.has_openssl", return_value=False
+        ) as mock_has_openssl,
     ):
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
-        with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
+        with patch("bubo.core.tls.ciphers.run_openssl_command", openssl_mock):
             domain = "example.com"
             port = 443
             protocol = TLSProtocol.TLSv1_2
@@ -139,10 +144,10 @@ async def test_check_cipher_disabled():
     """Test cipher check when disabled in config."""
 
     with (
-        patch("core.tls.ciphers.has_openssl") as mock_has_openssl,
+        patch("bubo.core.tls.ciphers.has_openssl") as mock_has_openssl,
     ):
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
-        with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
+        with patch("bubo.core.tls.ciphers.run_openssl_command", openssl_mock):
             domain = "example.com"
             port = 443
             protocol = TLSProtocol.TLSv1_2
@@ -160,10 +165,10 @@ async def test_check_cipher_no_cipher_info():
     """Test cipher check when no cipher info can be extracted."""
 
     with (
-        patch("core.tls.ciphers.has_openssl", return_value=True),
+        patch("bubo.core.tls.ciphers.has_openssl", return_value=True),
     ):
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
-        with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
+        with patch("bubo.core.tls.ciphers.run_openssl_command", openssl_mock):
             domain = "example.com"
             port = 443
             protocol = TLSProtocol.TLSv1_2
@@ -346,7 +351,7 @@ async def test_check_all_protocols():
     }
 
     with (
-        patch("core.tls.ciphers.has_openssl", return_value=True),
+        patch("bubo.core.tls.ciphers.has_openssl", return_value=True),
     ):
 
         def extract_cipher_side_effect(output, protocol_str):
@@ -361,10 +366,11 @@ async def test_check_all_protocols():
 
         with (
             patch(
-                "core.tls.ciphers.run_openssl_command", side_effect=openssl_side_effect
+                "bubo.core.tls.ciphers.run_openssl_command",
+                side_effect=openssl_side_effect,
             ),
             patch(
-                "core.tls.ciphers.get_ciphers_for_protocol",
+                "bubo.core.tls.ciphers.get_ciphers_for_protocol",
                 side_effect=get_ciphers_side_effect,
             ),
         ):
@@ -393,9 +399,9 @@ async def test_cipher_check_with_disabled_config():
     port = 443
     config = TLSCheckConfig(check_ciphers=False)
 
-    with patch("core.tls.ciphers.has_openssl") as mock_has_openssl:
+    with patch("bubo.core.tls.ciphers.has_openssl") as mock_has_openssl:
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
-        with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
+        with patch("bubo.core.tls.ciphers.run_openssl_command", openssl_mock):
             results = []
             for protocol in TLSProtocol:
                 result = await check_ciphers(domain, port, protocol, config)
@@ -414,9 +420,11 @@ async def test_cipher_check_without_openssl():
     port = 443
     config = TLSCheckConfig(check_ciphers=True)
 
-    with patch("core.tls.ciphers.has_openssl", return_value=False) as mock_has_openssl:
+    with patch(
+        "bubo.core.tls.ciphers.has_openssl", return_value=False
+    ) as mock_has_openssl:
         openssl_mock = AsyncMockWithReturnValue(("openssl output", 0))
-        with patch("core.tls.ciphers.run_openssl_command", openssl_mock):
+        with patch("bubo.core.tls.ciphers.run_openssl_command", openssl_mock):
             results = []
             for protocol in TLSProtocol:
                 result = await check_ciphers(domain, port, protocol, config)

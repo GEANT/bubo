@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from standards.spf import (
+from bubo.standards.spf import (
     MAX_DNS_LOOKUPS,
     check_domains,
     check_policy_strictness,
@@ -22,7 +22,7 @@ class MockDNSRecord:
 @pytest.fixture
 def mock_dns_manager():
     # Update the patch path to match the new import in standards.spf
-    with patch("standards.spf.dns_manager") as mock_dns:
+    with patch("bubo.standards.spf.dns_manager") as mock_dns:
         yield mock_dns
 
 
@@ -209,7 +209,7 @@ async def test_count_dns_lookups_basic():
         "exists": [],
     }
 
-    with patch("standards.spf.get_spf_record", AsyncMock(return_value=None)):
+    with patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=None)):
         lookup_count, policy, redirect_info = await count_dns_lookups(
             spf_info, "example.com"
         )
@@ -270,8 +270,8 @@ async def test_count_dns_lookups_with_includes():
             return {"valid": False}
 
     with (
-        patch("standards.spf.get_spf_record", mock_get_spf_record),
-        patch("standards.spf.parse_spf_record", mock_parse_spf_record),
+        patch("bubo.standards.spf.get_spf_record", mock_get_spf_record),
+        patch("bubo.standards.spf.parse_spf_record", mock_parse_spf_record),
     ):
         lookup_count, policy, redirect_info = await count_dns_lookups(
             spf_info, "example.com"
@@ -318,8 +318,8 @@ async def test_count_dns_lookups_with_redirect():
             return {"valid": False}
 
     with (
-        patch("standards.spf.get_spf_record", mock_get_spf_record),
-        patch("standards.spf.parse_spf_record", mock_parse_spf_record),
+        patch("bubo.standards.spf.get_spf_record", mock_get_spf_record),
+        patch("bubo.standards.spf.parse_spf_record", mock_parse_spf_record),
     ):
         lookup_count, policy, redirect_info = await count_dns_lookups(
             spf_info, "example.com"
@@ -342,7 +342,7 @@ async def test_count_dns_lookups_exceeds_limit():
         "exists": [],
     }
 
-    with patch("standards.spf.get_spf_record", AsyncMock(return_value=None)):
+    with patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=None)):
         lookup_count, policy, redirect_info = await count_dns_lookups(
             spf_info, "example.com"
         )
@@ -364,7 +364,7 @@ async def test_count_dns_lookups_with_macros():
         "exists": [],
     }
 
-    with patch("standards.spf.get_spf_record", AsyncMock(return_value=None)):
+    with patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=None)):
         lookup_count, policy, redirect_info = await count_dns_lookups(
             spf_info, "example.com"
         )
@@ -384,7 +384,7 @@ def test_check_policy_strictness():
 @pytest.mark.asyncio
 async def test_check_spf_no_record():
     domain = "example.com"
-    with patch("standards.spf.get_spf_record", AsyncMock(return_value=None)):
+    with patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=None)):
         result = await check_spf(domain)
 
         assert result["domain"] == domain
@@ -399,9 +399,11 @@ async def test_check_spf_invalid_record():
     invalid_record = "not-an-spf-record"
 
     with (
-        patch("standards.spf.get_spf_record", AsyncMock(return_value=invalid_record)),
         patch(
-            "standards.spf.parse_spf_record",
+            "bubo.standards.spf.get_spf_record", AsyncMock(return_value=invalid_record)
+        ),
+        patch(
+            "bubo.standards.spf.parse_spf_record",
             AsyncMock(
                 return_value={"valid": False, "error": "Invalid SPF record format"}
             ),
@@ -434,10 +436,11 @@ async def test_check_spf_valid_strict_record():
     }
 
     with (
-        patch("standards.spf.get_spf_record", AsyncMock(return_value=record)),
-        patch("standards.spf.parse_spf_record", AsyncMock(return_value=spf_info)),
+        patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=record)),
+        patch("bubo.standards.spf.parse_spf_record", AsyncMock(return_value=spf_info)),
         patch(
-            "standards.spf.count_dns_lookups", AsyncMock(return_value=(2, "-all", None))
+            "bubo.standards.spf.count_dns_lookups",
+            AsyncMock(return_value=(2, "-all", None)),
         ),
     ):
         result = await check_spf(domain)
@@ -470,10 +473,11 @@ async def test_check_spf_valid_not_strict_record():
     }
 
     with (
-        patch("standards.spf.get_spf_record", AsyncMock(return_value=record)),
-        patch("standards.spf.parse_spf_record", AsyncMock(return_value=spf_info)),
+        patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=record)),
+        patch("bubo.standards.spf.parse_spf_record", AsyncMock(return_value=spf_info)),
         patch(
-            "standards.spf.count_dns_lookups", AsyncMock(return_value=(2, "?all", None))
+            "bubo.standards.spf.count_dns_lookups",
+            AsyncMock(return_value=(2, "?all", None)),
         ),
     ):
         result = await check_spf(domain)
@@ -507,10 +511,10 @@ async def test_check_spf_exceeds_lookup_limit():
     }
 
     with (
-        patch("standards.spf.get_spf_record", AsyncMock(return_value=record)),
-        patch("standards.spf.parse_spf_record", AsyncMock(return_value=spf_info)),
+        patch("bubo.standards.spf.get_spf_record", AsyncMock(return_value=record)),
+        patch("bubo.standards.spf.parse_spf_record", AsyncMock(return_value=spf_info)),
         patch(
-            "standards.spf.count_dns_lookups",
+            "bubo.standards.spf.count_dns_lookups",
             AsyncMock(return_value=(MAX_DNS_LOOKUPS + 1, "-all", None)),
         ),
     ):
@@ -552,7 +556,7 @@ async def test_check_domains():
                 "error": "No SPF record found",
             }
 
-    with patch("standards.spf.check_spf", mock_check_spf):
+    with patch("bubo.standards.spf.check_spf", mock_check_spf):
         results = await check_domains(domains)
 
         assert len(results) == 2
@@ -580,7 +584,7 @@ async def test_check_domains_with_exception():
         else:
             raise Exception("Test exception")
 
-    with patch("standards.spf.check_spf", mock_check_spf):
+    with patch("bubo.standards.spf.check_spf", mock_check_spf):
         results = await check_domains(domains)
 
         assert len(results) == 2

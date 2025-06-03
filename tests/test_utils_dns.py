@@ -5,14 +5,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import dns.resolver
 import pytest
 
-from core.dns.records import get_mx_records, resolve_ips, resolve_nameservers
-from core.dns.resolver import dns_manager
+from bubo.core.dns.records import get_mx_records, resolve_ips, resolve_nameservers
+from bubo.core.dns.resolver import dns_manager
 
 
 @pytest.fixture
 def mock_dns_manager():
     # Patch the dns_manager where it's used in records.py, not where it's defined
-    with patch("core.dns.records.dns_manager", autospec=True) as mock_manager:
+    with patch("bubo.core.dns.records.dns_manager", autospec=True) as mock_manager:
         yield mock_manager
 
 
@@ -20,7 +20,7 @@ def mock_dns_manager():
 async def test_resolve_nameservers_success(
     mock_dns_manager, mock_ns_records, sample_domain
 ):
-    with patch("core.network.ip_tools.is_valid_ip", return_value=False):
+    with patch("bubo.core.network.ip_tools.is_valid_ip", return_value=False):
         # Set up the mock correctly
         mock_dns_manager.resolve.return_value = mock_ns_records
 
@@ -38,8 +38,8 @@ async def test_resolve_nameservers_ip_input():
         return "12345", "192.168.0.0/24"
 
     with (
-        patch("core.dns.records.is_valid_ip", return_value=True),
-        patch("core.dns.records.get_asn_and_prefix", mock_get_asn),
+        patch("bubo.core.dns.records.is_valid_ip", return_value=True),
+        patch("bubo.core.dns.records.get_asn_and_prefix", mock_get_asn),
     ):
         result = await resolve_nameservers("192.168.1.1")
         assert result == ["192.168.1.1"]
@@ -67,7 +67,7 @@ async def test_resolve_ips_success(
 
 @pytest.mark.asyncio
 async def test_resolve_ips_ip_input():
-    with patch("core.network.ip_tools.is_valid_ip", return_value=True):
+    with patch("bubo.core.network.ip_tools.is_valid_ip", return_value=True):
         ipv4, ipv6 = await resolve_ips("192.168.1.1")
         assert ipv4 == ["192.168.1.1"]
         assert ipv6 == ["No IPv6"]
@@ -88,7 +88,7 @@ async def test_get_mx_records_success(mock_dns_manager, mock_mx_records, sample_
 
     # Since MX records have dots that need to be stripped
     with patch(
-        "core.dns.records.sorted",
+        "bubo.core.dns.records.sorted",
         return_value=["mail1.example.com", "mail2.example.com"],
     ):
         result = await get_mx_records(sample_domain)
@@ -113,7 +113,7 @@ async def test_get_mx_records_nxdomain(mock_dns_manager):
 
 @pytest.mark.asyncio
 async def test_dns_manager_singleton():
-    from core.dns.resolver import DNSResolverManager
+    from bubo.core.dns.resolver import DNSResolverManager
 
     manager1 = DNSResolverManager()
     manager2 = DNSResolverManager()
@@ -146,7 +146,7 @@ async def test_dns_manager_resolve_dnssec():
     mock_response = MagicMock()
 
     with patch(
-        "core.dns.resolver.DNSResolverManager.resolve_dnssec",
+        "bubo.core.dns.resolver.DNSResolverManager.resolve_dnssec",
         AsyncMock(return_value=mock_response),
     ) as mock_method:
         result = await dns_manager.resolve_dnssec("example.com", "DNSKEY")

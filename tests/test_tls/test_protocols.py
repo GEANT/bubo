@@ -1,16 +1,15 @@
 import asyncio
-import socket
 import ssl
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.tls.models import (
+from bubo.core.tls.models import (
     TLSCheckConfig,
     TLSProtocol,
     TLSProtocolResult,
 )
-from core.tls.protocols import (
+from bubo.core.tls.protocols import (
     check_protocol,
     check_protocol_with_openssl,
     check_protocol_with_socket,
@@ -75,7 +74,7 @@ async def test_socket_check_connection_error():
         mock_sock = MagicMock()
         mock_socket.return_value = mock_sock
 
-        mock_wait_for.side_effect = socket.error("Connection refused")
+        mock_wait_for.side_effect = OSError("Connection refused")
 
         result, error = await check_protocol_with_socket(
             "example.com", 443, TLSProtocol.TLSv1_2, 10
@@ -186,8 +185,8 @@ async def test_socket_check_application_data_after_close():
 @pytest.mark.asyncio
 async def test_openssl_check_successful():
     with (
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
-        patch("core.tls.protocols.run_openssl_command") as mock_run_command,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch("bubo.core.tls.protocols.run_openssl_command") as mock_run_command,
     ):
         mock_has_openssl.return_value = True
 
@@ -207,7 +206,7 @@ async def test_openssl_check_successful():
 
 @pytest.mark.asyncio
 async def test_openssl_check_not_available():
-    with patch("core.tls.protocols.has_openssl") as mock_has_openssl:
+    with patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl:
         mock_has_openssl.return_value = False
 
         result, error = await check_protocol_with_openssl(
@@ -221,8 +220,8 @@ async def test_openssl_check_not_available():
 @pytest.mark.asyncio
 async def test_openssl_check_handshake_failure():
     with (
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
-        patch("core.tls.protocols.run_openssl_command") as mock_run_command,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch("bubo.core.tls.protocols.run_openssl_command") as mock_run_command,
     ):
         mock_has_openssl.return_value = True
 
@@ -239,8 +238,8 @@ async def test_openssl_check_handshake_failure():
 @pytest.mark.asyncio
 async def test_openssl_check_no_cipher():
     with (
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
-        patch("core.tls.protocols.run_openssl_command") as mock_run_command,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch("bubo.core.tls.protocols.run_openssl_command") as mock_run_command,
     ):
         mock_has_openssl.return_value = True
 
@@ -257,8 +256,8 @@ async def test_openssl_check_no_cipher():
 @pytest.mark.asyncio
 async def test_openssl_check_new_cipher_format():
     with (
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
-        patch("core.tls.protocols.run_openssl_command") as mock_run_command,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch("bubo.core.tls.protocols.run_openssl_command") as mock_run_command,
     ):
         mock_has_openssl.return_value = True
 
@@ -278,9 +277,13 @@ async def test_openssl_check_new_cipher_format():
 @pytest.mark.asyncio
 async def test_check_protocol_socket_success():
     with (
-        patch("core.tls.protocols.check_protocol_with_socket") as mock_socket_check,
-        patch("core.tls.protocols.check_protocol_with_openssl") as mock_openssl_check,
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_socket"
+        ) as mock_socket_check,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_openssl"
+        ) as mock_openssl_check,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
     ):
         mock_socket_check.return_value = (True, None)
         mock_has_openssl.return_value = True
@@ -302,9 +305,13 @@ async def test_check_protocol_socket_success():
 @pytest.mark.asyncio
 async def test_check_protocol_socket_fails_openssl_succeeds():
     with (
-        patch("core.tls.protocols.check_protocol_with_socket") as mock_socket_check,
-        patch("core.tls.protocols.check_protocol_with_openssl") as mock_openssl_check,
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_socket"
+        ) as mock_socket_check,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_openssl"
+        ) as mock_openssl_check,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
     ):
         mock_socket_check.return_value = (False, "Protocol not supported")
         mock_openssl_check.return_value = (True, None)
@@ -327,9 +334,13 @@ async def test_check_protocol_socket_fails_openssl_succeeds():
 @pytest.mark.asyncio
 async def test_check_protocol_both_methods_fail_for_tls12():
     with (
-        patch("core.tls.protocols.check_protocol_with_socket") as mock_socket_check,
-        patch("core.tls.protocols.check_protocol_with_openssl") as mock_openssl_check,
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_socket"
+        ) as mock_socket_check,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_openssl"
+        ) as mock_openssl_check,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
     ):
         mock_socket_check.return_value = (False, "Protocol not supported")
         mock_openssl_check.return_value = (False, "Protocol not supported")
@@ -353,9 +364,13 @@ async def test_check_protocol_both_methods_fail_for_tls12():
 @pytest.mark.asyncio
 async def test_check_protocol_both_methods_fail_for_tls13():
     with (
-        patch("core.tls.protocols.check_protocol_with_socket") as mock_socket_check,
-        patch("core.tls.protocols.check_protocol_with_openssl") as mock_openssl_check,
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_socket"
+        ) as mock_socket_check,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_openssl"
+        ) as mock_openssl_check,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
     ):
         mock_socket_check.return_value = (False, "Protocol not supported")
         mock_openssl_check.return_value = (False, "Protocol not supported")
@@ -379,9 +394,13 @@ async def test_check_protocol_both_methods_fail_for_tls13():
 @pytest.mark.asyncio
 async def test_check_protocol_unsupported_old_protocols():
     with (
-        patch("core.tls.protocols.check_protocol_with_socket") as mock_socket_check,
-        patch("core.tls.protocols.check_protocol_with_openssl") as mock_openssl_check,
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_socket"
+        ) as mock_socket_check,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_openssl"
+        ) as mock_openssl_check,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
     ):
         mock_socket_check.return_value = (False, "Protocol not supported")
         mock_openssl_check.return_value = (False, "Protocol not supported")
@@ -411,9 +430,13 @@ async def test_check_protocol_unsupported_old_protocols():
 @pytest.mark.asyncio
 async def test_check_protocol_openssl_disabled():
     with (
-        patch("core.tls.protocols.check_protocol_with_socket") as mock_socket_check,
-        patch("core.tls.protocols.check_protocol_with_openssl") as mock_openssl_check,
-        patch("core.tls.protocols.has_openssl") as mock_has_openssl,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_socket"
+        ) as mock_socket_check,
+        patch(
+            "bubo.core.tls.protocols.check_protocol_with_openssl"
+        ) as mock_openssl_check,
+        patch("bubo.core.tls.protocols.has_openssl") as mock_has_openssl,
     ):
         mock_socket_check.return_value = (False, "Protocol not supported")
         mock_has_openssl.return_value = True

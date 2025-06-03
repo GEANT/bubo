@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import patch
 
-from core.web.headers import check_security_headers
+from bubo.core.web.headers import check_security_headers
 
 
 class TestSecurityHeaders(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.port = 443
         self.timeout = 10
 
-    @patch("core.web.headers.logger")
+    @patch("bubo.core.web.headers.logger")
     def test_all_security_headers_present(self, mock_logger):
         """Test when all security headers are present in the response."""
 
@@ -36,7 +36,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.assertEqual(result.content_security_policy, "default-src 'self'")
         self.assertEqual(result.referrer_policy, "no-referrer")
 
-    @patch("core.web.headers.logger")
+    @patch("bubo.core.web.headers.logger")
     def test_some_security_headers_missing(self, mock_logger):
         """Test when some security headers are missing from the response."""
 
@@ -57,7 +57,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.assertIsNone(result.frame_options)
         self.assertIsNone(result.content_security_policy)
 
-    @patch("core.web.headers.logger")
+    @patch("bubo.core.web.headers.logger")
     def test_empty_response_headers(self, mock_logger):
         """Test when response headers are empty."""
 
@@ -74,7 +74,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.assertIsNone(result.content_security_policy)
         self.assertIsNone(result.referrer_policy)
 
-    @patch("core.web.headers.logger")
+    @patch("bubo.core.web.headers.logger")
     def test_no_response_headers(self, mock_logger):
         """Test when response headers are None."""
 
@@ -89,7 +89,7 @@ class TestSecurityHeaders(unittest.TestCase):
 
         mock_logger.warning.assert_called_once()
 
-    @patch("core.web.headers.logger")
+    @patch("bubo.core.web.headers.logger")
     def test_log_messages(self, mock_logger):
         """Test that appropriate log messages are generated."""
 

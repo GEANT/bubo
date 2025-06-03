@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.web.http_client import fetch_headers
+from bubo.core.web.http_client import fetch_headers
 
 
 class AsyncContextManagerMock:
@@ -55,17 +55,19 @@ async def test_fetch_headers_generic_exception():
     mock_session = MagicMock()
     mock_session.get = lambda *args, **kwargs: ExceptionContextManager()
 
-    with patch(
-        "aiohttp.ClientSession", return_value=AsyncContextManagerMock(mock_session)
+    with (
+        patch(
+            "aiohttp.ClientSession", return_value=AsyncContextManagerMock(mock_session)
+        ),
+        patch("bubo.core.web.http_client.logger.error") as mock_logger,
     ):
-        with patch("core.web.http_client.logger.error") as mock_logger:
-            result = await fetch_headers("example.com", 443, 10)
+        result = await fetch_headers("example.com", 443, 10)
 
-            assert result is None
+        assert result is None
 
-            mock_logger.assert_called_once()
-            assert "Unexpected error" in mock_logger.call_args[0][0]
-            assert mock_logger.call_args[1].get("exc_info") is True
+        mock_logger.assert_called_once()
+        assert "Unexpected error" in mock_logger.call_args[0][0]
+        assert mock_logger.call_args[1].get("exc_info") is True
 
 
 @pytest.mark.asyncio
@@ -95,7 +97,7 @@ async def test_fetch_headers_correct_timeout_usage():
 @pytest.mark.asyncio
 async def test_fetch_headers_uses_correct_headers():
     """Test that the function sends the expected request headers."""
-    from core.web.headers import USER_AGENT
+    from bubo.core.web.headers import USER_AGENT
 
     mock_response = MagicMock()
     mock_response.status = 200

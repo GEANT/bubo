@@ -1,16 +1,15 @@
 import asyncio
 import datetime
-import socket
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from core.tls.certificates import (
+from bubo.core.tls.certificates import (
     check_certificate,
     check_certificate_chain,
     check_certificate_with_socket,
 )
-from core.tls.models import (
+from bubo.core.tls.models import (
     CertificateResult,
     KeyInfo,
     SANInfo,
@@ -37,14 +36,18 @@ def tls_check_config():
 @pytest.fixture
 def mock_utils():
     with (
-        patch("core.tls.certificates.has_openssl") as mock_has_openssl,
-        patch("core.tls.certificates.run_openssl_command") as mock_run_openssl,
-        patch("core.tls.certificates.create_error_cert_result") as mock_error_result,
-        patch("core.tls.certificates.extract_key_info") as mock_key_info,
-        patch("core.tls.certificates.extract_signature_algorithm") as mock_sig_algo,
-        patch("core.tls.certificates.extract_san_info") as mock_san_info,
-        patch("core.tls.certificates.format_x509_name") as mock_format_name,
-        patch("core.tls.certificates.format_serial_number") as mock_serial,
+        patch("bubo.core.tls.certificates.has_openssl") as mock_has_openssl,
+        patch("bubo.core.tls.certificates.run_openssl_command") as mock_run_openssl,
+        patch(
+            "bubo.core.tls.certificates.create_error_cert_result"
+        ) as mock_error_result,
+        patch("bubo.core.tls.certificates.extract_key_info") as mock_key_info,
+        patch(
+            "bubo.core.tls.certificates.extract_signature_algorithm"
+        ) as mock_sig_algo,
+        patch("bubo.core.tls.certificates.extract_san_info") as mock_san_info,
+        patch("bubo.core.tls.certificates.format_x509_name") as mock_format_name,
+        patch("bubo.core.tls.certificates.format_serial_number") as mock_serial,
     ):
         mock_has_openssl.return_value = True
         mock_run_openssl.return_value = (
@@ -215,7 +218,7 @@ class TestCertificateWithSocket:
             return result
 
         with patch(
-            "core.tls.certificates.check_certificate_with_socket",
+            "bubo.core.tls.certificates.check_certificate_with_socket",
             side_effect=mock_socket_check,
         ) as mock_check:
             result = await check_certificate(domain, port, tls_check_config)
@@ -253,7 +256,7 @@ class TestCertificateWithSocket:
         )
 
         with patch(
-            "core.tls.certificates.check_certificate_with_socket",
+            "bubo.core.tls.certificates.check_certificate_with_socket",
             return_value=self_signed_cert,
         ) as mock_check:
             result = await check_certificate(domain, port, tls_check_config)
@@ -278,7 +281,7 @@ class TestCertificateWithSocket:
             mock_socket_instance = MagicMock()
             mock_socket.return_value = mock_socket_instance
 
-            mock_socket_instance.connect.side_effect = socket.timeout(
+            mock_socket_instance.connect.side_effect = TimeoutError(
                 "Connection timed out"
             )
 
@@ -597,10 +600,12 @@ class TestCertificate:
 
         with (
             patch(
-                "core.tls.certificates.check_certificate_with_socket"
+                "bubo.core.tls.certificates.check_certificate_with_socket"
             ) as mock_check_socket,
-            patch("core.tls.certificates.has_openssl") as mock_has_openssl,
-            patch("core.tls.certificates.check_certificate_chain") as mock_check_chain,
+            patch("bubo.core.tls.certificates.has_openssl") as mock_has_openssl,
+            patch(
+                "bubo.core.tls.certificates.check_certificate_chain"
+            ) as mock_check_chain,
         ):
             mock_check_socket.return_value = CertificateResult(
                 subject="example.com",
@@ -658,10 +663,12 @@ class TestCertificate:
 
         with (
             patch(
-                "core.tls.certificates.check_certificate_with_socket"
+                "bubo.core.tls.certificates.check_certificate_with_socket"
             ) as mock_check_socket,
-            patch("core.tls.certificates.has_openssl") as mock_has_openssl,
-            patch("core.tls.certificates.check_certificate_chain") as mock_check_chain,
+            patch("bubo.core.tls.certificates.has_openssl") as mock_has_openssl,
+            patch(
+                "bubo.core.tls.certificates.check_certificate_chain"
+            ) as mock_check_chain,
         ):
             mock_check_socket.return_value = CertificateResult(
                 subject="example.com",
@@ -707,9 +714,9 @@ class TestCertificate:
 
         with (
             patch(
-                "core.tls.certificates.check_certificate_with_socket"
+                "bubo.core.tls.certificates.check_certificate_with_socket"
             ) as mock_check_socket,
-            patch("core.tls.certificates.has_openssl") as mock_has_openssl,
+            patch("bubo.core.tls.certificates.has_openssl") as mock_has_openssl,
         ):
             mock_check_socket.return_value = CertificateResult(
                 subject="example.com",
@@ -752,9 +759,9 @@ class TestCertificate:
 
         with (
             patch(
-                "core.tls.certificates.check_certificate_with_socket"
+                "bubo.core.tls.certificates.check_certificate_with_socket"
             ) as mock_check_socket,
-            patch("core.tls.certificates.has_openssl") as mock_has_openssl,
+            patch("bubo.core.tls.certificates.has_openssl") as mock_has_openssl,
         ):
             mock_check_socket.return_value = CertificateResult(
                 subject="example.com",
@@ -800,10 +807,12 @@ class TestCertificate:
 
         with (
             patch(
-                "core.tls.certificates.check_certificate_with_socket"
+                "bubo.core.tls.certificates.check_certificate_with_socket"
             ) as mock_check_socket,
-            patch("core.tls.certificates.has_openssl") as mock_has_openssl,
-            patch("core.tls.certificates.check_certificate_chain") as mock_check_chain,
+            patch("bubo.core.tls.certificates.has_openssl") as mock_has_openssl,
+            patch(
+                "bubo.core.tls.certificates.check_certificate_chain"
+            ) as mock_check_chain,
         ):
             mock_check_socket.return_value = CertificateResult(
                 subject="example.com",
@@ -866,7 +875,7 @@ class TestCertificate:
         )
 
         with patch(
-            "core.tls.certificates.create_error_cert_result"
+            "bubo.core.tls.certificates.create_error_cert_result"
         ) as mock_error_result:
             mock_error_result.return_value = CertificateResult(
                 subject="Unknown",

@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from core.cache_manager.cache_manager import DomainResultsCache
-from core.tls.models import (
+from bubo.core.cache_manager.cache_manager import DomainResultsCache
+from bubo.core.tls.models import (
     TLSCheckConfig,
 )
 
@@ -329,7 +329,7 @@ def mock_tls_check_config():
 @pytest.fixture
 def mock_cipher_result_factory():
     """Return a factory for creating CipherResult objects with proper enum handling."""
-    from core.tls.models import CipherResult, CipherStrength
+    from bubo.core.tls.models import CipherResult, CipherStrength
 
     def _create_cipher_result(name, protocol, strength_val, bits=None):
         # Convert string strength to enum if needed
@@ -363,9 +363,9 @@ def mock_openssl_utils():
     )
 
     with (
-        patch("core.tls.utils.has_openssl", has_openssl_mock),
-        patch("core.tls.utils.run_openssl_command", run_openssl_mock),
-        patch("core.tls.utils.extract_cipher_info", extract_cipher_info_mock),
+        patch("bubo.core.tls.utils.has_openssl", has_openssl_mock),
+        patch("bubo.core.tls.utils.run_openssl_command", run_openssl_mock),
+        patch("bubo.core.tls.utils.extract_cipher_info", extract_cipher_info_mock),
     ):
         yield has_openssl_mock, run_openssl_mock, extract_cipher_info_mock
 
@@ -377,7 +377,7 @@ def mock_openssl_output_tls1_0():
     SSL-Session:
         Protocol  : TLSv1
         Cipher    : ECDHE-RSA-AES256-SHA
-        Session-ID: 
+        Session-ID:
         ...
     New, TLSv1.0, Cipher is ECDHE-RSA-AES256-SHA
     """
@@ -390,7 +390,7 @@ def mock_openssl_output_tls1_2():
     SSL-Session:
         Protocol  : TLSv1.2
         Cipher    : ECDHE-RSA-AES256-GCM-SHA384
-        Session-ID: 
+        Session-ID:
         ...
     New, TLSv1.2, Cipher is ECDHE-RSA-AES256-GCM-SHA384
     Server public key is 2048 bit
@@ -404,7 +404,7 @@ def mock_openssl_output_tls1_3():
     SSL-Session:
         Protocol  : TLSv1.3
         Cipher    : TLS_AES_256_GCM_SHA384
-        Session-ID: 
+        Session-ID:
         ...
     New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
     Server public key is 4096 bit
