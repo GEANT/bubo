@@ -8,8 +8,8 @@ from random import random
 
 from ipwhois import IPWhois
 
-from core.cache_manager.cache_manager import IPWhoisCache
-from core.logging.logger import setup_logger
+from bubo.core.cache_manager.cache_manager import IPWhoisCache
+from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 _ipwhois_cache = None

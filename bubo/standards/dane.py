@@ -5,8 +5,8 @@ from random import random
 
 import dns.asyncresolver
 
-from core.dns.resolver import dns_manager
-from core.logging.logger import setup_logger
+from bubo.core.dns.resolver import dns_manager
+from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 

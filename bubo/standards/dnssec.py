@@ -7,8 +7,8 @@ import dns.flags
 import dns.name
 import dns.resolver
 
-from core.dns.resolver import dns_manager
-from core.logging.logger import setup_logger
+from bubo.core.dns.resolver import dns_manager
+from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -40,7 +40,7 @@ class DNSSECChecker:
                     )
             return ds_records
         except Exception as e:
-            raise Exception(f"Error getting DS records: {str(e)}") from e
+            raise Exception(f"Error getting DS records: {e!s}") from e
 
     def get_algorithm_name(self, algorithm_id):
         """Convert numeric algorithm ID to human-readable name"""
@@ -93,7 +93,7 @@ class DNSSECChecker:
 
             return dnskey_records
         except Exception as e:
-            raise Exception(f"Error getting DNSKEY records: {str(e)}") from e
+            raise Exception(f"Error getting DNSKEY records: {e!s}") from e
 
     async def _get_rrsig_records(self):
         try:
@@ -110,11 +110,11 @@ class DNSSECChecker:
                 )
 
                 for rrsig in answers.response.find_rrset(
-                        answers.response.answer,
-                        dns.name.from_text(self.domain),
-                        dns.rdataclass.IN,
-                        dns.rdatatype.RRSIG,
-                        dns.rdatatype.DNSKEY,
+                    answers.response.answer,
+                    dns.name.from_text(self.domain),
+                    dns.rdataclass.IN,
+                    dns.rdatatype.RRSIG,
+                    dns.rdatatype.DNSKEY,
                 ):
                     # Force enum value to integer
                     algorithm = int(rrsig.algorithm)
@@ -145,7 +145,7 @@ class DNSSECChecker:
 
             return rrsig_records
         except Exception as e:
-            raise Exception(f"Error getting RRSIG records: {str(e)}") from e
+            raise Exception(f"Error getting RRSIG records: {e!s}") from e
 
     async def check_dnssec(self):
         result = {

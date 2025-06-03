@@ -4,8 +4,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Any
 
-from core.logging.logger import setup_logger
-from core.report.json_utils import convert_sets_to_lists, json_dumps
+from bubo.core.logging.logger import setup_logger
+from bubo.core.report.json_utils import convert_sets_to_lists, json_dumps
 
 logger = setup_logger(__name__)
 

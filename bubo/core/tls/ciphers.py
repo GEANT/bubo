@@ -2,18 +2,18 @@ import asyncio
 import re
 from collections import defaultdict
 
-from core.logging.logger import setup_logger
-from core.tls.cipher_utils import (
+from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.cipher_utils import (
     get_cipher_details,
     get_cipher_strength,
     get_protocol_ciphers,
 )
-from core.tls.models import (
+from bubo.core.tls.models import (
     CipherResult,
     TLSCheckConfig,
     TLSProtocol,
 )
-from core.tls.utils import (
+from bubo.core.tls.utils import (
     has_openssl,
     run_openssl_command,
 )

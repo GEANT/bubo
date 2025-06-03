@@ -1,12 +1,12 @@
 from typing import Any
 
-from core.logging.logger import setup_logger
-from core.tls.models import (
+from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.models import (
     CertificateResult,
     SignatureAlgorithmSecurity,
     TLSProtocolResult,
 )
-from core.web.models import HSTSInfo, SecurityHeadersInfo, SecurityRating
+from bubo.core.web.models import HSTSInfo, SecurityHeadersInfo, SecurityRating
 
 logger = setup_logger(__name__)
 

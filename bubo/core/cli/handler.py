@@ -1,9 +1,9 @@
 import argparse
 import os
 
-from core.cli.models import CLIOptions
-from core.io.file_processor import sanitize_file_path
-from core.validators.sanitizer import sanitize_domain
+from bubo.core.cli.models import CLIOptions
+from bubo.core.io.file_processor import sanitize_file_path
+from bubo.core.validators.sanitizer import sanitize_domain
 
 
 class CLIHandler:

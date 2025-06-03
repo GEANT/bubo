@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 import aiohttp
 
-from core.logging.logger import setup_logger
+from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 

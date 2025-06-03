@@ -1,4 +1,5 @@
 import logging
+from typing import ClassVar
 
 
 class CustomFormatter(logging.Formatter):
@@ -9,7 +10,7 @@ class CustomFormatter(logging.Formatter):
     reset = "\x1b[0m"
     format = "\x1b[1m%(asctime)s [%(levelname)s]\x1b[0m - %(name)s - %(message)s"
 
-    FORMATS = {
+    FORMATS: ClassVar[dict[int, str]] = {
         logging.DEBUG: grey + format + reset,
         logging.INFO: grey + format + reset,
         logging.WARNING: yellow + format + reset,

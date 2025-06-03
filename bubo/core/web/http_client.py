@@ -4,8 +4,8 @@ import asyncio
 
 import aiohttp
 
-from core.logging.logger import setup_logger
-from core.web.headers import USER_AGENT
+from bubo.core.logging.logger import setup_logger
+from bubo.core.web.headers import USER_AGENT
 
 logger = setup_logger(__name__)
 

@@ -10,12 +10,12 @@ from typing import Any
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from core.logging.logger import setup_logger
-from core.tls.models import (
+from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.models import (
     CertificateResult,
     TLSCheckConfig,
 )
-from core.tls.utils import (
+from bubo.core.tls.utils import (
     create_error_cert_result,
     extract_key_info,
     extract_san_info,
@@ -30,7 +30,7 @@ logger = setup_logger(__name__)
 
 
 async def check_certificate_with_socket(
-        domain: str, port: int, timeout: int, config: TLSCheckConfig
+    domain: str, port: int, timeout: int, config: TLSCheckConfig
 ) -> CertificateResult:
     """Get certificate information using socket connection."""
     logger.debug(f"Checking certificate for {domain}:{port} using socket")
@@ -75,9 +75,9 @@ async def check_certificate_with_socket(
         der_cert = ssl_sock.getpeercert(binary_form=True)
         parsed_cert = None
         if der_cert and (
-                config.check_key_info
-                or config.check_signature_algorithm
-                or config.check_san
+            config.check_key_info
+            or config.check_signature_algorithm
+            or config.check_san
         ):
             try:
                 parsed_cert = x509.load_der_x509_certificate(
@@ -168,7 +168,7 @@ async def check_certificate_with_socket(
 
 
 async def check_certificate_chain(
-        domain: str, port: int, timeout: int
+    domain: str, port: int, timeout: int
 ) -> tuple[bool, bool, int, list[dict[str, Any]], str | None]:
     """Check certificate chain trust and validity using OpenSSL, with detailed cert info."""
     logger.debug(f"Checking certificate chain for {domain}:{port}")
@@ -247,7 +247,7 @@ async def check_certificate_chain(
                         if san_ext:
                             sans = []
                             for dns_name in san_ext.value.get_values_for_type(
-                                    x509.DNSName
+                                x509.DNSName
                             ):
                                 sans.append(f"DNS:{dns_name}")
                             for ip in san_ext.value.get_values_for_type(x509.IPAddress):
@@ -297,9 +297,9 @@ async def check_certificate_chain(
                     chain_length = len(unique_depths)
 
         if (
-                chain_length == 1
-                and chain_info
-                and chain_info[0].get("is_self_signed", False)
+            chain_length == 1
+            and chain_info
+            and chain_info[0].get("is_self_signed", False)
         ):
             is_trusted = False
             is_valid = False
@@ -313,7 +313,7 @@ async def check_certificate_chain(
 
 
 async def check_certificate(
-        domain: str, port: int, config: TLSCheckConfig
+    domain: str, port: int, config: TLSCheckConfig
 ) -> CertificateResult:
     """Check certificate validity and chain trust."""
     logger.debug(f"Checking certificate for {domain}:{port}")
@@ -326,10 +326,10 @@ async def check_certificate(
     )
 
     if (
-            cert_result.is_valid
-            and has_openssl()
-            and config.use_openssl
-            and config.verify_chain
+        cert_result.is_valid
+        and has_openssl()
+        and config.use_openssl
+        and config.verify_chain
     ):
         (
             chain_trusted,

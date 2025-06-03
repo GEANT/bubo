@@ -3,9 +3,9 @@
 import os
 from csv import DictReader
 
-from core.logging.logger import setup_logger
-from core.network.ip_tools import is_valid_ip
-from core.validators.sanitizer import sanitize_text_field, validate_hostname
+from bubo.core.logging.logger import setup_logger
+from bubo.core.network.ip_tools import is_valid_ip
+from bubo.core.validators.sanitizer import sanitize_text_field, validate_hostname
 
 logger = setup_logger(__name__)
 

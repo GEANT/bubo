@@ -12,7 +12,10 @@ import re
 
 from dotenv import load_dotenv
 
-from core.tls.iana_updater import DEFAULT_CACHE_DURATION_DAYS, check_and_update_iana_csv
+from bubo.core.tls.iana_updater import (
+    DEFAULT_CACHE_DURATION_DAYS,
+    check_and_update_iana_csv,
+)
 
 logger = logging.getLogger(__name__)
 load_dotenv()

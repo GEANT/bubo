@@ -1,11 +1,11 @@
 import asyncio
 from typing import Any
 
-from core.tls.models import TLSCheckConfig
-from core.web.headers import check_security_headers
-from core.web.hsts import check_hsts
-from core.web.http_client import fetch_headers
-from core.web.models import HSTSInfo, SecurityHeadersInfo
+from bubo.core.tls.models import TLSCheckConfig
+from bubo.core.web.headers import check_security_headers
+from bubo.core.web.hsts import check_hsts
+from bubo.core.web.http_client import fetch_headers
+from bubo.core.web.models import HSTSInfo, SecurityHeadersInfo
 
 
 async def run_http_security_checks(

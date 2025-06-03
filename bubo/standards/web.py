@@ -9,18 +9,21 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
-from core.logging.logger import setup_logger
-from core.tls.certificates import check_certificate
-from core.tls.ciphers import check_ciphers, process_cipher_results
-from core.tls.models import (
+from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.certificates import check_certificate
+from bubo.core.tls.ciphers import check_ciphers, process_cipher_results
+from bubo.core.tls.models import (
     CertificateResult,
     TLSCheckConfig,
     TLSProtocol,
     TLSProtocolResult,
 )
-from core.tls.protocols import check_protocol, process_protocol_results
-from core.web.http_security import build_http_security_dicts, run_http_security_checks
-from core.web.utils import build_security_assessment, resolve_domain
+from bubo.core.tls.protocols import check_protocol, process_protocol_results
+from bubo.core.web.http_security import (
+    build_http_security_dicts,
+    run_http_security_checks,
+)
+from bubo.core.web.utils import build_security_assessment, resolve_domain
 
 logger = setup_logger(__name__)
 

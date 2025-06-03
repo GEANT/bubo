@@ -7,7 +7,7 @@ from typing import Any
 import dns
 import dns.asyncresolver
 
-from core.logging.logger import setup_logger
+from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 

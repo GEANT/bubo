@@ -1,7 +1,7 @@
 import asyncio
 
-from core.dns.resolver import dns_manager
-from core.logging.logger import setup_logger
+from bubo.core.dns.resolver import dns_manager
+from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -127,10 +127,10 @@ async def parse_spf_record(record: str, domain: str) -> dict:
 
 
 async def count_dns_lookups(
-        spf_info: dict,
-        domain: str,
-        visited: set[str] | None = None,
-        lookup_count: int = 0,
+    spf_info: dict,
+    domain: str,
+    visited: set[str] | None = None,
+    lookup_count: int = 0,
 ) -> tuple[int, str, dict | None]:
     if visited is None:
         visited = set()
@@ -170,9 +170,9 @@ async def count_dns_lookups(
     policy = spf_info["policy"]
     redirect_info = None
     if (
-            spf_info["redirect"]
-            and "%" not in spf_info["redirect"]
-            and lookup_count <= MAX_DNS_LOOKUPS
+        spf_info["redirect"]
+        and "%" not in spf_info["redirect"]
+        and lookup_count <= MAX_DNS_LOOKUPS
     ):
         redirect_domain = spf_info["redirect"]
 

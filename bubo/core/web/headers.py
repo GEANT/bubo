@@ -1,6 +1,6 @@
 # core/web/headers.py
-from core.logging.logger import setup_logger
-from core.web.models import SecurityHeadersInfo
+from bubo.core.logging.logger import setup_logger
+from bubo.core.web.models import SecurityHeadersInfo
 
 logger = setup_logger(__name__)
 

@@ -4,20 +4,20 @@ import re
 import socket
 import ssl
 
-from core.logging.logger import setup_logger
-from core.tls.models import (
+from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.models import (
     PROTOCOL_SECURITY,
     TLSCheckConfig,
     TLSProtocol,
     TLSProtocolResult,
 )
-from core.tls.utils import has_openssl, run_openssl_command
+from bubo.core.tls.utils import has_openssl, run_openssl_command
 
 logger = setup_logger(__name__)
 
 
 async def check_protocol_with_socket(
-        domain: str, port: int, protocol: TLSProtocol, timeout: int
+    domain: str, port: int, protocol: TLSProtocol, timeout: int
 ) -> tuple[bool, str | None]:
     """Check if a server supports a TLS protocol using direct socket connections."""
     logger.debug(f"Checking {protocol.value} for {domain}:{port} using socket")
@@ -114,7 +114,7 @@ async def check_protocol_with_socket(
 
 
 async def check_protocol_with_openssl(
-        domain: str, port: int, protocol: TLSProtocol, timeout: int
+    domain: str, port: int, protocol: TLSProtocol, timeout: int
 ) -> tuple[bool, str | None]:
     """Check if a server supports a TLS protocol using OpenSSL."""
     logger.debug(f"Checking {protocol.value} for {domain}:{port} using OpenSSL")
@@ -188,7 +188,7 @@ async def check_protocol_with_openssl(
 
 
 async def check_protocol(
-        domain: str, port: int, protocol: TLSProtocol, config: TLSCheckConfig
+    domain: str, port: int, protocol: TLSProtocol, config: TLSCheckConfig
 ) -> TLSProtocolResult:
     """Check protocol support with improved fallback between methods."""
     openssl_available = has_openssl() and config.use_openssl
@@ -242,7 +242,7 @@ async def check_protocol(
 
 
 def process_protocol_results(
-        results: list[TLSProtocolResult | Exception], protocols: list[TLSProtocol]
+    results: list[TLSProtocolResult | Exception], protocols: list[TLSProtocol]
 ) -> tuple[list[TLSProtocolResult], list[TLSProtocol]]:
     """Process protocol check results and identify supported protocols."""
     processed_results = []
@@ -252,13 +252,13 @@ def process_protocol_results(
         protocol = protocols[i]
 
         if isinstance(result, Exception):
-            logger.error(f"Error checking {protocol.value}: {str(result)}")
+            logger.error(f"Error checking {protocol.value}: {result!s}")
             processed_results.append(
                 TLSProtocolResult(
                     protocol_name=protocol.value,
                     supported=False,
                     secure=PROTOCOL_SECURITY[protocol],
-                    error=f"Error: {str(result)}",
+                    error=f"Error: {result!s}",
                 )
             )
         else:

@@ -3,13 +3,13 @@ import os
 import re
 import subprocess
 
-from core.logging.logger import setup_logger
-from core.tls.iana_ciphers import (
+from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.iana_ciphers import (
     get_iana_cipher_info,
     initialize_iana_mappings,
     is_recommended_cipher,
 )
-from core.tls.models import CipherDetails, CipherStrength, TLSProtocol
+from bubo.core.tls.models import CipherDetails, CipherStrength, TLSProtocol
 
 logger = setup_logger(__name__)
 _protocol_ciphers: dict[TLSProtocol, list[str]] | None = None
@@ -28,12 +28,12 @@ _iana_csv_path = os.environ.get(
 
 
 def classify_cipher(
-        cipher_name: str,
-        protocol_str: str | None = None,
-        kx: str | None = None,
-        auth: str | None = None,
-        enc: str | None = None,
-        mac: str | None = None,
+    cipher_name: str,
+    protocol_str: str | None = None,
+    kx: str | None = None,
+    auth: str | None = None,
+    enc: str | None = None,
+    mac: str | None = None,
 ) -> CipherStrength:
     """
     Classify cipher strength based on protocol, key exchange, auth, encryption, MAC,
@@ -50,7 +50,7 @@ def classify_cipher(
     Returns:
         CipherStrength enum value
     """
-    from core.tls.models import CipherStrength
+    from bubo.core.tls.models import CipherStrength
 
     if _iana_initialized and is_recommended_cipher(cipher_name):
         return CipherStrength.STRONG
@@ -60,8 +60,8 @@ def classify_cipher(
             return CipherStrength.STRONG
 
         if any(
-                weak in cipher_name
-                for weak in ["NULL", "RC4", "3DES", "EXPORT", "anon", "MD5"]
+            weak in cipher_name
+            for weak in ["NULL", "RC4", "3DES", "EXPORT", "anon", "MD5"]
         ):
             return CipherStrength.WEAK
 
@@ -72,14 +72,14 @@ def classify_cipher(
                 return CipherStrength.MEDIUM
 
         if any(pfs in cipher_name for pfs in ["ECDHE-", "DHE-"]) and (
-                "SHA256" in cipher_name or "SHA384" in cipher_name
+            "SHA256" in cipher_name or "SHA384" in cipher_name
         ):
             return CipherStrength.MEDIUM
 
         if cipher_name.endswith("-SHA") or (
-                not any(pfs in cipher_name for pfs in ["ECDHE-", "DHE-"])
-                and not any(aead in cipher_name for aead in ["GCM", "CCM", "CHACHA20"])
-                and "RSA" in cipher_name
+            not any(pfs in cipher_name for pfs in ["ECDHE-", "DHE-"])
+            and not any(aead in cipher_name for aead in ["GCM", "CCM", "CHACHA20"])
+            and "RSA" in cipher_name
         ):
             return CipherStrength.WEAK
 
@@ -101,18 +101,18 @@ def classify_cipher(
         return CipherStrength.WEAK
 
     is_aead = (
-            mac_value == "AEAD"
-            or "GCM" in enc_alg
-            or "CCM" in enc_alg
-            or "CHACHA20" in enc_alg
+        mac_value == "AEAD"
+        or "GCM" in enc_alg
+        or "CCM" in enc_alg
+        or "CHACHA20" in enc_alg
     )
 
     has_pfs = any(x in kx_value for x in ["ECDH", "DH"]) and kx_value != "RSA"
 
     has_secure_hash = (
-            "SHA256" in cipher_name
-            or "SHA384" in cipher_name
-            or mac_value in ["SHA256", "SHA384"]
+        "SHA256" in cipher_name
+        or "SHA384" in cipher_name
+        or mac_value in ["SHA256", "SHA384"]
     )
     has_sha1 = "SHA1" in mac_value or cipher_name.endswith("-SHA")
 
@@ -132,11 +132,11 @@ def classify_cipher(
         else:
             return CipherStrength.WEAK
     elif (
-            has_sha1
-            or is_psk_only
-            or is_srp
-            or (is_static_rsa and not is_aead)
-            or "SSLv3" in protocol_str
+        has_sha1
+        or is_psk_only
+        or is_srp
+        or (is_static_rsa and not is_aead)
+        or "SSLv3" in protocol_str
     ):
         return CipherStrength.WEAK
 
@@ -164,7 +164,7 @@ def parse_openssl_ciphers() -> tuple[
         )
         output = result.stdout
     except (subprocess.SubprocessError, FileNotFoundError):
-        from core.tls.models import PROTOCOL_CIPHERS
+        from bubo.core.tls.models import PROTOCOL_CIPHERS
 
         return PROTOCOL_CIPHERS, {}, {}
 

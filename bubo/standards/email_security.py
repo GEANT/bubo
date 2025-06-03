@@ -5,9 +5,9 @@ import re
 import dns.asyncresolver
 import dns.exception
 
-from core.dns.resolver import dns_manager
-from core.logging.logger import setup_logger
-from standards.spf import check_spf
+from bubo.core.dns.resolver import dns_manager
+from bubo.core.logging.logger import setup_logger
+from bubo.standards.spf import check_spf
 
 logger = setup_logger(__name__)
 COMMON_DKIM_SELECTORS = [
@@ -63,7 +63,7 @@ async def get_txt_records(domain: str, record_type: str | None = None) -> list[s
         return []
     except Exception as e:
         if record_type:
-            logger.debug(f"Error fetching {record_type} records for {domain}: {str(e)}")
+            logger.debug(f"Error fetching {record_type} records for {domain}: {e!s}")
         return []
 
 
@@ -202,7 +202,7 @@ async def check_dkim(domain: str) -> dict:
             }
 
             for r in valid_records:
-                if "key_info" in r and r["key_info"]:
+                if r.get("key_info"):
                     selector = r["selector"]
                     results["key_info"][selector] = r["key_info"]
 
@@ -217,7 +217,7 @@ async def check_dkim(domain: str) -> dict:
             min_strength_level = 3
 
             for _selector, info in results["key_info"].items():
-                if "strength" in info and info["strength"]:
+                if info.get("strength"):
                     current_level = strength_levels.get(info["strength"], 3)
                     if current_level < min_strength_level:
                         min_strength_level = current_level
@@ -334,13 +334,13 @@ async def check_dmarc(domain: str) -> dict:
             results["percentage"] = 100
 
         results["valid"] = (
-                results["record_exists"]
-                and results["policy"] in ["quarantine", "reject"]
-                and not results["error"]
+            results["record_exists"]
+            and results["policy"] in ["quarantine", "reject"]
+            and not results["error"]
         )
 
     except Exception as e:
-        results["error"] = e
+        results["error"] = [str(e)]
         logger.error(f"Error checking DMARC for {domain}: {e}")
 
     return results

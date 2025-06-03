@@ -7,9 +7,9 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from core.logging.logger import setup_logger
-from core.report.json_utils import convert_sets_to_lists, json_dumps
-from core.report.statistics import generate_statistics_report
+from bubo.core.logging.logger import setup_logger
+from bubo.core.report.json_utils import convert_sets_to_lists, json_dumps
+from bubo.core.report.statistics import generate_statistics_report
 
 logger = setup_logger(__name__)
 
