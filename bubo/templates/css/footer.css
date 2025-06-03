@@ -1,0 +1,237 @@
+/* Footer styling */
+.site-footer {
+    margin-top: var(--spacing-xl);
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    position: relative;
+}
+
+.site-footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, #1a237e, #0d47a1);
+}
+
+.footer-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 0 2rem;
+}
+
+.footer-section {
+    padding: 1rem;
+    border-radius: 8px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.footer-section h4 {
+    color: #1a237e;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.footer-section p {
+    color: #495057;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+/* Disclaimer Note */
+.disclaimer-note {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: #856404;
+}
+
+/* Legend Styling */
+.legend-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.legend-row {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0;
+    transition: opacity 0.3s ease;
+    flex: 1;
+    min-width: 0;
+}
+
+
+.legend-item .fas {
+    font-size: 1rem;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.legend-item span {
+    font-size: 0.85rem;
+    color: #495057;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* Status Colors */
+.status-valid {
+    color: #28a745;
+}
+
+.status-partially-valid {
+    color: #ffc107;
+}
+
+.status-not-valid {
+    color: #dc3545;
+}
+
+.status-not-found {
+    color: #6c757d;
+}
+
+.legend-item:has(.status-valid) {
+    border-left-color: #28a745;
+}
+
+.legend-item:has(.status-partially-valid) {
+    border-left-color: #ffc107;
+}
+
+.legend-item:has(.status-not-valid) {
+    border-left-color: #dc3545;
+}
+
+.legend-item:has(.status-not-found) {
+    border-left-color: #6c757d;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+    background: linear-gradient(to right, #1a237e, #0d47a1);
+    color: white;
+    padding: 1rem 0;
+    margin-top: 0.5rem;
+}
+
+.footer-branding {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.brand-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.brand-primary {
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e3f2fd;
+}
+
+.brand-primary .fa-solid {
+    font-size: 1rem;
+    animation: radar-spin 4s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes radar-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.brand-subtitle {
+    font-size: 0.8rem;
+    color: #b3c7f7;
+    font-weight: 400;
+}
+
+.powered-by {
+    font-size: 0.85rem;
+    color: #b3c7f7;
+}
+
+.powered-by strong {
+    color: #e3f2fd;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+
+    .footer-section {
+        padding: 0.75rem;
+    }
+
+    .footer-branding {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    /* Mobile: Stack legend items vertically for better readability */
+    .legend-row {
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .legend-item {
+        padding: 0.5rem;
+    }
+
+    .legend-item span {
+        white-space: normal; /* Allow text wrapping on mobile */
+    }
+
+    .tech-badges {
+        justify-content: center;
+    }
+}
