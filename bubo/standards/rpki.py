@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, Tuple
+from typing import Any
 
 import aiohttp
 
@@ -14,6 +14,7 @@ logger = setup_logger(__name__)
 @dataclass
 class ValidatorState:
     """State management for RPKI validator"""
+
     is_down: bool = False
     timeout_count: int = 0
     timeout_threshold: int = 3
@@ -40,7 +41,7 @@ class RPKIValidator:
         self.routinator_url = routinator_url
         self.state = ValidatorState(timeout_threshold=timeout_threshold)
 
-    async def validate_rpki(self, asn: str, prefix: str) -> Optional[Dict[str, Any]]:
+    async def validate_rpki(self, asn: str, prefix: str) -> dict[str, Any] | None:
         """
         Validate RPKI status for the ASN and prefix using Routinator API.
         Returns None if the validator is down or validation fails.
@@ -88,11 +89,7 @@ class RPKIValidator:
             return None
 
     async def process_server(
-            self,
-            server: str,
-            domain: str,
-            results: Dict[str, Any],
-            stype: str
+        self, server: str, domain: str, results: dict[str, Any], stype: str
     ) -> None:
         """Process a server to validate RPKI for its associated IPs."""
         ipv4, ipv6 = await resolve_ips(server)
@@ -134,9 +131,8 @@ class RPKIValidator:
                     "ipv4": [ip],
                     "asn": asn,
                 }
-            else:
-                if ip not in server_results["prefix"][prefix]["ipv4"]:
-                    server_results["prefix"][prefix]["ipv4"].append(ip)
+            elif ip not in server_results["prefix"][prefix]["ipv4"]:
+                server_results["prefix"][prefix]["ipv4"].append(ip)
 
             logger.debug(
                 f"RPKI Validation Result for {server} (ASN: {asn}, Prefix: {prefix}): {rpki_state}"
@@ -151,17 +147,16 @@ class RPKIValidator:
             }
 
     async def run_validation(
-            self,
-            domain: str,
-            domain_ns: list,
-            domain_mx: list,
-            mail_ns: list
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        self, domain: str, domain_ns: list, domain_mx: list, mail_ns: list
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Run RPKI validation with pre-processed server information."""
         if self.state.is_down:
             logger.debug(f"Skipping RPKI validation for {domain} - validator is down")
             return {}, {
-                domain: {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
+                domain: {
+                    "rpki_state": "unknown",
+                    "message": "RPKI validator unavailable",
+                }
             }
 
         results = {domain: {}}
@@ -170,29 +165,38 @@ class RPKIValidator:
         tasks = []
 
         if domain_ns:
-            tasks.extend([
-                self.process_server(ns, domain, results, "domain_ns")
-                for ns in domain_ns
-            ])
+            tasks.extend(
+                [
+                    self.process_server(ns, domain, results, "domain_ns")
+                    for ns in domain_ns
+                ]
+            )
 
         if domain_mx:
-            tasks.extend([
-                self.process_server(mx, domain, results, "domain_mx")
-                for mx in domain_mx
-            ])
+            tasks.extend(
+                [
+                    self.process_server(mx, domain, results, "domain_mx")
+                    for mx in domain_mx
+                ]
+            )
 
         if mail_ns:
-            tasks.extend([
-                self.process_server(ns, domain, results, "mailserver_ns")
-                for sublist in mail_ns
-                for ns in sublist
-            ])
+            tasks.extend(
+                [
+                    self.process_server(ns, domain, results, "mailserver_ns")
+                    for sublist in mail_ns
+                    for ns in sublist
+                ]
+            )
 
         await asyncio.gather(*tasks)
 
         if self.state.is_down or not results[domain]:
             return {}, {
-                domain: {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
+                domain: {
+                    "rpki_state": "unknown",
+                    "message": "RPKI validator unavailable",
+                }
             }
 
         rpki_state = await type_validity(results)
@@ -246,7 +250,7 @@ async def type_validity(domain_results):
 
 
 # Module-level validator instances cache to maintain shared state per URL
-_validator_instances: Dict[str, RPKIValidator] = {}
+_validator_instances: dict[str, RPKIValidator] = {}
 
 
 def _get_validator_instance(routinator_url: str) -> RPKIValidator:

@@ -21,10 +21,12 @@ def mock_validator():
 
 @pytest.mark.asyncio
 async def test_rpki_validation_structure(
-        sample_domain, sample_servers, mock_rpki_valid
+    sample_domain, sample_servers, mock_rpki_valid
 ):
     with (
-        patch.object(RPKIValidator, "validate_rpki", new_callable=AsyncMock) as mock_validate,
+        patch.object(
+            RPKIValidator, "validate_rpki", new_callable=AsyncMock
+        ) as mock_validate,
         patch(
             "bubo.standards.rpki.resolve_ips", new_callable=AsyncMock
         ) as mock_resolve,
@@ -50,16 +52,18 @@ async def test_rpki_validation_structure(
             for key in ["domain_ns", "domain_mx", "mailserver_ns"]
         )
 
-        for _server_type, status in state[sample_domain].items():
+        for status in state[sample_domain].values():
             assert status in ["valid", "not-valid", "partially-valid", None]
 
 
 @pytest.mark.asyncio
 async def test_rpki_dns_resolution_failure(
-        sample_domain, sample_servers, mock_rpki_valid_response
+    sample_domain, sample_servers, mock_rpki_valid_response
 ):
     with (
-        patch.object(RPKIValidator, "validate_rpki", new_callable=AsyncMock) as mock_validate,
+        patch.object(
+            RPKIValidator, "validate_rpki", new_callable=AsyncMock
+        ) as mock_validate,
         patch(
             "bubo.standards.rpki.resolve_ips", new_callable=AsyncMock
         ) as mock_resolve,
@@ -88,7 +92,9 @@ async def test_rpki_dns_resolution_failure(
 @pytest.mark.asyncio
 async def test_rpki_mixed_validation_states(sample_domain, sample_servers):
     with (
-        patch.object(RPKIValidator, "validate_rpki", new_callable=AsyncMock) as mock_validate,
+        patch.object(
+            RPKIValidator, "validate_rpki", new_callable=AsyncMock
+        ) as mock_validate,
         patch(
             "bubo.standards.rpki.resolve_ips", new_callable=AsyncMock
         ) as mock_resolve,
@@ -100,11 +106,11 @@ async def test_rpki_mixed_validation_states(sample_domain, sample_servers):
         mock_asn.return_value = ("AS64496", "192.0.2.0/24")
 
         mock_validate.side_effect = [
-                                        {"validated_route": {"validity": {"state": "valid"}}},
-                                        {"validated_route": {"validity": {"state": "invalid"}}},
-                                        {"validated_route": {"validity": {"state": "valid"}}},
-                                        {"validated_route": {"validity": {"state": "valid"}}},
-                                    ] * 3
+            {"validated_route": {"validity": {"state": "valid"}}},
+            {"validated_route": {"validity": {"state": "invalid"}}},
+            {"validated_route": {"validity": {"state": "valid"}}},
+            {"validated_route": {"validity": {"state": "valid"}}},
+        ] * 3
 
         results, state = await rpki.run(
             sample_domain,
@@ -204,8 +210,9 @@ async def test_validate_rpki_successful_response():
 
 @pytest.mark.asyncio
 async def test_validate_rpki_connection_error():
+    from unittest.mock import MagicMock, patch
+
     from aiohttp import ClientConnectorError
-    from unittest.mock import patch, MagicMock
 
     connection_key = MagicMock()
     os_error = OSError("Connection refused")
@@ -348,8 +355,8 @@ async def test_process_server_no_asn_prefix():
         assert stype in results[domain]
         assert server in results[domain][stype]
         assert (
-                results[domain][stype][server]["message"]
-                == "No valid RPKI information found"
+            results[domain][stype][server]["message"]
+            == "No valid RPKI information found"
         )
 
 
@@ -378,8 +385,8 @@ async def test_process_server_rpki_validation_failure():
         assert stype in results[domain]
         assert server in results[domain][stype]
         assert (
-                results[domain][stype][server]["message"]
-                == "No valid RPKI information found"
+            results[domain][stype][server]["message"]
+            == "No valid RPKI information found"
         )
 
 
@@ -513,15 +520,19 @@ async def test_run_validator_down():
 
     assert results == {}
     assert state == {
-        "example.com": {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
+        "example.com": {
+            "rpki_state": "unknown",
+            "message": "RPKI validator unavailable",
+        }
     }
 
 
 @pytest.mark.asyncio
 async def test_shared_state_across_calls():
     """Test that multiple calls to run() with same URL share validator state"""
+    from unittest.mock import MagicMock, patch
+
     from aiohttp import ClientConnectorError
-    from unittest.mock import patch, MagicMock
 
     rpki._validator_instances.clear()
 
@@ -541,33 +552,74 @@ async def test_shared_state_across_calls():
         async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
-    with patch("aiohttp.ClientSession", return_value=SessionContextManager()):
-        with patch("bubo.standards.rpki.resolve_ips", return_value=(["192.0.2.1"], [])):
-            with patch("bubo.standards.rpki.get_asn_and_prefix", return_value=("AS1234", "192.0.2.0/24")):
-                results1, state1 = await run(
-                    "example1.com",
-                    domain_ns=["ns1.example1.com"],
-                    domain_mx=[],
-                    mail_ns=[],
-                    routinator_url="http://localhost:8323",
-                )
+    with (
+        patch("aiohttp.ClientSession", return_value=SessionContextManager()),
+        patch("bubo.standards.rpki.resolve_ips", return_value=(["192.0.2.1"], [])),
+        patch(
+            "bubo.standards.rpki.get_asn_and_prefix",
+            return_value=("AS1234", "192.0.2.0/24"),
+        ),
+    ):
+        results1, state1 = await run(
+            "example1.com",
+            domain_ns=["ns1.example1.com"],
+            domain_mx=[],
+            mail_ns=[],
+            routinator_url="http://localhost:8323",
+        )
 
-                results2, state2 = await run(
-                    "example2.com",
-                    domain_ns=["ns1.example2.com"],
-                    domain_mx=[],
-                    mail_ns=[],
-                    routinator_url="http://localhost:8323",
-                )
+        results2, state2 = await run(
+            "example2.com",
+            domain_ns=["ns1.example2.com"],
+            domain_mx=[],
+            mail_ns=[],
+            routinator_url="http://localhost:8323",
+        )
 
-                assert results1 == {}
-                assert state1 == {
-                    "example1.com": {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
-                }
-                assert results2 == {}
-                assert state2 == {
-                    "example2.com": {"rpki_state": "unknown", "message": "RPKI validator unavailable"}
-                }
+        assert results1 == {}
+        assert state1 == {
+            "example1.com": {
+                "rpki_state": "unknown",
+                "message": "RPKI validator unavailable",
+            }
+        }
+        assert results2 == {}
+        assert state2 == {
+            "example2.com": {
+                "rpki_state": "unknown",
+                "message": "RPKI validator unavailable",
+            }
+        }
+        results1, state1 = await run(
+            "example1.com",
+            domain_ns=["ns1.example1.com"],
+            domain_mx=[],
+            mail_ns=[],
+            routinator_url="http://localhost:8323",
+        )
+
+        results2, state2 = await run(
+            "example2.com",
+            domain_ns=["ns1.example2.com"],
+            domain_mx=[],
+            mail_ns=[],
+            routinator_url="http://localhost:8323",
+        )
+
+        assert results1 == {}
+        assert state1 == {
+            "example1.com": {
+                "rpki_state": "unknown",
+                "message": "RPKI validator unavailable",
+            }
+        }
+        assert results2 == {}
+        assert state2 == {
+            "example2.com": {
+                "rpki_state": "unknown",
+                "message": "RPKI validator unavailable",
+            }
+        }
 
 
 @pytest.fixture
