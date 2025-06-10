@@ -151,51 +151,47 @@ docker build -t bubo .
 ### Single Domain Check
 
 ```bash
-# Basic usage with persistent cache (recommended)
-docker volume create compliance_cache
-docker run --rm --network host \
-  -v "$(pwd)/results:/app/results" \
-  -v compliance_cache:/app/cache \
-  bubo -d example.com
-
-# With both results and cache saved to host directories
-docker run --rm --network host \
-  -v "$(pwd)/results:/app/results" \
-  -v "$(pwd)/cache-data:/app/cache" \
-  bubo -d example.com
+# Basic usage with persistent cache
+docker compose run --rm bubo -d example.com 
 ```
 
 ### Batch Processing
 
 ```bash
-# Mount CSV file and save results
-docker run --rm  --network host\
-  -v "$(pwd)/results:/app/results" \
-  -v compliance_cache:/app/cache \
-  bubo --batch domains.csv
+# For domains file in the project directory
+docker compose run --rm bubo --batch /bubo/input/domains.csv
+
+# For files from external paths
+docker compose run --rm -v "/path/to/file/directory:/bubo/input" bubo --batch /bubo/input/domains.csv
+
+# Example with absolute path
+docker compose run --rm -v "/home/user/data:/bubo/input" bubo --batch /bubo/input/domains.csv
 ```
 
 ### Common Options
 
 ```bash
 # Ignore cache
-# Ignore cache
-docker run --rm --network host \
-  -v "$(pwd)/results:/app/results" \
-  -v compliance_cache:/app/cache \
-  bubo -d example.com --ignore-cache
+docker compose run --rm bubo -d example.com --ignore-cache
   
 # Custom output directory
-docker run --rm --network host \
-  -v "$(pwd)/custom-dir:/app/custom-dir" \
-  -v compliance_cache:/app/cache \
-  bubo -d example.com -o custom-dir
+# (modify docker-compose.yml volumes: ./custom-dir:/bubo/custom-dir)
+docker compose run --rm bubo -d example.com -o custom-dir
 
 # Custom Routinator URL
+docker compose run --rm bubo -d example.com -ru http://routinator-host:8323
+```
+
+### Alternative: One-time runs without docker-compose.yml
+
+If you prefer not to use a compose file:
+
+```bash
+docker volume create compliance_cache
 docker run --rm --network host \
-  -v "$(pwd)/results:/app/results" \
-  -v compliance_cache:/app/cache \
-  bubo -d example.com -ru http://routinator-host:8323
+  -v "$(pwd)/results:/bubo/results" \
+  -v compliance_cache:/bubo/bubo/cache \
+  bubo -d example.com
 ```
 
 </details>
