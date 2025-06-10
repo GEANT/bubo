@@ -1,0 +1,17 @@
+results
+*cache
+htmlcov
+compliance_scanning.egg-info
+coverage.xml
+*.egg
+*.egg-info
+*.pyc
+*.pyo
+*.pyd
+venv
+.git/
+.pytest_cache/
+*.md
+tests/
+Dockerfile*
+docker-compose.yml

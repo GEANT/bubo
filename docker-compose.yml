@@ -1,0 +1,12 @@
+services:
+  bubo:
+    image: bubo
+    network_mode: host
+    volumes:
+      - ./results:/bubo/results
+      - .:/bubo/input
+      - compliance_cache:/bubo/bubo/cache
+    command: [ "--help" ]
+
+volumes:
+  compliance_cache:
