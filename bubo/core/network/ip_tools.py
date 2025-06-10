@@ -12,7 +12,9 @@ from bubo.core.cache_manager.cache_manager import IPWhoisCache
 from bubo.core.logging.logger import setup_logger
 
 logger = setup_logger(__name__)
-_ipwhois_cache = None
+
+cache_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "..", "cache")
+_ipwhois_cache = IPWhoisCache(cache_dir, timedelta(days=30))
 
 
 def is_valid_ip(ip_string: str) -> bool:
@@ -37,13 +39,6 @@ async def get_asn_and_prefix(
 ) -> tuple[str | None, str | None]:
     """
     Retrieve the ASN and prefix for a given IP using the ipwhois library or cache_manager.
-
-    Args:
-        ip: IP address to look up
-        ignore_cache: Whether to ignore cached results
-
-    Returns:
-        Tuple of (ASN, prefix) or (None, None) if lookup fails
     """
     global _ipwhois_cache
 

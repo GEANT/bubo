@@ -36,14 +36,20 @@ async def process_file(
         if file_path.endswith(".txt"):
             with open(file_path, encoding="utf-8") as file:
                 for line in file:
-                    line = line.strip()
-                    if line:
-                        if await validate_hostname(line) or is_valid_ip(line):
+                    stripped_line = line.strip()
+                    if stripped_line:
+                        if await validate_hostname(stripped_line) or is_valid_ip(
+                            stripped_line
+                        ):
                             domains.append(
-                                {"Domain": line, "Country": "", "Institution": ""}
+                                {
+                                    "Domain": stripped_line,
+                                    "Country": "",
+                                    "Institution": "",
+                                }
                             )
                         else:
-                            logger.warning(f"Skipping invalid domain: {line}")
+                            logger.warning(f"Skipping invalid domain: {stripped_line}")
 
         elif file_path.endswith(".csv"):
             with open(file_path, encoding="utf-8") as file:
@@ -85,12 +91,12 @@ async def process_file(
         raise Exception(f"Error processing file: {e}") from e
 
     # Limit number of domains to prevent resource exhaustion
-    MAX_DOMAINS = 75
-    if len(domains) > MAX_DOMAINS:
+    max_domains = 75
+    if len(domains) > max_domains:
         logger.warning(
-            f"Too many domains in file (limit: {MAX_DOMAINS}). Processing only the first {MAX_DOMAINS}."
+            f"Too many domains in file (limit: {max_domains}). Processing only the first {max_domains}."
         )
-        domains = domains[:MAX_DOMAINS]
+        domains = domains[:max_domains]
 
     try:
         if domains and sort_by:
@@ -118,6 +124,6 @@ def sanitize_file_path(file_path: str) -> str:
     abs_path = os.path.abspath(os.path.normpath(file_path))
     if not os.path.isfile(abs_path):
         raise ValueError(f"File does not exist: {file_path}")
-    if not (abs_path.endswith(".txt") or abs_path.endswith(".csv")):
+    if not abs_path.endswith((".txt", ".csv")):
         raise ValueError("Only .txt and .csv files are supported")
     return abs_path
