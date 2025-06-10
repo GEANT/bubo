@@ -12,7 +12,7 @@ class CLIHandler:
     @staticmethod
     def parse_args() -> CLIOptions:
         parser = argparse.ArgumentParser(
-            description="Internet and Email Compliance Checker",
+            description="BUBO is an Internet and Email Compliance Checker",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
@@ -59,9 +59,8 @@ class CLIHandler:
 
         if not args.routinator_url:
             args.routinator_url = os.getenv("ROUTINATOR_URL", "http://localhost:8323")
-        else:
-            if not args.routinator_url.startswith(("http://", "https://")):
-                args.routinator_url = "http://" + args.routinator_url
+        elif not args.routinator_url.startswith(("http://", "https://")):
+            args.routinator_url = "http://" + args.routinator_url
 
         if args.output_dir:
             args.output_dir = os.path.abspath(args.output_dir)
