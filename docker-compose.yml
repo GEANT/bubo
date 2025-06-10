@@ -3,9 +3,9 @@ services:
     image: bubo
     network_mode: host
     volumes:
-      - ./results:/bubo/results
+      - ./results:/results
       - .:/bubo/input
-      - compliance_cache:/bubo/bubo/cache
+      - compliance_cache:/bubo/cache
     command: [ "--help" ]
 
 volumes:
