@@ -145,9 +145,7 @@ def build_cipher_dict(
     """Build a dictionary of cipher information."""
     return {
         "by_protocol": ciphers_by_protocol,
-        "by_strength": {
-            strength: ciphers for strength, ciphers in cipher_strength.items()
-        },
+        "by_strength": dict(cipher_strength),
         "has_weak_ciphers": bool(cipher_strength.get("weak")),
         "has_strong_ciphers": bool(cipher_strength.get("strong")),
     }

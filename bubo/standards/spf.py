@@ -263,7 +263,7 @@ async def check_domains(domains: list[str]) -> dict:
             result = await check_spf(domain)
             results[domain] = result
         except Exception as e:
-            print(f"Error checking SPF for {domain}: {e}")
+            logger.error(f"Error checking SPF for {domain}: {e}")
             results[domain] = {
                 "domain": domain,
                 "has_spf": False,
