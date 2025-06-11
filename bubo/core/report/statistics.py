@@ -146,11 +146,11 @@ def count_valid_statuses(state_dict: dict, category: str | None = None) -> int:
     valid_count = 0
 
     if category:
-        for _domain, state in state_dict.items():
+        for state in state_dict.values():
             if state.get(category) == "valid":
                 valid_count += 1
     else:
-        for _domain, state in state_dict.items():
+        for state in state_dict.values():
             if all(value == "valid" for value in state.values()):
                 valid_count += 1
 
@@ -200,7 +200,7 @@ def analyze_spf_policies(email_results: dict) -> dict[str, int]:
     """
     policy_counts = {"~all": 0, "-all": 0, "none": 0}
 
-    for _domain, result in email_results.items():
+    for result in email_results.values():
         if not result["spf"]["has_spf"]:
             policy_counts["none"] += 1
         elif result["spf"]["policy"] == "~all":
@@ -225,7 +225,7 @@ def analyze_dmarc_policies(email_results: dict) -> dict[str, int]:
     """
     policy_counts = {"reject": 0, "quarantine": 0, "none": 0, "no_record": 0}
 
-    for _domain, result in email_results.items():
+    for result in email_results.values():
         if not result["dmarc"]["record_exists"]:
             policy_counts["no_record"] += 1
         elif result["dmarc"]["policy"] == "reject":
@@ -250,7 +250,7 @@ def get_web_rating_counts(web_state: dict) -> dict[str, int]:
     """
     rating_counts = {"excellent": 0, "good": 0, "fair": 0, "poor": 0}
 
-    for _domain, state in web_state.items():
+    for state in web_state.values():
         rating = state["rating"]
         if rating in rating_counts:
             rating_counts[rating] += 1
@@ -322,7 +322,7 @@ def analyze_tls_protocol_support(web_results: dict) -> dict[str, dict[str, int]]
 
     domain_count = 0
 
-    for _domain, result in web_results.items():
+    for result in web_results.values():
         domain_count += 1
         if "protocol_support" in result and "protocols" in result["protocol_support"]:
             for protocol in result["protocol_support"]["protocols"]:
@@ -596,10 +596,8 @@ def get_web_rating_distribution_details(
         if rating in rating_details:
             rating_details[rating].append(domain_detail)
 
-    for rating in rating_details:
-        rating_details[rating] = sorted(
-            rating_details[rating], key=lambda x: x["score"], reverse=True
-        )
+    for rating, details in rating_details.items():
+        rating_details[rating] = sorted(details, key=lambda x: x["score"], reverse=True)
 
     return rating_details
 
@@ -828,8 +826,7 @@ def analyze_rpki_stats(
             1
             for domain, state in rpki_state.items()
             if all(
-                value != "valid" and value != "partially-valid"
-                for value in state.values()
+                value not in ("valid", "partially-valid") for value in state.values()
             )
         ),
     }
@@ -851,7 +848,7 @@ def analyze_web_security_stats(web_state: dict) -> dict[str, int]:
     web_partially_compliant = 0
     web_non_compliant = 0
 
-    for _domain, state in web_state.items():
+    for state in web_state.values():
         rating = state["rating"]
         if rating in ["excellent", "good"]:
             web_compliant += 1

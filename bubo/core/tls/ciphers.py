@@ -198,7 +198,7 @@ async def test_cipher(
 
         if cipher_match:
             cipher_name = cipher_match.group(1).strip()
-            if cipher_name and cipher_name != "(NONE)" and cipher_name != "0000":
+            if cipher_name and cipher_name not in ("(NONE)", "0000"):
                 bits = None
                 bits_match = re.search(r"(\d+) bit", output)
                 if bits_match:

@@ -100,17 +100,17 @@ async def process_servers(
         return results
 
     for server in servers:
-        server = server.rstrip(".")
-        tlsa_records = await check_tlsa_record(server, port)
+        stripped_server = server.rstrip(".")
+        tlsa_records = await check_tlsa_record(stripped_server, port)
 
         if tlsa_records:
             validation_tasks = [
-                validate_tlsa_hash(domain, port, record, server)
+                validate_tlsa_hash(domain, port, record, stripped_server)
                 for record in tlsa_records
             ]
             validation_results = await asyncio.gather(*validation_tasks)
 
-            results[server] = {
+            results[stripped_server] = {
                 "tlsa_records": [
                     {"record": record, "valid": valid}
                     for record, valid in zip(
@@ -121,7 +121,7 @@ async def process_servers(
             }
         else:
             # Include servers without TLSA records
-            results[server] = {"tlsa_records": [], "validation": False}
+            results[stripped_server] = {"tlsa_records": [], "validation": False}
 
     return results
 

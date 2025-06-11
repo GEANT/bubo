@@ -197,12 +197,11 @@ def _determine_rating(
 
     if total_issues == 0 or (num_critical == 0 and num_major == 0 and num_minor <= 2):
         return SecurityRating.EXCELLENT.value
-    elif num_critical > 0 or num_major > 3 or total_issues > 5:
+    if num_critical > 0 or num_major > 3 or total_issues > 5:
         return SecurityRating.POOR.value
-    elif num_major > 2 or total_issues > 3:
+    if num_major > 2 or total_issues > 3:
         return SecurityRating.FAIR.value
-    else:
-        return SecurityRating.GOOD.value
+    return SecurityRating.GOOD.value
 
 
 def parse_security_header(headers, header_name, default=None):
@@ -272,8 +271,5 @@ async def resolve_domain(domain: str, port: int, check_func, *args, **kwargs):
     if isinstance(last_result, Exception):
         logger.error(f"All domain variations failed for {domain}:{port}: {last_result}")
         raise last_result
-    else:
-        logger.warning(
-            f"All domain variations had connection errors for {domain}:{port}"
-        )
-        return last_result, domain
+    logger.warning(f"All domain variations had connection errors for {domain}:{port}")
+    return last_result, domain

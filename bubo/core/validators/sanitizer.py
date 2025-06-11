@@ -70,7 +70,4 @@ def sanitize_text_field(text: str | None, max_length: int = 100) -> str:
     if len(text) > max_length:
         text = text[:max_length]
 
-    # Convert HTML entities to prevent XSS
-    text = html.escape(text)
-
-    return text
+    return html.escape(text)

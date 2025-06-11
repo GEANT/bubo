@@ -1,4 +1,4 @@
-# core/json_utils.py
+# core/report/json_utils.py
 
 import json
 from typing import Any
@@ -56,9 +56,8 @@ def convert_sets_to_lists(obj: Any) -> Any:
     """
     if isinstance(obj, dict):
         return {k: convert_sets_to_lists(v) for k, v in obj.items()}
-    elif isinstance(obj, (list | set)):
+    if isinstance(obj, (list | set)):
         return [convert_sets_to_lists(item) for item in obj]
-    elif isinstance(obj, tuple):
+    if isinstance(obj, tuple):
         return tuple(convert_sets_to_lists(item) for item in obj)
-    else:
-        return obj
+    return obj

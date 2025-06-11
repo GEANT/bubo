@@ -68,7 +68,6 @@ async def with_retries(
         try:
             return await func(*args, **kwargs)
         except fatal_exceptions:
-            # Don't retry fatal exceptions
             logger.error(f"{op_name} failed with fatal exception")
             raise
         except retry_exceptions as e:
@@ -79,8 +78,7 @@ async def with_retries(
 
             wait_time = (backoff_factor ** (current_try - 1)) * (1 + random() * 0.1)
             logger.warning(
-                f"{op_name} attempt {current_try}/{retries} failed: {e}. "
-                f"Retrying in {wait_time:.2f} seconds..."
+                f"{op_name} attempt {current_try}/{retries} failed: {e}. Retrying in {wait_time:.2f} seconds..."
             )
             await asyncio.sleep(wait_time)
 
@@ -147,7 +145,6 @@ async def get_openssl_version() -> tuple[int, int, int]:
         return (0, 0, 0)
 
     try:
-        # Create async subprocess
         proc = await asyncio.create_subprocess_exec(
             "openssl",
             "version",
@@ -403,7 +400,6 @@ async def run_openssl_command(
     Returns:
         Tuple of (command_output, return_code)
     """
-    global _openssl_timeout_occurred
     if not has_openssl():
         return "OpenSSL not available", 1
 
@@ -415,14 +411,11 @@ async def run_openssl_command(
     # Detect if this is a cipher test
     is_cipher_test = any("-cipher" in arg for arg in valid_args)
 
-    # Use optimized parameters for cipher tests
     if is_cipher_test:
-        # Cipher tests get shorter timeouts and fewer retries
         effective_timeout = min(2.0, timeout)
         effective_retries = min(1, retries)
         retry_delay = 0.5  # Very short retry delay for ciphers
     else:
-        # Normal connectivity tests use standard values
         effective_timeout = timeout
         effective_retries = retries
         retry_delay = 2.0
@@ -439,7 +432,6 @@ async def run_openssl_command(
             )
 
             try:
-                # Use newline to complete handshake
                 stdin_data = b"\n"
                 stdout, stderr = await asyncio.wait_for(
                     proc.communicate(input=stdin_data), timeout=effective_timeout

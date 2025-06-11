@@ -69,11 +69,11 @@ async def check_protocol_with_socket(
         if protocol.value in version_used or f"TLSv{min_version.value}" in version_used:
             logger.debug(f"{protocol.value} supported by {domain}:{port}")
             return True, None
-        else:
-            return (
-                False,
-                f"Protocol mismatch: requested {protocol.value}, got {version_used}",
-            )
+
+        return (
+            False,
+            f"Protocol mismatch: requested {protocol.value}, got {version_used}",
+        )
 
     except ssl.SSLError as e:
         error_msg = str(e)
@@ -166,7 +166,7 @@ async def check_protocol_with_openssl(
         detected_protocol = protocol_match.group(1)
         cipher = cipher_match.group(1)
 
-        if cipher and cipher != "0000" and cipher != "(NONE)":
+        if cipher and cipher not in ("0000", "(NONE)"):
             logger.debug(f"Success: {detected_protocol} with cipher {cipher}")
             return True, None
 
