@@ -15,12 +15,11 @@ from bubo.main import DomainValidator, start
 @pytest.fixture
 def domain_validator(mock_cache_generator):
     with patch("bubo.main.DomainResultsCache", return_value=mock_cache_generator):
-        validator = DomainValidator(
+        return DomainValidator(
             cache_dir="test_cache",
             cache_duration=timedelta(days=1),
             routinator_url="http://localhost:8323",
         )
-        return validator
 
 
 @pytest.fixture

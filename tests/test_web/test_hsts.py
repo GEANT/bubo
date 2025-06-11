@@ -15,7 +15,7 @@ class TestHSTS(unittest.TestCase):
         self.timeout = 10
 
     @patch("bubo.core.web.hsts.logger")
-    def test_complete_hsts_header(self, mock_logger):
+    def test_complete_hsts_header(self, _mock_logger):
         """Test when a complete HSTS header is present."""
 
         response_headers = {
@@ -35,7 +35,7 @@ class TestHSTS(unittest.TestCase):
         )
 
     @patch("bubo.core.web.hsts.logger")
-    def test_partial_hsts_header_max_age_only(self, mock_logger):
+    def test_partial_hsts_header_max_age_only(self, _mock_logger):
         """Test when HSTS header only contains max-age directive."""
 
         response_headers = {"strict-transport-security": "max-age=15768000"}
@@ -51,7 +51,7 @@ class TestHSTS(unittest.TestCase):
         self.assertEqual(result.header_value, "max-age=15768000")
 
     @patch("bubo.core.web.hsts.logger")
-    def test_partial_hsts_header_with_subdomains(self, mock_logger):
+    def test_partial_hsts_header_with_subdomains(self, _mock_logger):
         """Test when HSTS header contains max-age and includeSubDomains."""
 
         response_headers = {
@@ -68,7 +68,7 @@ class TestHSTS(unittest.TestCase):
         self.assertFalse(result.preload)
 
     @patch("bubo.core.web.hsts.logger")
-    def test_case_insensitivity(self, mock_logger):
+    def test_case_insensitivity(self, _mock_logger):
         """Test that header parsing is case-insensitive."""
 
         response_headers = {
@@ -85,7 +85,7 @@ class TestHSTS(unittest.TestCase):
         self.assertTrue(result.preload)
 
     @patch("bubo.core.web.hsts.logger")
-    def test_no_hsts_header(self, mock_logger):
+    def test_no_hsts_header(self, _mock_logger):
         """Test when HSTS header is not present in response headers."""
 
         response_headers = {"content-type": "text/html", "server": "nginx"}

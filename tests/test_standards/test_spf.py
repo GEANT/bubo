@@ -256,18 +256,16 @@ async def test_count_dns_lookups_with_includes():
     async def mock_get_spf_record(domain):
         if domain == "sub1.example.org":
             return sub1_record
-        elif domain == "sub2.example.org":
+        if domain == "sub2.example.org":
             return sub2_record
-        else:
-            return None
+        return None
 
     async def mock_parse_spf_record(record, domain):
         if domain == "sub1.example.org":
             return sub1_info
-        elif domain == "sub2.example.org":
+        if domain == "sub2.example.org":
             return sub2_info
-        else:
-            return {"valid": False}
+        return {"valid": False}
 
     with (
         patch("bubo.standards.spf.get_spf_record", mock_get_spf_record),
@@ -308,14 +306,12 @@ async def test_count_dns_lookups_with_redirect():
     async def mock_get_spf_record(domain):
         if domain == "spf.example.org":
             return redirect_record
-        else:
-            return None
+        return None
 
     async def mock_parse_spf_record(record, domain):
         if domain == "spf.example.org":
             return redirect_info
-        else:
-            return {"valid": False}
+        return {"valid": False}
 
     with (
         patch("bubo.standards.spf.get_spf_record", mock_get_spf_record),
@@ -548,13 +544,13 @@ async def test_check_domains():
                 "dns_lookups": 0,
                 "exceeds_lookup_limit": False,
             }
-        else:
-            return {
-                "domain": domain,
-                "has_spf": False,
-                "valid": False,
-                "error": "No SPF record found",
-            }
+
+        return {
+            "domain": domain,
+            "has_spf": False,
+            "valid": False,
+            "error": "No SPF record found",
+        }
 
     with patch("bubo.standards.spf.check_spf", mock_check_spf):
         results = await check_domains(domains)
@@ -581,8 +577,7 @@ async def test_check_domains_with_exception():
                 "dns_lookups": 0,
                 "exceeds_lookup_limit": False,
             }
-        else:
-            raise Exception("Test exception")
+        raise Exception("Test exception")
 
     with patch("bubo.standards.spf.check_spf", mock_check_spf):
         results = await check_domains(domains)

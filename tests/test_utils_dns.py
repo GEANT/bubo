@@ -34,7 +34,7 @@ async def test_resolve_nameservers_success(
 @pytest.mark.asyncio
 async def test_resolve_nameservers_ip_input():
     # This is a more robust patching approach for async functions
-    async def mock_get_asn(*args, **kwargs):
+    async def mock_get_asn(*_args, **_kwargs):
         return "12345", "192.168.0.0/24"
 
     with (

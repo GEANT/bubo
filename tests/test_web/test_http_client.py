@@ -53,7 +53,7 @@ async def test_fetch_headers_generic_exception():
             pass
 
     mock_session = MagicMock()
-    mock_session.get = lambda *args, **kwargs: ExceptionContextManager()
+    mock_session.get = lambda *_args, **_kwargs: ExceptionContextManager()
 
     with (
         patch(
@@ -79,7 +79,7 @@ async def test_fetch_headers_correct_timeout_usage():
     mock_response.headers = {}
 
     mock_session = MagicMock()
-    mock_session.get = lambda url, **kwargs: AsyncContextManagerMock(mock_response)
+    mock_session.get = lambda _url, **_kwargs: AsyncContextManagerMock(mock_response)
 
     mock_timeout = MagicMock()
 
@@ -106,7 +106,7 @@ async def test_fetch_headers_uses_correct_headers():
     called_kwargs = {}
 
     mock_session = MagicMock()
-    mock_session.get = lambda url, **kwargs: (
+    mock_session.get = lambda _url, **kwargs: (
         called_kwargs.update(kwargs),
         AsyncContextManagerMock(mock_response),
     )[1]
@@ -133,7 +133,7 @@ async def test_fetch_headers_ssl_disabled():
     called_kwargs = {}
 
     mock_session = MagicMock()
-    mock_session.get = lambda url, **kwargs: (
+    mock_session.get = lambda _url, **kwargs: (
         called_kwargs.update(kwargs),
         AsyncContextManagerMock(mock_response),
     )[1]

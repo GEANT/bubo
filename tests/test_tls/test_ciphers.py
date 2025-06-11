@@ -15,7 +15,7 @@ class AsyncMockWithReturnValue:
     def __init__(self, return_value):
         self.return_value = return_value
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *_args, **_kwargs):
         return self
 
     def __await__(self):

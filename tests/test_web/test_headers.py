@@ -15,7 +15,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.timeout = 10
 
     @patch("bubo.core.web.headers.logger")
-    def test_all_security_headers_present(self, mock_logger):
+    def test_all_security_headers_present(self, _mock_logger):
         """Test when all security headers are present in the response."""
 
         response_headers = {
@@ -37,7 +37,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.assertEqual(result.referrer_policy, "no-referrer")
 
     @patch("bubo.core.web.headers.logger")
-    def test_some_security_headers_missing(self, mock_logger):
+    def test_some_security_headers_missing(self, _mock_logger):
         """Test when some security headers are missing from the response."""
 
         response_headers = {
@@ -58,7 +58,7 @@ class TestSecurityHeaders(unittest.TestCase):
         self.assertIsNone(result.content_security_policy)
 
     @patch("bubo.core.web.headers.logger")
-    def test_empty_response_headers(self, mock_logger):
+    def test_empty_response_headers(self, _mock_logger):
         """Test when response headers are empty."""
 
         response_headers = {}

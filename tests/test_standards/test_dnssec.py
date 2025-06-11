@@ -444,7 +444,7 @@ async def test_verify_zone_with_ds(
     async def mock_resolve_dnssec(zone, record_type, raise_on_no_answer=True):
         if record_type == "DNSKEY":
             return dnskey_response
-        elif record_type == "DS":
+        if record_type == "DS":
             return ds_response
         return None
 

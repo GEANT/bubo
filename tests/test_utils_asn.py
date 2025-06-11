@@ -52,7 +52,7 @@ async def test_get_asn_and_prefix_lookup_success():
         patch("bubo.core.network.ip_tools.asyncio.get_event_loop") as mock_loop,
     ):
         # Mock run_in_executor to actually call the function passed to it
-        async def mock_run_in_executor(executor, func, *args, **kwargs):
+        async def mock_run_in_executor(_executor, func, *_args, **_kwargs):
             # This simulates calling the function in another thread
             return func()
 
@@ -101,7 +101,7 @@ async def test_get_asn_and_prefix_ignore_cache():
         mock_ipwhois = MagicMock()
         with patch("bubo.core.network.ip_tools.IPWhois", return_value=mock_ipwhois):
             # Hook the actual executor to return our controlled data
-            async def mock_executor(executor, func, *args):
+            async def mock_executor(_executor, _func, *_args):
                 # Return the data we want without calling the real function
                 return {"asn": "67890 Some description", "asn_cidr": "10.0.0.0/8"}
 

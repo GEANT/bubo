@@ -20,7 +20,7 @@ from bubo.core.tls.models import (
 
 
 @pytest.fixture
-def tls_check_config():
+def _tls_check_config():
     return TLSCheckConfig(
         check_certificate=True,
         verify_chain=True,
@@ -103,7 +103,7 @@ def mock_utils():
 class TestCertificateWithSocket:
     @pytest.mark.asyncio
     async def test_check_certificate_with_socket_connection_timeout(
-        self, tls_check_config, mock_utils
+        self, _tls_check_config, mock_utils
     ):
         """Test connection timeout during certificate check."""
         domain = "example.com"
@@ -131,7 +131,7 @@ class TestCertificateWithSocket:
             ].return_value = connection_error_result
 
             result = await check_certificate_with_socket(
-                domain, port, timeout, tls_check_config
+                domain, port, timeout, _tls_check_config
             )
 
             assert result.is_valid is False
@@ -140,7 +140,7 @@ class TestCertificateWithSocket:
 
     @pytest.mark.asyncio
     async def test_check_certificate_with_socket_handshake_timeout(
-        self, tls_check_config, mock_utils
+        self, _tls_check_config, mock_utils
     ):
         """Test TLS handshake timeout during certificate check."""
         domain = "example.com"
@@ -157,8 +157,7 @@ class TestCertificateWithSocket:
                 if mock_wait_for.call_count == 1:
                     mock_wait_for.call_count += 1
                     return await coro
-                else:
-                    raise asyncio.TimeoutError()
+                raise asyncio.TimeoutError
 
             mock_wait_for.call_count = 0
 
@@ -180,7 +179,7 @@ class TestCertificateWithSocket:
                 ].return_value = handshake_error_result
 
                 result = await check_certificate_with_socket(
-                    domain, port, timeout, tls_check_config
+                    domain, port, timeout, _tls_check_config
                 )
 
                 assert result.is_valid is False
@@ -188,7 +187,7 @@ class TestCertificateWithSocket:
                 assert result.connection_error is True
 
     @pytest.mark.asyncio
-    async def test_certificate_parsing_error_handling(self, tls_check_config):
+    async def test_certificate_parsing_error_handling(self, _tls_check_config):
         """Test correct handling of certificate parsing errors while still returning basic cert data."""
         domain = "example.com"
         port = 443
@@ -221,7 +220,7 @@ class TestCertificateWithSocket:
             "bubo.core.tls.certificates.check_certificate_with_socket",
             side_effect=mock_socket_check,
         ) as mock_check:
-            result = await check_certificate(domain, port, tls_check_config)
+            result = await check_certificate(domain, port, _tls_check_config)
 
             assert result.is_valid is True
             assert result.subject == "example.com"
@@ -232,12 +231,12 @@ class TestCertificateWithSocket:
             assert result.subject_alternative_names is None
 
             mock_check.assert_called_once_with(
-                domain, port, tls_check_config.timeout_connect, tls_check_config
+                domain, port, _tls_check_config.timeout_connect, _tls_check_config
             )
 
     @pytest.mark.asyncio
     async def test_check_certificate_with_socket_self_signed_detection(
-        self, tls_check_config
+        self, _tls_check_config
     ):
         """Test that check_certificate correctly preserves the self-signed certificate status."""
         domain = "example.com"
@@ -259,7 +258,7 @@ class TestCertificateWithSocket:
             "bubo.core.tls.certificates.check_certificate_with_socket",
             return_value=self_signed_cert,
         ) as mock_check:
-            result = await check_certificate(domain, port, tls_check_config)
+            result = await check_certificate(domain, port, _tls_check_config)
 
             assert result.is_valid is True
             assert result.is_self_signed is True
@@ -267,11 +266,11 @@ class TestCertificateWithSocket:
             assert result.issuer == "example.com"
 
             mock_check.assert_called_once_with(
-                domain, port, tls_check_config.timeout_connect, tls_check_config
+                domain, port, _tls_check_config.timeout_connect, _tls_check_config
             )
 
     @pytest.mark.asyncio
-    async def test_socket_timeout_error(self, tls_check_config):
+    async def test_socket_timeout_error(self, _tls_check_config):
         """Test handling of socket timeout errors."""
         domain = "example.com"
         port = 443
@@ -286,7 +285,7 @@ class TestCertificateWithSocket:
             )
 
             result = await check_certificate_with_socket(
-                domain, port, timeout, tls_check_config
+                domain, port, timeout, _tls_check_config
             )
 
             assert result.is_valid is False
@@ -294,7 +293,7 @@ class TestCertificateWithSocket:
             assert result.connection_error is True
 
     @pytest.mark.asyncio
-    async def test_no_certificate_data(self, tls_check_config, mock_utils):
+    async def test_no_certificate_data(self, _tls_check_config, mock_utils):
         """Test handling of no certificate data being received."""
         domain = "example.com"
         port = 443
@@ -336,13 +335,13 @@ class TestCertificateWithSocket:
             async def mock_to_thread(func, *args, **kwargs):
                 if func == mock_sock.connect:
                     return None
-                elif func == mock_ssl_context.return_value.wrap_socket:
+                if func == mock_ssl_context.return_value.wrap_socket:
                     return mock_ssl_sock
                 return None
 
             with patch("asyncio.to_thread", side_effect=mock_to_thread):
                 result = await check_certificate_with_socket(
-                    domain, port, timeout, tls_check_config
+                    domain, port, timeout, _tls_check_config
                 )
 
                 assert result.is_valid is False
@@ -592,7 +591,7 @@ class TestCertificateChain:
 class TestCertificate:
     @pytest.mark.asyncio
     async def test_check_certificate_with_failed_chain_validation(
-        self, tls_check_config
+        self, _tls_check_config
     ):
         """Test certificate check with valid cert but failed chain validation."""
         domain = "example.com"
@@ -632,7 +631,7 @@ class TestCertificate:
                 "Chain validation failed: unable to get local issuer certificate",
             )
 
-            result = await check_certificate(domain, port, tls_check_config)
+            result = await check_certificate(domain, port, _tls_check_config)
 
             assert result.is_valid is True
             assert result.chain_trusted is False
@@ -645,7 +644,7 @@ class TestCertificate:
             )
 
     @pytest.mark.asyncio
-    async def test_check_certificate_with_openssl_disabled(self, tls_check_config):
+    async def test_check_certificate_with_openssl_disabled(self, _tls_check_config):
         """Test certificate check with OpenSSL disabled in config."""
         domain = "example.com"
         port = 443
@@ -697,7 +696,7 @@ class TestCertificate:
             mock_check_chain.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_check_certificate_success_without_openssl(self, tls_check_config):
+    async def test_check_certificate_success_without_openssl(self, _tls_check_config):
         """Test successful certificate check without OpenSSL verification."""
         domain = "example.com"
         port = 443
@@ -742,7 +741,7 @@ class TestCertificate:
             )
 
     @pytest.mark.asyncio
-    async def test_check_certificate_openssl_not_available(self, tls_check_config):
+    async def test_check_certificate_openssl_not_available(self, _tls_check_config):
         """Test certificate check when OpenSSL is enabled but not available."""
         domain = "example.com"
         port = 443
@@ -789,7 +788,7 @@ class TestCertificate:
 
     @pytest.mark.asyncio
     async def test_check_certificate_with_successful_chain_validation(
-        self, tls_check_config
+        self, _tls_check_config
     ):
         """Test certificate check with successful chain validation."""
         domain = "example.com"
