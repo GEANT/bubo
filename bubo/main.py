@@ -133,7 +133,7 @@ class DomainValidator:
         }
 
     async def process_cached_domain(
-        self, domain: str, all_results: dict[str, Any], cached_results: dict[str, Any]
+        self, _domain: str, all_results: dict[str, Any], cached_results: dict[str, Any]
     ) -> None:
         """
         Processes and merges cached domain results into the overall results structure.
@@ -246,7 +246,6 @@ async def start():
     Handles command line arguments and initiates domain processing.
     """
     load_dotenv()
-    await cipher_utils.initialize()
 
     cli_options = CLIHandler.parse_args()
 
@@ -270,6 +269,8 @@ async def start():
         return
 
     try:
+        await cipher_utils.initialize()
+
         results = await validator.process_domain(
             [{"Domain": domains, "Country": "", "Institution": ""}]
             if isinstance(domains, str)
