@@ -189,8 +189,8 @@ If you prefer not to use a compose file:
 ```bash
 docker volume create compliance_cache
 docker run --rm --network host \
-  -v "$(pwd)/results:/bubo/results" \
-  -v compliance_cache:/bubo/bubo/cache \
+  -v "$(pwd)/results:/results" \
+  -v compliance_cache:/bubo/cache \
   bubo -d example.com
 ```
 
