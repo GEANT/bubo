@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import re
+from typing import Any
 
 import dns.asyncresolver
 import dns.exception
@@ -67,7 +68,7 @@ async def get_txt_records(domain: str, record_type: str | None = None) -> list[s
         return []
 
 
-def extract_dkim_key_info(dkim_record: str) -> dict:
+def extract_dkim_key_info(dkim_record: str) -> dict[str, str | int | None]:
     """
     Extract key information from a DKIM record and evaluate its strength based on best practices.
 
@@ -79,7 +80,7 @@ def extract_dkim_key_info(dkim_record: str) -> dict:
     """
     from cryptography.hazmat.primitives.serialization import load_der_public_key
 
-    key_info = {
+    key_info: dict[str, str | int | None] = {
         "key_type": None,
         "key_length": None,
         "strength": None,
@@ -173,8 +174,8 @@ async def check_dkim_selector(domain: str, selector: str) -> dict | None:
     return None
 
 
-async def check_dkim(domain: str) -> dict:
-    results = {
+async def check_dkim(domain: str) -> dict[str, Any]:
+    results: dict[str, Any] = {
         "selectors_found": [],
         "records": {},
         "valid": False,
@@ -216,7 +217,7 @@ async def check_dkim(domain: str) -> dict:
             min_strength = "strong"
             min_strength_level = 3
 
-            for _selector, info in results["key_info"].items():
+            for info in results["key_info"].values():
                 if info.get("strength"):
                     current_level = strength_levels.get(info["strength"], 3)
                     if current_level < min_strength_level:
@@ -235,12 +236,12 @@ async def check_dkim(domain: str) -> dict:
     return results
 
 
-async def check_dmarc(domain: str) -> dict:
+async def check_dmarc(domain: str) -> dict[str, Any]:
     """
     Check DMARC record for a domain.
     Validates record syntax and ensures strict policy to prevent domain abuse.
     """
-    results = {
+    results: dict[str, Any] = {
         "record_exists": False,
         "valid": False,
         "record": None,
@@ -302,7 +303,7 @@ async def check_dmarc(domain: str) -> dict:
             )
             results["valid"] = False
             return results
-        elif policy not in ["quarantine", "reject"]:
+        if policy not in ["quarantine", "reject"]:
             results["error"] = f"Invalid policy value: {policy}"
             results["valid"] = False
             return results
@@ -340,7 +341,7 @@ async def check_dmarc(domain: str) -> dict:
         )
 
     except Exception as e:
-        results["error"] = [str(e)]
+        results["error"] = str(e)
         logger.error(f"Error checking DMARC for {domain}: {e}")
 
     return results
