@@ -2,17 +2,19 @@
 IANA TLS parameters update utility.
 
 This module checks for updates to the IANA TLS parameters and downloads the latest CSV.
-Updates are cached and only checked once per month to reduce network overhead.
+Updates are cached and only checked once per configured period to reduce network overhead.
 """
 
 import json
-import os
 import re
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 import aiohttp
 
 from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.cipher_utils import get_cache_directory
 
 logger = setup_logger(__name__)
 
@@ -23,18 +25,52 @@ IANA_TLS_PARAMETERS_URL = (
 )
 
 
-async def get_iana_last_updated_date() -> datetime | None:
+@dataclass
+class CacheInfo:
+    """Container for cache information."""
+
+    iana_updated: datetime | None = None
+    last_checked: datetime | None = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        data = {}
+        if self.iana_updated:
+            data["iana_updated"] = self.iana_updated.strftime("%Y-%m-%d")
+        if self.last_checked:
+            data["last_checked"] = self.last_checked.strftime("%Y-%m-%d")
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "CacheInfo":
+        """Create CacheInfo from dictionary."""
+        iana_updated = None
+        last_checked = None
+
+        if "iana_updated" in data:
+            iana_updated = datetime.strptime(data["iana_updated"], "%Y-%m-%d")
+        if "last_checked" in data:
+            last_checked = datetime.strptime(data["last_checked"], "%Y-%m-%d")
+
+        return cls(iana_updated=iana_updated, last_checked=last_checked)
+
+
+def get_cache_file_path() -> Path:
+    """Get the path to the cache metadata file."""
+    return get_cache_directory() / "iana_cache.json"
+
+
+async def fetch_iana_last_updated_date() -> datetime | None:
     """
-    Get the last updated date from the IANA TLS parameters text page.
+    Fetch the last updated date from the IANA TLS parameters text page.
 
     Returns:
-        datetime: The last updated date or None if unable to fetch
+        The last updated date or None if unable to fetch
     """
-    url = IANA_TLS_PARAMETERS_URL
     try:
         async with (
             aiohttp.ClientSession() as session,
-            session.get(url, timeout=10) as response,
+            session.get(IANA_TLS_PARAMETERS_URL, timeout=10) as response,
         ):
             if response.status != 200:
                 logger.error(f"Failed to fetch IANA parameters: HTTP {response.status}")
@@ -46,106 +82,66 @@ async def get_iana_last_updated_date() -> datetime | None:
             if match:
                 date_text = match.group(1)
                 return datetime.strptime(date_text, "%Y-%m-%d")
-            else:
-                logger.error("Could not find Last Updated date in IANA parameters")
-                return None
+
+            logger.error("Could not find Last Updated date in IANA parameters page")
+            return None
+
     except Exception as e:
         logger.error(f"Error fetching IANA last updated date: {e}")
         return None
 
 
-def get_cached_info(cache_file: str) -> tuple[datetime | None, datetime | None]:
+def load_cache_info() -> CacheInfo:
     """
-    Get the cached IANA last updated date and last checked date.
-
-    Args:
-        cache_file: Path to the cache file
+    Load cache information from disk.
 
     Returns:
-        Tuple containing:
-            - Last IANA updated date or None if not available
-            - Last checked date or None if not available
+        CacheInfo object with loaded data or empty if file doesn't exist
     """
+    cache_file = get_cache_file_path()
+
+    if not cache_file.exists():
+        return CacheInfo()
+
     try:
-        if os.path.exists(cache_file):
-            with open(cache_file) as f:
-                data = json.load(f)
-
-                iana_date = data.get("iana_updated")
-                checked_date = data.get("last_checked")
-
-                if iana_date:
-                    iana_datetime = datetime.strptime(iana_date, "%Y-%m-%d")
-                else:
-                    iana_datetime = None
-
-                if checked_date:
-                    checked_datetime = datetime.strptime(checked_date, "%Y-%m-%d")
-                else:
-                    checked_datetime = None
-
-                return iana_datetime, checked_datetime
+        with open(cache_file) as f:
+            data = json.load(f)
+            return CacheInfo.from_dict(data)
     except Exception as e:
         logger.error(f"Error reading cache file: {e}")
+        return CacheInfo()
 
-    return None, None
 
-
-def update_cache_info(
-    cache_file: str,
-    iana_date: datetime | None = None,
-    checked_date: datetime | None = None,
-) -> None:
+def save_cache_info(cache_info: CacheInfo) -> None:
     """
-    Update the cached IANA information.
+    Save cache information to disk.
 
     Args:
-        cache_file: Path to the cache file
-        iana_date: IANA last updated date
-        checked_date: Current check date
+        cache_info: CacheInfo object to save
     """
+    cache_file = get_cache_file_path()
+
     try:
-        data: dict[str, str] = {}
-
-        if os.path.exists(cache_file):
-            try:
-                with open(cache_file) as f:
-                    data = json.load(f)
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                pass
-
-        if iana_date:
-            data["iana_updated"] = iana_date.strftime("%Y-%m-%d")
-
-        if checked_date:
-            data["last_checked"] = checked_date.strftime("%Y-%m-%d")
-
-        directory = os.path.dirname(cache_file)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
         with open(cache_file, "w") as f:
-            json.dump(data, f)
-
+            json.dump(cache_info.to_dict(), f, indent=2)
     except Exception as e:
-        logger.error(f"Error updating cache file: {e}")
+        logger.error(f"Error saving cache file: {e}")
 
 
-async def download_iana_csv(csv_url: str, save_path: str) -> bool:
+async def download_iana_csv(save_path: Path) -> bool:
     """
-    Download the IANA TLS parameters CSV file using aiohttp.
+    Download the IANA TLS parameters CSV file.
 
     Args:
-        csv_url: URL of the CSV file
-        save_path: Path to save the CSV file
+        save_path: Path where to save the CSV file
 
     Returns:
-        bool: True if download successful, False otherwise
+        True if download successful, False otherwise
     """
     try:
         async with (
             aiohttp.ClientSession() as session,
-            session.get(csv_url, timeout=10) as response,
+            session.get(CSV_URL, timeout=30) as response,
         ):
             if response.status != 200:
                 logger.error(f"Failed to download CSV: HTTP {response.status}")
@@ -153,71 +149,124 @@ async def download_iana_csv(csv_url: str, save_path: str) -> bool:
 
             content = await response.read()
 
-            directory = os.path.dirname(save_path)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+            temp_path = save_path.with_suffix(".tmp")
+            temp_path.write_bytes(content)
+            temp_path.replace(save_path)
 
-            with open(save_path, "wb") as f:
-                f.write(content)
+            logger.info(f"Successfully downloaded IANA CSV to {save_path}")
             return True
+
     except Exception as e:
         logger.error(f"Error downloading IANA CSV: {e}")
         return False
+
+
+def should_check_for_updates(cache_info: CacheInfo, cache_duration_days: int) -> bool:
+    """
+    Determine if we should check for updates based on cache info.
+
+    Args:
+        cache_info: Current cache information
+        cache_duration_days: How many days to wait between checks
+
+    Returns:
+        True if we should check for updates, False otherwise
+    """
+    if not cache_info.last_checked:
+        return True
+
+    days_since_check = (datetime.now() - cache_info.last_checked).days
+    return days_since_check >= cache_duration_days
+
+
+def needs_csv_download(
+    cache_info: CacheInfo, web_date: datetime | None, csv_path: Path
+) -> bool:
+    """
+    Determine if we need to download the CSV file.
+
+    Args:
+        cache_info: Current cache information
+        web_date: Last updated date from IANA website
+        csv_path: Path to the CSV file
+
+    Returns:
+        True if download is needed, False otherwise
+    """
+
+    if not csv_path.exists():
+        return True
+
+    if web_date is None:
+        return False
+
+    if cache_info.iana_updated is None:
+        return True
+
+    return web_date > cache_info.iana_updated
 
 
 async def check_and_update_iana_csv(
     csv_path: str, cache_duration_days: int = DEFAULT_CACHE_DURATION_DAYS
 ) -> bool:
     """
-    Check if the IANA TLS parameters CSV file needs to be updated and download it if necessary.
-    Only checks for updates once per month (or as specified by cache_duration_days) to reduce
-    network overhead.
+    Check if the IANA TLS parameters CSV file needs to be updated and download if necessary.
+
+    This function implements a smart caching strategy:
+    1. Only checks IANA website once per cache_duration_days period
+    2. Downloads CSV only if it's newer than cached version or missing
+    3. Tracks both last check date and IANA's last update date
 
     Args:
-        csv_path: Path to save the CSV file
-        cache_duration_days: Number of days to cache the update check (default: 30)
+        csv_path: Path to save the CSV file (can be string or Path)
+        cache_duration_days: Days between update checks (default: 30)
 
     Returns:
-        bool: True if the CSV is up to date or was updated successfully, False otherwise
+        True if the CSV is available and up to date, False if there were errors
     """
-    cache_file = os.path.join(os.path.dirname(csv_path), "iana_cache.json")
-    today = datetime.now()
+    csv_path = Path(csv_path)
 
-    stored_iana_date, last_checked_date = get_cached_info(cache_file)
+    cache_info = load_cache_info()
 
-    if last_checked_date and (today - last_checked_date) < timedelta(
-        days=cache_duration_days
-    ):
+    if not should_check_for_updates(cache_info, cache_duration_days):
         logger.debug(
-            f"Using cached IANA information (last checked: {last_checked_date.strftime('%Y-%m-%d')})"
+            f"Using cached IANA data (last checked: "
+            f"{cache_info.last_checked.strftime('%Y-%m-%d') if cache_info.last_checked else 'never'})"
         )
 
-        if stored_iana_date and os.path.exists(csv_path):
+        return csv_path.exists()
+
+    logger.info("Checking IANA website for TLS parameters updates")
+
+    web_date = await fetch_iana_last_updated_date()
+
+    cache_info.last_checked = datetime.now()
+
+    if needs_csv_download(cache_info, web_date, csv_path):
+        logger.info(
+            f"Downloading updated IANA CSV "
+            f"(web date: {web_date.strftime('%Y-%m-%d') if web_date else 'unknown'}, "
+            f"cached date: {cache_info.iana_updated.strftime('%Y-%m-%d') if cache_info.iana_updated else 'never'})"
+        )
+
+        if await download_iana_csv(csv_path):
+            if web_date:
+                cache_info.iana_updated = web_date
+            save_cache_info(cache_info)
             return True
+        save_cache_info(cache_info)
+        return csv_path.exists()
 
-        if stored_iana_date:
-            csv_url = CSV_URL
-            return await download_iana_csv(csv_url, csv_path)
+    logger.debug("IANA CSV is up to date, no download needed")
 
-    logger.debug("Checking for IANA TLS parameters updates")
-    web_date = await get_iana_last_updated_date()
+    save_cache_info(cache_info)
+    return csv_path.exists()
 
-    update_cache_info(cache_file, iana_date=web_date, checked_date=today)
 
-    if web_date is None:
-        return os.path.exists(csv_path)
+async def get_iana_last_updated_date() -> datetime | None:
+    """
+    Get the last updated date from the IANA TLS parameters text page.
 
-    if (
-        stored_iana_date is None
-        or web_date > stored_iana_date
-        or not os.path.exists(csv_path)
-    ):
-        csv_url = CSV_URL
-        if await download_iana_csv(csv_url, csv_path):
-            logger.info(
-                f"Downloaded updated IANA CSV file (last updated: {web_date.strftime('%Y-%m-%d')})"
-            )
-            return True
-        return False
-
-    return True
+    This is a wrapper for backwards compatibility.
+    """
+    return await fetch_iana_last_updated_date()

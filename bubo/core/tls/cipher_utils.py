@@ -2,13 +2,9 @@ import asyncio
 import os
 import re
 import subprocess
+from pathlib import Path
 
 from bubo.core.logging.logger import setup_logger
-from bubo.core.tls.iana_ciphers import (
-    get_iana_cipher_info,
-    initialize_iana_mappings,
-    is_recommended_cipher,
-)
 from bubo.core.tls.models import CipherDetails, CipherStrength, TLSProtocol
 
 logger = setup_logger(__name__)
@@ -19,12 +15,38 @@ _cipher_to_strength: dict[str, CipherStrength] | None = None
 _initialization_lock = asyncio.Lock()
 _initialized = False
 _iana_initialized = False
-_iana_csv_path = os.environ.get(
-    "IANA_CIPHERS_CSV",
-    os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "data/iana_tls_parameters.csv"
-    ),
-)
+
+
+def get_cache_directory() -> Path:
+    """Get the cache directory for IANA data.
+
+    Returns:
+        Path to the cache directory (bubo/cache/iana_data/)
+    """
+
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent.parent
+    cache_dir = project_root / "cache" / "iana_data"
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
+
+
+def get_iana_csv_path() -> Path:
+    """Get the path to the IANA CSV file.
+
+    Returns:
+        Path to the IANA TLS parameters CSV file
+    """
+
+    env_path = os.environ.get("IANA_CIPHERS_CSV")
+    if env_path:
+        return Path(env_path)
+
+    return get_cache_directory() / "iana_tls_parameters.csv"
+
+
+_iana_csv_path = str(get_iana_csv_path())
 
 
 def classify_cipher(
@@ -52,8 +74,11 @@ def classify_cipher(
     """
     from bubo.core.tls.models import CipherStrength
 
-    if _iana_initialized and is_recommended_cipher(cipher_name):
-        return CipherStrength.STRONG
+    if _iana_initialized:
+        from bubo.core.tls.iana_ciphers import is_recommended_cipher
+
+        if is_recommended_cipher(cipher_name):
+            return CipherStrength.STRONG
 
     if protocol_str is None:
         if cipher_name.startswith("TLS_"):
@@ -68,8 +93,7 @@ def classify_cipher(
         if "GCM" in cipher_name or "CHACHA20" in cipher_name or "CCM" in cipher_name:
             if any(pfs in cipher_name for pfs in ["ECDHE-", "DHE-"]):
                 return CipherStrength.STRONG
-            else:
-                return CipherStrength.MEDIUM
+            return CipherStrength.MEDIUM
 
         if any(pfs in cipher_name for pfs in ["ECDHE-", "DHE-"]) and (
             "SHA256" in cipher_name or "SHA384" in cipher_name
@@ -124,14 +148,12 @@ def classify_cipher(
     if is_aead:
         if has_pfs:
             return CipherStrength.STRONG
-        else:
-            return CipherStrength.MEDIUM
-    elif has_pfs:
+        return CipherStrength.MEDIUM
+    if has_pfs:
         if has_secure_hash:
             return CipherStrength.MEDIUM
-        else:
-            return CipherStrength.WEAK
-    elif (
+        return CipherStrength.WEAK
+    if (
         has_sha1
         or is_psk_only
         or is_srp
@@ -218,6 +240,8 @@ def parse_openssl_ciphers() -> tuple[
         )
 
     if _iana_initialized:
+        from bubo.core.tls.iana_ciphers import get_iana_cipher_info
+
         for cipher_name, details in cipher_details.items():
             iana_info = get_iana_cipher_info(cipher_name)
             if iana_info:
@@ -263,6 +287,11 @@ async def initialize() -> None:
                     _cipher_to_strength[cipher] = CipherStrength(strength)
 
             try:
+                from bubo.core.tls.iana_ciphers import (
+                    get_iana_cipher_info,
+                    initialize_iana_mappings,
+                )
+
                 _iana_initialized = await loop.run_in_executor(
                     None, initialize_iana_mappings, _iana_csv_path
                 )
