@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bubo"
+version = "1.0.0"
+description = "Bubo is a tool for validating domains against internet and email standards."
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[project.scripts]
+bubo = "bubo.main:main"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bubo*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "ARG",
+    "B",
+    "BLE",
+    "C",
+    "C4",
+    "C90",
+    "E",
+    "ERA",
+    "F",
+    "FA",
+    "FLY",
+    "FURB",
+    "I",
+    "ICN",
+    "ISC",
+    "LOG",
+    "N",
+    "PERF",
+    "PGH",
+    "PIE",
+    "PL",
+    "PYI",
+    "Q",
+    "RET",
+    "R",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "T",
+    "T20",
+    "TID",
+    "UP",
+    "W",
+    "YTT",
+    "G"
+]
+ignore = [
+    "E501", # Line too long (handled by formatter)
+    "PLW0603", #"global"
+    "B017",
+    "UP041",
+    "PLR0913",
+    "PLR0912",
+    "PLR2004",
+    "G004",
+    "BLE001",
+    "ARG001",
+    "SLF001",
+    "DTZ005",
+    "C901",
+    "ARG005",
+    "PLR0911",
+    "RET504",
+    "PLR0915",
+    "A005",
+    "G201",
+    "PERF401" # False performance assumption
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "standards"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-v", "--cov=core", "--cov=standards"]
+asyncio_mode = "auto"
