@@ -108,7 +108,7 @@ def build_security_assessment(
         else:
             if hsts_info.max_age < 31536000:
                 _add_issue(
-                    f"HSTS max-age too short ({hsts_info.max_age} seconds, should be at least 1 year = 31536000)",
+                    "HSTS max-age too short (It should be at least 1 year = 31536000 seconds)",
                     minor_issues,
                     security_issues,
                 )
