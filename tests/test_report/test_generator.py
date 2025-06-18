@@ -188,3 +188,30 @@ def test_render_main_report():
         mock_file.assert_any_call(file_paths["report_final_html_path"], "w")
         mock_file().write.assert_called_with("<html>Test</html>")
         assert mock_file().write.call_count == 2
+
+
+def test_render_main_report_error_handling():
+    """Test error handling in render_main_report function."""
+    serializable_results = {
+        "validations": {"RPKI": {"state": {"example.com": {"status": "valid"}}}},
+        "domain_metadata": {"example.com": {"country": "US"}},
+    }
+    file_paths = {
+        "report_html_path": "/path/to/report.html",
+        "report_final_html_path": "/path/to/index.html",
+    }
+
+    mock_template = MagicMock()
+    mock_template.render.return_value = "<html>Test</html>"
+
+    mock_env = MagicMock(spec=Environment)
+    mock_env.get_template.return_value = mock_template
+
+    with (
+        patch("bubo.core.report.generator.open", side_effect=OSError("Test error")),
+        patch("bubo.core.report.generator.logger.error") as mock_logger_error,
+    ):
+        render_main_report(serializable_results, file_paths, mock_env)
+
+        mock_logger_error.assert_called()
+        assert "Test error" in mock_logger_error.call_args[0][0]
