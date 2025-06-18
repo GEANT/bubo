@@ -1,11 +1,13 @@
 import os
 from unittest.mock import MagicMock, mock_open, patch
 
+import pytest
 from jinja2 import Environment
 
 from bubo.core.report.generator import (
     copy_asset_directories,
     generate_file_paths,
+    generate_html_report,
     render_main_report,
     setup_report_directories,
     write_json_report,
@@ -215,3 +217,54 @@ def test_render_main_report_error_handling():
 
         mock_logger_error.assert_called()
         assert "Test error" in mock_logger_error.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_generate_html_report():
+    """Test generate_html_report function."""
+    results = {
+        "validations": {"RPKI": {"state": {"example.com": {"status": "valid"}}}},
+        "domain_metadata": {"example.com": {"country": "US"}},
+    }
+    output_file = "report.html"
+    output_dir = "results"
+
+    with (
+        patch("bubo.core.report.generator.setup_report_directories") as mock_setup_dirs,
+        patch("bubo.core.report.generator.generate_file_paths") as mock_gen_paths,
+        patch("bubo.core.report.generator.Environment") as mock_env_class,
+        patch(
+            "bubo.core.report.generator.convert_sets_to_lists", return_value=results
+        ) as mock_convert,
+        patch("bubo.core.report.generator.write_json_report") as mock_write_json,
+        patch("bubo.core.report.generator.copy_asset_directories") as mock_copy_assets,
+        patch("bubo.core.report.generator.render_main_report") as mock_render,
+        patch(
+            "bubo.core.report.generator.generate_statistics_report"
+        ) as mock_gen_stats,
+    ):
+        mock_setup_dirs.return_value = (
+            "/path/to/results",
+            "/path/to/results/2023-01-01",
+        )
+        mock_gen_paths.return_value = {
+            "report_html_path": "/path/to/report.html",
+            "report_final_html_path": "/path/to/index.html",
+            "stats_html_path": "/path/to/stats.html",
+            "stats_final_html_path": "/path/to/statistics.html",
+            "stats_json_path": "/path/to/stats.json",
+            "stats_final_json_path": "/path/to/statistics.json",
+        }
+        mock_env_instance = MagicMock()
+        mock_env_class.return_value = mock_env_instance
+        mock_gen_stats.return_value = "<html>Stats</html>"
+
+        await generate_html_report(results, output_file, output_dir)
+
+        mock_setup_dirs.assert_called_once()
+        mock_gen_paths.assert_called_once()
+        mock_convert.assert_called_once_with(results)
+        mock_write_json.assert_called_once()
+        mock_copy_assets.assert_called_once()
+        mock_render.assert_called_once()
+        mock_gen_stats.assert_called_once()
