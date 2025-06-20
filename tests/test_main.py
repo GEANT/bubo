@@ -29,7 +29,7 @@ def sample_domain_info():
 
 @pytest.mark.asyncio
 async def test_process_single_domain(
-    domain_validator, sample_domain_info, mock_standards_results
+        domain_validator, sample_domain_info, mock_standards_results
 ):
     standard_returns = {
         "RPKI": (
@@ -100,7 +100,7 @@ async def test_process_single_domain(
 
 @pytest.mark.asyncio
 async def test_process_single_domain_no_nameservers(
-    domain_validator, sample_domain_info
+        domain_validator, sample_domain_info
 ):
     async def mock_process_domain_impl(*args, **kwargs):
         return (None, None, None)
@@ -121,7 +121,6 @@ async def test_process_single_domain_no_nameservers(
 @pytest.mark.asyncio
 async def test_main_batch_mode():
     test_args = ["--batch", "domains.csv"]
-    _ = "Domain,Country,Institution\nexample.com,US,Example Corp"
 
     def mock_process_file_impl(file_path):
         return [
@@ -140,7 +139,7 @@ async def test_main_batch_mode():
         patch("bubo.main.generate_html_report", new_callable=AsyncMock),
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
         patch(
-            "bubo.core.io.file_processor.sanitize_file_path", mock_sanitize_file_path
+            "bubo.core.cli.handler.sanitize_file_path", mock_sanitize_file_path
         ),
     ):
         mock_validator = AsyncMock()
@@ -163,7 +162,7 @@ async def test_main_batch_mode():
 
         mock_parse_args.return_value = argparse.Namespace(
             single=None,
-            batch="nrens.csv",
+            batch="domains.csv",
             max_concurrent=10,
             ignore_cache=False,
             routinator_url="http://localhost:8323",
