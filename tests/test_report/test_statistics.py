@@ -1,11 +1,16 @@
 from bubo.core.report.statistics import (
     analyze_dmarc_policies,
     analyze_spf_policies,
+    analyze_tls_protocol_support,
     calculate_domain_score,
     calculate_domain_scores,
     count_status,
     count_valid_statuses,
     get_common_web_issues,
+    get_domain_web_detail,
+    get_top_domain_by_category,
+    get_top_email_domain,
+    get_web_rating_counts,
 )
 
 
@@ -208,3 +213,147 @@ def test_analyze_dmarc_policies():
     assert policy_counts["quarantine"] == 1
     assert policy_counts["none"] == 1
     assert policy_counts["no_record"] == 1
+
+
+def test_get_web_rating_counts():
+    """Test the get_web_rating_counts function."""
+    web_state = {
+        "example.com": {"rating": "excellent"},
+        "example.org": {"rating": "good"},
+        "example.net": {"rating": "fair"},
+        "example.edu": {"rating": "poor"},
+        "example.gov": {"rating": "unknown"},
+    }
+
+    rating_counts = get_web_rating_counts(web_state)
+
+    assert rating_counts["excellent"] == 1
+    assert rating_counts["good"] == 1
+    assert rating_counts["fair"] == 1
+    assert rating_counts["poor"] == 1
+
+
+def test_get_top_email_domain():
+    """Test the get_top_email_domain function."""
+    email_state = {
+        "example.com": {"SPF": "valid", "DKIM": "valid", "DMARC": "valid"},
+        "example.org": {"SPF": "valid", "DKIM": "valid", "DMARC": "not-valid"},
+        "example.net": {"SPF": "valid", "DKIM": "not-valid", "DMARC": "not-valid"},
+    }
+
+    top_domain, score = get_top_email_domain(email_state)
+
+    assert top_domain == "example.com"
+    assert score == 100.0
+
+
+def test_get_top_domain_by_category():
+    """Test the get_top_domain_by_category function."""
+    category_state = {
+        "example.com": {"criteria": "valid"},
+        "example.org": {"criteria": "not-valid"},
+        "example.net": {"criteria": "not-valid"},
+    }
+
+    domain = get_top_domain_by_category(category_state, "criteria", "valid")
+    assert domain == "example.com"
+
+    category_state = {
+        "example.com": {"criteria": "not-valid"},
+        "example.org": {"criteria": "not-valid"},
+    }
+    domain = get_top_domain_by_category(category_state, "criteria", "valid")
+    assert domain == "example.com"
+
+
+def test_analyze_tls_protocol_support():
+    """Test the analyze_tls_protocol_support function."""
+    web_results = {
+        "example.com": {
+            "protocol_support": {
+                "protocols": [
+                    {"name": "TLSv1.0", "supported": False},
+                    {"name": "TLSv1.1", "supported": False},
+                    {"name": "TLSv1.2", "supported": True},
+                    {"name": "TLSv1.3", "supported": True},
+                ]
+            }
+        },
+        "example.org": {
+            "protocol_support": {
+                "protocols": [
+                    {"name": "TLSv1.0", "supported": True},
+                    {"name": "TLSv1.1", "supported": True},
+                    {"name": "TLSv1.2", "supported": True},
+                    {"name": "TLSv1.3", "supported": False},
+                ]
+            }
+        },
+        "example.net": {},
+    }
+
+    protocol_stats = analyze_tls_protocol_support(web_results)
+
+    assert protocol_stats["domain_count"] == 3
+    assert protocol_stats["TLSv1.0"]["supported"] == 1
+    assert protocol_stats["TLSv1.0"]["total"] == 2
+    assert protocol_stats["TLSv1.1"]["supported"] == 1
+    assert protocol_stats["TLSv1.1"]["total"] == 2
+    assert protocol_stats["TLSv1.2"]["supported"] == 2
+    assert protocol_stats["TLSv1.2"]["total"] == 2
+    assert protocol_stats["TLSv1.3"]["supported"] == 1
+    assert protocol_stats["TLSv1.3"]["total"] == 2
+
+
+def test_get_domain_web_detail():
+    """Test the get_domain_web_detail function."""
+    domain = "example.com"
+    state = {"rating": "excellent"}
+    web_results = {
+        "example.com": {
+            "security_assessment": {
+                "rating": "excellent",
+                "issues": ["Issue1"],
+                "critical_issues_count": 0,
+                "major_issues_count": 0,
+                "minor_issues_count": 1,
+            },
+            "certificate": {
+                "is_valid": True,
+                "days_until_expiry": 60,
+                "key_info": {"secure": True, "length": 2048},
+            },
+            "protocol_support": {
+                "has_secure_protocols": True,
+                "has_insecure_protocols": False,
+                "secure_protocols": ["TLSv1.2", "TLSv1.3"],
+            },
+            "ciphers": {
+                "has_weak_ciphers": False,
+                "has_strong_ciphers": True,
+            },
+            "hsts": {
+                "enabled": True,
+                "include_subdomains": True,
+                "preload": True,
+                "max_age": 31536000,
+            },
+            "security_headers": {
+                "content_security_policy": True,
+                "x_content_type_options": True,
+                "x_frame_options": True,
+                "referrer_policy": True,
+            },
+        }
+    }
+
+    detail = get_domain_web_detail(domain, state, web_results)
+
+    assert detail["domain"] == "example.com"
+    assert detail["score"] > 90
+    assert detail["rating"] == "excellent"
+    assert detail["tls_secure"] is True
+    assert detail["cert_valid"] is True
+    assert detail["uses_secure_protocols"] is True
+    assert len(detail["issues"]) == 1
+    assert len(detail["recommendations"]) == 0
