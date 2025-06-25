@@ -1,6 +1,6 @@
 stages:
   - security
-  - validate  # Combined stage for parallel execution
+  - validate
 
 variables:
   UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
@@ -37,7 +37,7 @@ security-scan:
 
 ruff-check:
   <<: *python-base
-  stage: validate  # Now parallel with pytest
+  stage: validate
   cache:
     key: "$CI_COMMIT_REF_SLUG-ruff"
     fallback_keys:
@@ -52,7 +52,7 @@ ruff-check:
 
 pytest:
   <<: *python-base
-  stage: validate  # Now parallel with ruff-check
+  stage: validate
   cache:
     key: "$CI_COMMIT_REF_SLUG-test"
     fallback_keys:
@@ -73,9 +73,12 @@ pytest:
     paths:
       - htmlcov/
     reports:
-      - junit: pytest-report.xml
-      - coverage_report:
-          coverage_format: cobertura
-          path: coverage.xml
+      junit: pytest-report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
     expire_in: 1 week
     when: always
+  retry:
+    max: 1
+    when: runner_system_failure
