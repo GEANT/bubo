@@ -1,10 +1,9 @@
 stages:
-  - quality
-  - test
+  - security
+  - validate  # Combined stage for parallel execution
 
 variables:
   UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 default:
   image: python:3.12-slim
@@ -29,9 +28,16 @@ default:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
+security-scan:
+  <<: *python-base
+  stage: security
+  script:
+    - uv pip install safety
+    - safety check
+
 ruff-check:
   <<: *python-base
-  stage: quality
+  stage: validate  # Now parallel with pytest
   cache:
     key: "$CI_COMMIT_REF_SLUG-ruff"
     fallback_keys:
@@ -41,17 +47,12 @@ ruff-check:
       - .venv/
       - .ruff_cache/
   script:
-    - ruff check --output-format=gitlab .
+    - ruff check .
     - ruff format --check .
-  artifacts:
-    reports:
-      codequality: ruff-report.json
-    expire_in: 1 week
-    when: always
 
 pytest:
   <<: *python-base
-  stage: test
+  stage: validate  # Now parallel with ruff-check
   cache:
     key: "$CI_COMMIT_REF_SLUG-test"
     fallback_keys:
@@ -72,12 +73,9 @@ pytest:
     paths:
       - htmlcov/
     reports:
-      junit: pytest-report.xml
-      coverage_report:
-        coverage_format: cobertura
-        path: coverage.xml
+      - junit: pytest-report.xml
+      - coverage_report:
+          coverage_format: cobertura
+          path: coverage.xml
     expire_in: 1 week
     when: always
-  retry:
-    max: 1
-    when: runner_system_failure
