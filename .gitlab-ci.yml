@@ -24,7 +24,7 @@ default:
     - pip install uv
     - uv venv .venv
     - source .venv/bin/activate
-    - uv pip install requirements.txt
+    - uv pip install -r requirements.txt
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
