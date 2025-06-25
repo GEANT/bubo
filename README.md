@@ -1,20 +1,24 @@
-# Internet and Email Compliance Checker
+# Bubo
 
-A tool for validating domains against various internet standards, including RPKI, DANE, DNSSEC, Email Security (SPF,
-DKIM, DMARC), and Web Security (Certificate, Protocol & Ciphers, and HTTP headers).
+This tool helps you check whether domains comply with important internet standards, including RPKI, DANE, DNSSEC, Email
+Security (SPF,
+DKIM, DMARC), Web Security (Certificate, Protocol & Ciphers, and HTTP headers), etc.
 
-## What it does
-
-This tool helps you check whether domains comply with important internet security standards:
-
-- **RPKI**: Resource Public Key Infrastructure validation
-- **DANE**: DNS-based Authentication of Named Entities
-- **DNSSEC**: Domain Name System Security Extensions
-- **Email Security**: Checks for SPF, DKIM, and DMARC
-- **Web Security**: Validates HTTPS implementation and other web security measures
-
-The results are compiled into an HTML report that makes it easy to assess compliance.
 ___
+
+## License
+
+This project and its dependencies use the following licenses:
+
+| Component    | License              | Notes                             |
+|--------------|----------------------|-----------------------------------|
+| This project | Apache License 2.0   |                                   |
+| OpenSSL 3.0+ | Apache License 2.0   | Required system dependency        |
+| Routinator   | BSD 3-Clause License | RPKI validator (Docker container) |
+
+Full license texts are available in the respective project repositories.
+
+---
 
 ## Requirements
 
@@ -113,8 +117,8 @@ Both reports are saved in the results/ directory with timestamped directory and 
 The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
 machine-readable format for further processing.
 
-To make it easy to access, you can also find the last generated report in results/ dir with `index.html` and
-`statistics.html` files.
+To make it easy to access (or automation), you can also find the last generated report in `results/index.html` and
+`results/statistics.html` files.
 ___
 
 ## Cache
