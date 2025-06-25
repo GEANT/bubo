@@ -33,7 +33,7 @@ security-scan:
   stage: security
   script:
     - uv pip install safety
-    - safety check
+    - safety scan --full-report --output-file=safety-report.json
 
 ruff-check:
   <<: *python-base
