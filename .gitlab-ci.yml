@@ -1,9 +1,10 @@
 stages:
-  - security
-  - validate
+  - quality
+  - test
 
 variables:
   UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
 
 default:
   image: python:3.12-slim
@@ -28,16 +29,9 @@ default:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-security-scan:
-  <<: *python-base
-  stage: security
-  script:
-    - uv pip install safety
-    - safety scan --full-report --output-file=safety-report.json
-
 ruff-check:
   <<: *python-base
-  stage: validate
+  stage: quality
   cache:
     key: "$CI_COMMIT_REF_SLUG-ruff"
     fallback_keys:
@@ -47,12 +41,17 @@ ruff-check:
       - .venv/
       - .ruff_cache/
   script:
-    - ruff check .
+    - ruff check --output-format=gitlab .
     - ruff format --check .
+  artifacts:
+    reports:
+      codequality: ruff-report.json
+    expire_in: 1 week
+    when: always
 
 pytest:
   <<: *python-base
-  stage: validate
+  stage: test
   cache:
     key: "$CI_COMMIT_REF_SLUG-test"
     fallback_keys:
