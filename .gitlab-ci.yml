@@ -1,58 +1,83 @@
 stages:
-  - linting
+  - quality
   - test
 
+variables:
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
 default:
-  image: python:3.12
+  image: python:3.12-slim
   tags:
     - shared-docker-runner
+  interruptible: true
 
 .python-base: &python-base
-  variables:
-    UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
-  before_script:
-    - python -m venv .venv
-    - . .venv/bin/activate
-    - pip install --upgrade pip
-    - pip install uv
-    - uv pip install -r requirements.txt
-  after_script:
-    - rm -rf .venv
-
-ruff-check:
-  <<: *python-base
-  stage: linting
   cache:
-    key: "${CI_COMMIT_REF_SLUG}-ruff"
+    key: "$CI_COMMIT_REF_SLUG-deps"
+    fallback_keys:
+      - "$CI_DEFAULT_BRANCH-deps"
     paths:
       - .uv-cache/
-      - .ruff_cache/
-  script:
-    - ruff check .
-    - ruff format --check .
+      - .venv/
+  before_script:
+    - pip install uv
+    - uv venv .venv
+    - source .venv/bin/activate
+    - uv pip sync requirements.txt
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+ruff-check:
+  <<: *python-base
+  stage: quality
+  cache:
+    key: "$CI_COMMIT_REF_SLUG-ruff"
+    fallback_keys:
+      - "$CI_DEFAULT_BRANCH-ruff"
+    paths:
+      - .uv-cache/
+      - .venv/
+      - .ruff_cache/
+  script:
+    - ruff check --output-format=gitlab .
+    - ruff format --check .
+  artifacts:
+    reports:
+      codequality: ruff-report.json
+    expire_in: 1 week
+    when: always
 
 pytest:
   <<: *python-base
   stage: test
   cache:
-    key: "${CI_COMMIT_REF_SLUG}-pytest"
+    key: "$CI_COMMIT_REF_SLUG-test"
+    fallback_keys:
+      - "$CI_DEFAULT_BRANCH-test"
     paths:
       - .uv-cache/
+      - .venv/
       - .pytest_cache/
-      - htmlcov/
   script:
     - pytest
+      --cov=.
+      --cov-report=xml:coverage.xml
+      --cov-report=html:htmlcov
+      --cov-report=term
+      --junitxml=pytest-report.xml
   coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
   artifacts:
     paths:
       - htmlcov/
     reports:
+      junit: pytest-report.xml
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    expire_in: 1 week
+    when: always
+  retry:
+    max: 1
+    when: runner_system_failure
