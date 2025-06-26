@@ -435,7 +435,28 @@ function createDKIMTabContent(dkimData) {
     <div class="component-header">
         <h4>DKIM Configuration</h4>
         ${statusBadge}
-    </div>`;
+    </div>
+
+    <div class="record-item">
+        <div class="record-header">
+            <i class="fas fa-search"></i>
+            <strong>Record Status:</strong>
+        </div>
+        <div class="record-details">
+            <div class="detail-row">
+                <i class="fas ${dkimData.selectors_found && dkimData.selectors_found.length > 0 ? 'fa-check-circle status-valid' : 'fa-times-circle status-invalid'}"></i>
+                <span>${dkimData.selectors_found && dkimData.selectors_found.length > 0 ? 'DKIM Record has been found for this domain.' : (dkimData.error || 'No DKIM Record has been found for this domain.')}</span>
+            </div>`;
+
+    if (dkimData.selectors_found && dkimData.selectors_found.length > 0) {
+        html += `
+            <div class="detail-row">
+                <i class="fas ${dkimData.valid ? 'fa-check-circle status-valid' : 'fa-times-circle status-invalid'}"></i>
+                <span>DKIM Record is ${dkimData.valid ? 'valid.' : 'not valid.'}</span>
+            </div>`;
+    }
+
+    html += `</div></div>`;
 
     if (dkimData.selectors_found && dkimData.selectors_found.length) {
         // Overall key strength
@@ -560,15 +581,6 @@ function createDKIMTabContent(dkimData) {
         });
     }
 
-    if (dkimData.error) {
-        html += `
-        <div class="record-item">
-            <div class="detail-row">
-                <i class="fas fa-times-circle status-invalid"></i>
-                <span>${dkimData.error}</span>
-            </div>
-        </div>`;
-    }
 
     return html;
 }
