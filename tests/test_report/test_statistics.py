@@ -1,11 +1,15 @@
 from bubo.core.report.statistics import (
+    analyze_dane_stats,
     analyze_dmarc_policies,
+    analyze_dnssec_stats,
     analyze_spf_policies,
     analyze_tls_protocol_support,
     calculate_domain_score,
     calculate_domain_scores,
     count_status,
     count_valid_statuses,
+    extract_dane_statuses,
+    extract_web_security_issues,
     get_common_web_issues,
     get_domain_web_detail,
     get_top_domain_by_category,
@@ -357,3 +361,104 @@ def test_get_domain_web_detail():
     assert detail["uses_secure_protocols"] is True
     assert len(detail["issues"]) == 1
     assert len(detail["recommendations"]) == 0
+
+
+def test_get_domain_web_detail_missing_domain():
+    """Test get_domain_web_detail with a domain not in web_results."""
+    domain = "missing.com"
+    state = {"rating": "poor"}
+    web_results = {}
+
+    detail = get_domain_web_detail(domain, state, web_results)
+
+    assert detail["domain"] == "missing.com"
+    assert detail["score"] == 0
+    assert detail["tls_secure"] is False
+    assert detail["cert_valid"] is False
+    assert detail["uses_secure_protocols"] is False
+
+
+def test_extract_web_security_issues():
+    """Test the extract_web_security_issues function."""
+    web_results = {
+        "example.com": {"security_assessment": {"issues": ["Issue1", "Issue2"]}},
+        "example.org": {"security_assessment": {"issues": ["Issue3"]}},
+        "example.net": {},
+    }
+
+    issues = extract_web_security_issues(web_results)
+
+    assert "example.com" in issues
+    assert "example.org" in issues
+    assert "example.net" in issues
+    assert len(issues["example.com"]) == 2
+    assert len(issues["example.org"]) == 1
+    assert len(issues["example.net"]) == 0
+
+
+def test_analyze_dnssec_stats():
+    """Test the analyze_dnssec_stats function."""
+    dnssec_state = {
+        "example.com": {"DNSSEC": True},
+        "example.org": {"DNSSEC": True},
+        "example.net": {"DNSSEC": False},
+    }
+    domain_count = 3
+
+    stats = analyze_dnssec_stats(dnssec_state, domain_count)
+
+    assert stats["compliant"] == 2
+    assert stats["non_compliant"] == 1
+    assert stats["partially_compliant"] == 0
+
+
+def test_extract_dane_statuses():
+    """Test the extract_dane_statuses function."""
+    dane_state = {
+        "example.com": {
+            "Mail Server of Domain": "valid",
+            "Nameserver of Domain": "valid",
+            "Nameserver of Mail Server": "valid",
+        },
+        "example.org": {
+            "Mail Server of Domain": "not-valid",
+            "Nameserver of Domain": "valid",
+        },
+    }
+
+    mx_statuses, ns_statuses, mail_ns_statuses = extract_dane_statuses(dane_state)
+
+    assert mx_statuses == ["valid", "not-valid"]
+    assert ns_statuses == ["valid", "valid"]
+    assert mail_ns_statuses == ["valid", "not-found"]
+
+
+def test_analyze_dane_stats():
+    """Test the analyze_dane_stats function."""
+    dane_state = {
+        "example.com": {
+            "Mail Server of Domain": "valid",
+            "Nameserver of Domain": "valid",
+            "Nameserver of Mail Server": "valid",
+        },
+        "example.org": {
+            "Mail Server of Domain": "not-valid",
+            "Nameserver of Domain": "valid",
+            "Nameserver of Mail Server": "partially-valid",
+        },
+    }
+
+    dane_stats, mx_stats, ns_stats, mail_ns_stats = analyze_dane_stats(dane_state)
+
+    assert dane_stats["compliant"] == 1
+    assert dane_stats["partially_compliant"] == 0
+    assert dane_stats["non_compliant"] == 1
+
+    assert mx_stats["valid"] == 1
+    assert mx_stats["not_valid"] == 1
+
+    assert ns_stats["valid"] == 2
+    assert ns_stats["not_valid"] == 0
+
+    assert mail_ns_stats["valid"] == 1
+    assert mail_ns_stats["partially_valid"] == 1
