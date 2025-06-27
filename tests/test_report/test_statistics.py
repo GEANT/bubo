@@ -2,6 +2,8 @@ from bubo.core.report.statistics import (
     analyze_dane_stats,
     analyze_dmarc_policies,
     analyze_dnssec_stats,
+    analyze_email_stats,
+    analyze_rpki_stats,
     analyze_spf_policies,
     analyze_tls_protocol_support,
     calculate_domain_score,
@@ -9,6 +11,8 @@ from bubo.core.report.statistics import (
     count_status,
     count_valid_statuses,
     extract_dane_statuses,
+    extract_email_statuses,
+    extract_rpki_statuses,
     extract_web_security_issues,
     get_common_web_issues,
     get_domain_web_detail,
@@ -462,3 +466,104 @@ def test_analyze_dane_stats():
 
     assert mail_ns_stats["valid"] == 1
     assert mail_ns_stats["partially_valid"] == 1
+
+
+def test_extract_email_statuses():
+    """Test the extract_email_statuses function."""
+    email_state = {
+        "example.com": {"SPF": "valid", "DKIM": "valid", "DMARC": "valid"},
+        "example.org": {
+            "SPF": "valid",
+            "DKIM": "not-valid",
+            "DMARC": "partially-valid",
+        },
+    }
+
+    spf_statuses, dkim_statuses, dmarc_statuses = extract_email_statuses(email_state)
+
+    assert spf_statuses == ["valid", "valid"]
+    assert dkim_statuses == ["valid", "not-valid"]
+    assert dmarc_statuses == ["valid", "partially-valid"]
+
+
+def test_analyze_email_stats():
+    """Test the analyze_email_stats function."""
+    email_state = {
+        "example.com": {"SPF": "valid", "DKIM": "valid", "DMARC": "valid"},
+        "example.org": {"SPF": "valid", "DKIM": "not-valid", "DMARC": "not-valid"},
+        "example.net": {"SPF": "not-valid", "DKIM": "not-valid", "DMARC": "not-valid"},
+    }
+
+    email_stats, spf_stats, dkim_stats, dmarc_stats, fully_compliant = (
+        analyze_email_stats(email_state)
+    )
+
+    assert email_stats["compliant"] == 1
+    assert email_stats["partially_compliant"] == 1
+    assert email_stats["non_compliant"] == 1
+    assert email_stats["fully_compliant"] == 1
+
+    assert spf_stats["valid"] == 2
+    assert dkim_stats["valid"] == 1
+    assert dmarc_stats["valid"] == 1
+
+    assert fully_compliant == 1
+
+
+def test_extract_rpki_statuses():
+    """Test the extract_rpki_statuses function."""
+    rpki_state = {
+        "example.com": {
+            "Mail Server of Domain": "valid",
+            "Nameserver of Domain": "valid",
+            "Nameserver of Mail Server": "valid",
+        },
+        "example.org": {
+            "Mail Server of Domain": "not-valid",
+            "Nameserver of Domain": "valid",
+        },
+    }
+
+    mx_statuses, ns_statuses, mail_ns_statuses = extract_rpki_statuses(rpki_state)
+
+    assert mx_statuses == ["valid", "not-valid"]
+    assert ns_statuses == ["valid", "valid"]
+
+    assert mail_ns_statuses == ["valid", "not-valid"]
+
+
+def test_analyze_rpki_stats():
+    """Test the analyze_rpki_stats function."""
+    rpki_state = {
+        "example.com": {
+            "Mail Server of Domain": "valid",
+            "Nameserver of Domain": "valid",
+            "Nameserver of Mail Server": "valid",
+        },
+        "example.org": {
+            "Mail Server of Domain": "partially-valid",
+            "Nameserver of Domain": "valid",
+            "Nameserver of Mail Server": "not-valid",
+        },
+        "example.net": {
+            "Mail Server of Domain": "not-valid",
+            "Nameserver of Domain": "not-valid",
+            "Nameserver of Mail Server": "not-valid",
+        },
+    }
+
+    rpki_stats, mx_stats, ns_stats, mail_ns_stats = analyze_rpki_stats(rpki_state)
+
+    assert rpki_stats["compliant"] == 1
+    assert rpki_stats["partially_compliant"] == 1
+    assert rpki_stats["non_compliant"] == 1
+
+    assert mx_stats["valid"] == 1
+    assert mx_stats["partially_valid"] == 1
+    assert mx_stats["not_valid"] == 1
+
+    assert ns_stats["valid"] == 2
+    assert ns_stats["not_valid"] == 1
+
+    assert mail_ns_stats["valid"] == 1
+    assert mail_ns_stats["not_valid"] == 2
