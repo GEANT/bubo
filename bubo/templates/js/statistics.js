@@ -61,7 +61,8 @@ function setBasicInfo() {
     document.getElementById('top-score').textContent = (statsData.top_domain_score || 0).toFixed(1);
 
     // Set footer year
-    document.getElementById('footer-year').textContent = statsData.year || new Date().getFullYear();
+    const year = statsData.year || new Date().getFullYear();
+    // document.getElementById('footer-year').textContent = statsData.year || new Date().getFullYear();
 
     // Set web rating counts and percentages
     const webRatingCounts = statsData.web_rating_counts || {excellent: 0, good: 0, fair: 0, poor: 0};
@@ -673,14 +674,14 @@ function createEmailComplianceChart() {
 
     // Create an array of all categories with their counts and colors
     const categories = [
-        { label: 'All Standards (SPF, DKIM, DMARC)', count: allCount, color: '#28a745' },
-        { label: 'SPF + DKIM only', count: spfDkimCount, color: '#4caf50' },
-        { label: 'SPF + DMARC only', count: spfDmarcCount, color: '#8bc34a' },
-        { label: 'DKIM + DMARC only', count: dkimDmarcCount, color: '#cddc39' },
-        { label: 'SPF only', count: spfOnlyCount, color: '#ffc107' },
-        { label: 'DKIM only', count: dkimOnlyCount, color: '#ff9800' },
-        { label: 'DMARC only', count: dmarcOnlyCount, color: '#ff5722' },
-        { label: 'No Email Protection', count: noneCount, color: '#dc3545' }
+        {label: 'All Standards (SPF, DKIM, DMARC)', count: allCount, color: '#28a745'},
+        {label: 'SPF + DKIM only', count: spfDkimCount, color: '#4caf50'},
+        {label: 'SPF + DMARC only', count: spfDmarcCount, color: '#8bc34a'},
+        {label: 'DKIM + DMARC only', count: dkimDmarcCount, color: '#cddc39'},
+        {label: 'SPF only', count: spfOnlyCount, color: '#ffc107'},
+        {label: 'DKIM only', count: dkimOnlyCount, color: '#ff9800'},
+        {label: 'DMARC only', count: dmarcOnlyCount, color: '#ff5722'},
+        {label: 'No Email Protection', count: noneCount, color: '#dc3545'}
     ];
 
     // Filter categories to only include those with count > 0
@@ -924,10 +925,9 @@ function createSpfPolicyChart() {
 
     // Create an array of all categories with their counts and colors
     const categories = [
-        { label: 'Hard Fail (-all)', count: spfPolicyCounts['-all'] || 0, color: '#28a745' },
-        { label: 'Soft Fail (~all)', count: spfPolicyCounts['~all'] || 0, color: '#ffc107' },
-        { label: 'Other Policy', count: spfPolicyCounts['other'] || 0, color: '#dc3545' },
-        { label: 'No Policy', count: spfPolicyCounts['none'] || 0, color: '#6c757d' }
+        {label: 'Hard Fail (-all)', count: spfPolicyCounts['-all'] || 0, color: '#28a745'},
+        {label: 'Soft Fail (~all)', count: spfPolicyCounts['~all'] || 0, color: '#ffc107'},
+        {label: 'No Policy', count: spfPolicyCounts['none'] || 0, color: '#6c757d'}
     ];
 
     // Filter categories to only include those with count > 0
@@ -1366,11 +1366,19 @@ function createEmailComponentsChart() {
     if (!ctx) return;
 
     const labels = ['SPF', 'DKIM', 'DMARC'];
+
     const validData = [
         statsData.email_spf_stats.valid || 0,
         statsData.email_dkim_stats.valid || 0,
         statsData.email_dmarc_stats.valid || 0
     ];
+
+    const partialData = [
+        statsData.email_spf_stats.partially_valid || 0,
+        statsData.email_dkim_stats.partially_valid || 0,
+        statsData.email_dmarc_stats.partially_valid || 0
+    ];
+
     const invalidData = [
         statsData.email_spf_stats.not_valid || 0,
         statsData.email_dkim_stats.not_valid || 0,
@@ -1386,6 +1394,12 @@ function createEmailComponentsChart() {
                     label: 'Valid',
                     data: validData,
                     backgroundColor: '#28a745',
+                    borderWidth: 0
+                },
+                {
+                    label: 'Partially Valid',
+                    data: partialData,
+                    backgroundColor: '#ffc107',
                     borderWidth: 0
                 },
                 {
@@ -1406,7 +1420,9 @@ function createEmailComponentsChart() {
                             const datasetLabel = context.dataset.label || '';
                             const value = context.raw;
                             const component = context.label;
-                            const total = validData[context.dataIndex] + invalidData[context.dataIndex];
+                            const total = validData[context.dataIndex] +
+                                partialData[context.dataIndex] +
+                                invalidData[context.dataIndex];
                             const percentage = Math.round((value / total) * 100);
                             return `${component} - ${datasetLabel}: ${value} (${percentage}%)`;
                         }
@@ -1803,13 +1819,13 @@ function updateComparisonChart(domain1, domain2, metric) {
 function calculateEmailComplianceScore(domain) {
     // Valid = 1.0, partially-valid = 0.5, others = 0
     const spfScore = statsData.email_state[domain]?.SPF === 'valid' ? 1 :
-                    (statsData.email_state[domain]?.SPF === 'partially-valid' ? 0.5 : 0);
+        (statsData.email_state[domain]?.SPF === 'partially-valid' ? 0.5 : 0);
 
     const dkimScore = statsData.email_state[domain]?.DKIM === 'valid' ? 1 :
-                     (statsData.email_state[domain]?.DKIM === 'partially-valid' ? 0.5 : 0);
+        (statsData.email_state[domain]?.DKIM === 'partially-valid' ? 0.5 : 0);
 
     const dmarcScore = statsData.email_state[domain]?.DMARC === 'valid' ? 1 :
-                      (statsData.email_state[domain]?.DMARC === 'partially-valid' ? 0.5 : 0);
+        (statsData.email_state[domain]?.DMARC === 'partially-valid' ? 0.5 : 0);
 
     // Calculate weighted score (SPF=30%, DKIM=30%, DMARC=40%)
     return Math.round((spfScore * 30 + dkimScore * 30 + dmarcScore * 40));
@@ -2119,15 +2135,14 @@ function configureChartDefaults() {
     };
 
 
-
     // Add window resize handler to redraw charts
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', function () {
         // Force redraw of all charts when window is resized
         if (window.Chart && Chart.instances) {
             Object.values(Chart.instances).forEach(chart => {
                 try {
                     chart.resize();
-                } catch(e) {
+                } catch (e) {
                     console.warn('Error resizing chart:', e);
                 }
             });
