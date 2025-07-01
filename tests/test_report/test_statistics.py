@@ -1,3 +1,7 @@
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from bubo.core.report.statistics import (
     analyze_dane_stats,
     analyze_dmarc_policies,
@@ -6,6 +10,7 @@ from bubo.core.report.statistics import (
     analyze_rpki_stats,
     analyze_spf_policies,
     analyze_tls_protocol_support,
+    analyze_web_security_stats,
     calculate_domain_score,
     calculate_domain_scores,
     count_status,
@@ -13,12 +18,16 @@ from bubo.core.report.statistics import (
     extract_dane_statuses,
     extract_email_statuses,
     extract_rpki_statuses,
+    extract_server_states,
     extract_web_security_issues,
+    find_top_domains,
+    generate_statistics_report,
     get_common_web_issues,
     get_domain_web_detail,
     get_top_domain_by_category,
     get_top_email_domain,
     get_web_rating_counts,
+    prepare_statistics_context,
 )
 
 
@@ -567,3 +576,201 @@ def test_analyze_rpki_stats():
 
     assert mail_ns_stats["valid"] == 1
     assert mail_ns_stats["not_valid"] == 2
+
+
+def test_analyze_web_security_stats():
+    """Test the analyze_web_security_stats function."""
+    web_state = {
+        "example.com": {"rating": "excellent"},
+        "example.org": {"rating": "good"},
+        "example.net": {"rating": "fair"},
+        "example.edu": {"rating": "poor"},
+    }
+
+    stats = analyze_web_security_stats(web_state)
+
+    assert stats["compliant"] == 2
+    assert stats["partially_compliant"] == 1
+    assert stats["non_compliant"] == 1
+
+
+def test_find_top_domains():
+    """Test the find_top_domains function."""
+    domain_scores = [
+        ("example.com", 95.0),
+        ("example.org", 85.0),
+        ("example.net", 75.0),
+    ]
+    domain_metadata = {
+        "example.com": {"country": "US"},
+        "example.org": {"country": "UK"},
+        "example.net": {"country": "CA"},
+    }
+    dnssec_state = {
+        "example.com": {"DNSSEC": True},
+        "example.org": {"DNSSEC": True},
+        "example.net": {"DNSSEC": False},
+    }
+    email_state = {
+        "example.com": {"SPF": "valid", "DKIM": "valid", "DMARC": "valid"},
+        "example.org": {"SPF": "valid", "DKIM": "not-valid", "DMARC": "valid"},
+        "example.net": {"SPF": "valid", "DKIM": "not-valid", "DMARC": "not-valid"},
+    }
+    web_state = {
+        "example.com": {"rating": "excellent"},
+        "example.org": {"rating": "good"},
+        "example.net": {"rating": "fair"},
+    }
+
+    top_domain, top_score, top_dnssec, top_email, top_web = find_top_domains(
+        domain_scores, domain_metadata, dnssec_state, email_state, web_state
+    )
+
+    assert top_domain == "example.com"
+    assert top_score == 95.0
+    assert top_dnssec == "example.com"
+    assert top_email[0] == "example.com"
+    assert top_email[1] == 100.0
+    assert top_web == "example.com"
+
+
+def test_extract_server_states():
+    """Test the extract_server_states function."""
+    dane_state = {
+        "example.com": {"Mail Server of Domain": "valid"},
+        "example.org": {},
+    }
+    rpki_state = {
+        "example.com": {"Mail Server of Domain": "valid"},
+        "example.org": {},
+    }
+
+    dane_mail_server_state, rpki_mail_server_state = extract_server_states(
+        dane_state, rpki_state
+    )
+
+    assert dane_mail_server_state["example.com"] == "valid"
+    assert dane_mail_server_state["example.org"] == "not-found"
+    assert rpki_mail_server_state["example.com"] == "valid"
+    assert rpki_mail_server_state["example.org"] == "not-valid"
+
+
+@pytest.mark.asyncio
+async def test_generate_statistics_report():
+    """Test the generate_statistics_report function."""
+
+    results = {
+        "validations": {
+            "DNSSEC": {"state": {"example.com": {"DNSSEC": True}}},
+            "DANE": {"state": {"example.com": {"Mail Server of Domain": "valid"}}},
+            "EMAIL_SECURITY": {
+                "state": {
+                    "example.com": {"SPF": "valid", "DKIM": "valid", "DMARC": "valid"}
+                },
+                "results": {
+                    "example.com": {
+                        "spf": {"has_spf": True, "policy": "-all"},
+                        "dmarc": {"record_exists": True, "policy": "reject"},
+                    }
+                },
+            },
+            "RPKI": {
+                "state": {
+                    "example.com": {
+                        "Mail Server of Domain": "valid",
+                        "Nameserver of Domain": "valid",
+                    }
+                }
+            },
+            "WEB_SECURITY": {
+                "state": {"example.com": {"rating": "excellent"}},
+                "results": {
+                    "example.com": {
+                        "security_assessment": {"rating": "excellent", "issues": []}
+                    }
+                },
+            },
+        },
+        "domain_metadata": {
+            "example.com": {"country": "US", "institution": "Example Corp"}
+        },
+    }
+
+    with (
+        patch("bubo.core.report.statistics.open", MagicMock()),
+        patch("bubo.core.report.statistics.json_dumps", return_value="{}"),
+    ):
+        mock_env = MagicMock()
+        mock_template = MagicMock()
+        mock_env.get_template.return_value = mock_template
+        mock_template.render.return_value = "<html>Test</html>"
+
+        html = await generate_statistics_report(
+            results,
+            "stats_final.html",
+            "stats.html",
+            "stats.json",
+            "stats_final.json",
+            mock_env,
+        )
+
+        assert html == "<html>Test</html>"
+        mock_env.get_template.assert_called_once_with("statistics.html")
+
+
+def test_prepare_statistics_context():
+    """Test the prepare_statistics_context function."""
+
+    results = {
+        "validations": {
+            "DNSSEC": {"state": {"example.com": {"DNSSEC": True}}},
+            "DANE": {"state": {"example.com": {"Mail Server of Domain": "valid"}}},
+            "EMAIL_SECURITY": {
+                "state": {
+                    "example.com": {"SPF": "valid", "DKIM": "valid", "DMARC": "valid"}
+                },
+                "results": {
+                    "example.com": {
+                        "spf": {"has_spf": True, "policy": "-all"},
+                        "dmarc": {"record_exists": True, "policy": "reject"},
+                    }
+                },
+            },
+            "RPKI": {
+                "state": {
+                    "example.com": {
+                        "Mail Server of Domain": "valid",
+                        "Nameserver of Domain": "valid",
+                    }
+                }
+            },
+            "WEB_SECURITY": {
+                "state": {"example.com": {"rating": "excellent"}},
+                "results": {
+                    "example.com": {
+                        "security_assessment": {"rating": "excellent", "issues": []}
+                    }
+                },
+            },
+        },
+        "domain_metadata": {
+            "example.com": {"country": "US", "institution": "Example Corp"}
+        },
+    }
+
+    context = prepare_statistics_context(results)
+
+    assert "domain_metadata" in context
+    assert "domain_count" in context
+    assert "dnssec_stats" in context
+    assert "dane_stats" in context
+    assert "email_stats" in context
+    assert "rpki_stats" in context
+    assert "web_stats" in context
+    assert "domain_scores" in context
+    assert "top_domain" in context
+    assert "timestamp" in context
+
+    assert context["domain_count"] == 1
+    assert context["dnssec_stats"]["compliant"] == 1
+    assert context["top_domain"] == "example.com"
