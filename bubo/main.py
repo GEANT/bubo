@@ -32,11 +32,11 @@ class DomainValidator:
     }
 
     def __init__(
-            self,
-            cache_dir: str,
-            cache_duration: timedelta,
-            max_concurrent: int = 64,
-            routinator_url: str = "http://localhost:8323",
+        self,
+        cache_dir: str,
+        cache_duration: timedelta,
+        max_concurrent: int = 64,
+        routinator_url: str = "http://localhost:8323",
     ):
         self.cache = DomainResultsCache(
             cache_dir=cache_dir, cache_duration=cache_duration
@@ -45,12 +45,12 @@ class DomainValidator:
         self.routinator_url = routinator_url
 
     def create_validation_tasks(
-            self,
-            domain: str,
-            mode: str,
-            domain_ns: list[str],
-            domain_mx: list[str],
-            mail_ns: list[str] | list[list[str]],
+        self,
+        domain: str,
+        mode: str,
+        domain_ns: list[str],
+        domain_mx: list[str],
+        mail_ns: list[str] | list[list[str]],
     ) -> dict[str, asyncio.Task]:
         """
         Creates async tasks for each validation type (RPKI, DANE, DNSSEC, EMAIL_SECURITY).
@@ -84,7 +84,7 @@ class DomainValidator:
         return tasks
 
     async def process_single_domain(
-            self, domain_info: dict[str, str]
+        self, domain_info: dict[str, str]
     ) -> dict[str, Any] | None:
         """
         Processes a single domain by running all validations and returning combined results.
@@ -146,7 +146,7 @@ class DomainValidator:
         }
 
     async def process_cached_domain(
-            self, _domain: str, all_results: dict[str, Any], cached_results: dict[str, Any]
+        self, _domain: str, all_results: dict[str, Any], cached_results: dict[str, Any]
     ) -> None:
         """
         Processes and merges cached domain results into the overall results structure.
@@ -162,7 +162,7 @@ class DomainValidator:
             all_results["validations"][v_type]["state"].update(v_type_state)
 
     async def process_domain(
-            self, domains: list[dict[str, str]], ignore_cache: bool = False
+        self, domains: list[dict[str, str]], ignore_cache: bool = False
     ) -> dict[str, Any]:
         """
         Processes a single domain or multiple domains in batch, handling both cached and uncached domains.
@@ -203,7 +203,7 @@ class DomainValidator:
         return {**all_results, "success": successful_domains}
 
     async def merge_batch_results(
-            self, results: list[dict[str, Any]], all_results: dict[str, Any]
+        self, results: list[dict[str, Any]], all_results: dict[str, Any]
     ) -> None:
         """
         Merges batch processing results into the overall results structure and updates cache_manager.
@@ -226,7 +226,7 @@ class DomainValidator:
                 self.cache.save_results(domain, domain_results)
 
     def extract_domain_results(
-            self, domain: str, all_results: dict[str, Any]
+        self, domain: str, all_results: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Extracts results for a specific domain from the combined results.
