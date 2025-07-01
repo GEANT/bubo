@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/statistics.css">
     <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 
 </head>
@@ -23,16 +24,16 @@
             <div class="dashboard-grid">
                 <!-- Summary Statistics -->
                 <section class="widget summary-widget">
-                        <div class="widget-header">
-                            <h2>Summary Statistics</h2>
-                            <div class="header-actions">
-                                <a href="index.html" class="main-report-icon" title="Main Report">
-                                    <i class="fas fa-table"></i>
-                                    <span>Main Report</span>
-                                </a>
-                                <span class="domain-count"><span id="domain-count">0</span> domain(s) analyzed</span>
-                            </div>
+                    <div class="widget-header">
+                        <h2>Summary Statistics</h2>
+                        <div class="header-actions">
+                            <a href="index.html" class="main-report-icon" title="Main Report">
+                                <i class="fas fa-table"></i>
+                                <span>Main Report</span>
+                            </a>
+                            <span class="domain-count"><span id="domain-count">0</span> domain(s) analyzed</span>
                         </div>
+                    </div>
 
                     <div class="summary-cards">
                         <div class="metric-card">
@@ -496,11 +497,11 @@
                 </div>
             </section>
 
-            <footer class="dashboard-footer">
-                <p>Internet Standards and Compliance Statistics Report &copy; <span id="footer-year"></span> | <i class="fas fa-shield-alt"></i> Made by GÉANT</p>
-            </footer>
         </div>
     </main>
+    <footer>
+        {% include 'partials/footer.html' %}
+    </footer>
 </div>
 
 <script>
