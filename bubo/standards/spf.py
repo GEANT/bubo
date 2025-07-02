@@ -1,5 +1,8 @@
 import asyncio
 
+import dns.resolver
+from dns import exception as dns_exception
+
 from bubo.core.dns.resolver import dns_manager
 from bubo.core.logging.logger import setup_logger
 
@@ -49,12 +52,23 @@ async def get_spf_record(domain: str) -> str | None:
                     continue
 
         except Exception as e:
-            logger.debug(f"Error fetching SPF record for {domain}: {e}")
+            logger.debug(f"Error fetching deprecated SPF record type for {domain}: {e}")
             return None
 
         return None
     except asyncio.TimeoutError:
         logger.error(f"Timeout when fetching SPF record for {domain}")
+        return None
+    except dns.resolver.NXDOMAIN:
+        logger.warning(
+            f"DNS error when fetching SPF record for {domain}: Domain does not exist (NXDOMAIN)"
+        )
+        return None
+    except dns.resolver.NoAnswer:
+        logger.warning(f"No SPF record for {domain}")
+        return None
+    except dns_exception.DNSException as e:
+        logger.warning(f"DNS error when fetching SPF record for {domain}: {e}")
         return None
     except Exception as e:
         logger.error(f"Error when fetching SPF record for {domain}: {e}")
