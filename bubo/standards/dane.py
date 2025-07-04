@@ -145,7 +145,6 @@ def get_state_value(results):
 
 async def run(
     domain: str,
-    check_mode: str,
     domain_ns: list[str],
     domain_mx: list[str],
     mail_ns: list[str],
