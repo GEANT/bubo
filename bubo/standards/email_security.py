@@ -33,7 +33,7 @@ COMMON_DKIM_SELECTORS = [
 
 
 async def get_txt_records(
-    domain: str, record_type: str | None = None, log_errors: bool = True
+        domain: str, record_type: str | None = None, log_errors: bool = True
 ) -> list[str]:
     """
     Fetch TXT records for a domain and properly reassemble multi-part records.
@@ -242,7 +242,7 @@ async def check_dkim(domain: str) -> dict[str, Any]:
             results["valid"] = True
         else:
             results["error"] = "No DKIM records found with common selectors"
-            logger.info(f"{results['error']} for {domain}")
+            logger.debug(f"{results['error']} for {domain}")
 
     except Exception as e:
         results["error"] = str(e)
@@ -280,7 +280,7 @@ async def check_dmarc(domain: str) -> dict[str, Any]:
 
         if not dmarc_records:
             results["error"] = "No DMARC record found"
-            logger.info(f"{results['error']} for {domain}")
+            logger.debug(f"{results['error']} for {domain}")
             return results
 
         if len(dmarc_records) > 1:
@@ -351,9 +351,9 @@ async def check_dmarc(domain: str) -> dict[str, Any]:
             results["percentage"] = 100
 
         results["valid"] = (
-            results["record_exists"]
-            and results["policy"] in ["quarantine", "reject"]
-            and not results["error"]
+                results["record_exists"]
+                and results["policy"] in ["quarantine", "reject"]
+                and not results["error"]
         )
 
     except Exception as e:

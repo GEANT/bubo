@@ -65,7 +65,7 @@ async def get_spf_record(domain: str) -> str | None:
         )
         return None
     except dns.resolver.NoAnswer:
-        logger.warning(f"No SPF record for {domain}")
+        logger.debug(f"No SPF record found for {domain}")
         return None
     except dns_exception.DNSException as e:
         logger.warning(f"DNS error when fetching SPF record for {domain}: {e}")
