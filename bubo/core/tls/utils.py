@@ -432,7 +432,7 @@ async def run_openssl_command(
             )
 
             try:
-                stdin_data = b"\n"
+                stdin_data = b""
                 stdout, stderr = await asyncio.wait_for(
                     proc.communicate(input=stdin_data), timeout=effective_timeout
                 )
