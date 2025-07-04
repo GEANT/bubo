@@ -107,7 +107,7 @@ def copy_asset_directories(base_dir: str, output_dir: str, results_dir: str) -> 
         output_dir: Directory for dated output
         results_dir: Main results directory
     """
-    for asset_type in ["css", "js"]:
+    for asset_type in ["css", "js", "img"]:
         src_dir = os.path.join(base_dir, "templates", asset_type)
         dst_dir = os.path.join(output_dir, asset_type)
         dst_results_dir = os.path.join(results_dir, asset_type)
