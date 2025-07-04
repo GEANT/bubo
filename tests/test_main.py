@@ -29,7 +29,7 @@ def sample_domain_info():
 
 @pytest.mark.asyncio
 async def test_process_single_domain(
-        domain_validator, sample_domain_info, mock_standards_results
+    domain_validator, sample_domain_info, mock_standards_results
 ):
     standard_returns = {
         "RPKI": (
@@ -100,7 +100,7 @@ async def test_process_single_domain(
 
 @pytest.mark.asyncio
 async def test_process_single_domain_no_nameservers(
-        domain_validator, sample_domain_info
+    domain_validator, sample_domain_info
 ):
     async def mock_process_domain_impl(*args, **kwargs):
         return (None, None, None)
