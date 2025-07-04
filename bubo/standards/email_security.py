@@ -32,7 +32,9 @@ COMMON_DKIM_SELECTORS = [
 ]
 
 
-async def get_txt_records(domain: str, record_type: str | None = None) -> list[str]:
+async def get_txt_records(
+        domain: str, record_type: str | None = None, log_errors: bool = True
+) -> list[str]:
     """
     Fetch TXT records for a domain and properly reassemble multi-part records.
     Returns:
@@ -56,15 +58,27 @@ async def get_txt_records(domain: str, record_type: str | None = None) -> list[s
         return complete_records
     except dns.resolver.NXDOMAIN:
         if record_type:
-            logger.debug(f"No {record_type} record found for {domain} (NXDOMAIN)")
+            logger.debug(
+                f"DNS error when fetching {record_type.upper()} record for {domain}: Domain does not exist (NXDOMAIN)"
+            )
         return []
     except dns.resolver.NoAnswer:
         if record_type:
-            logger.debug(f"No {record_type} record found for {domain} (NoAnswer)")
+            logger.debug(
+                f"DNS error when fetching {record_type.upper()} record for {domain}: The DNS response does not contain an answer to the question: {domain}. IN TXT"
+            )
+        return []
+    except dns.exception.DNSException as e:
+        if record_type:
+            logger.warning(
+                f"DNS error when fetching {record_type.upper()} record for {domain}: {e}"
+            )
         return []
     except Exception as e:
         if record_type:
-            logger.debug(f"Error fetching {record_type} records for {domain}: {e!s}")
+            logger.debug(
+                f"Error fetching {record_type.upper()} records for {domain}: {e!s}"
+            )
         return []
 
 
@@ -228,6 +242,7 @@ async def check_dkim(domain: str) -> dict[str, Any]:
             results["valid"] = True
         else:
             results["error"] = "No DKIM records found with common selectors"
+            logger.info(f"{results['error']} for {domain}")
 
     except Exception as e:
         results["error"] = str(e)
@@ -265,6 +280,7 @@ async def check_dmarc(domain: str) -> dict[str, Any]:
 
         if not dmarc_records:
             results["error"] = "No DMARC record found"
+            logger.info(f"{results['error']} for {domain}")
             return results
 
         if len(dmarc_records) > 1:
@@ -335,9 +351,9 @@ async def check_dmarc(domain: str) -> dict[str, Any]:
             results["percentage"] = 100
 
         results["valid"] = (
-            results["record_exists"]
-            and results["policy"] in ["quarantine", "reject"]
-            and not results["error"]
+                results["record_exists"]
+                and results["policy"] in ["quarantine", "reject"]
+                and not results["error"]
         )
 
     except Exception as e:
