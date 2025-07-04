@@ -33,7 +33,7 @@ COMMON_DKIM_SELECTORS = [
 
 
 async def get_txt_records(
-        domain: str, record_type: str | None = None, log_errors: bool = True
+    domain: str, record_type: str | None = None, log_errors: bool = True
 ) -> list[str]:
     """
     Fetch TXT records for a domain and properly reassemble multi-part records.
@@ -351,9 +351,9 @@ async def check_dmarc(domain: str) -> dict[str, Any]:
             results["percentage"] = 100
 
         results["valid"] = (
-                results["record_exists"]
-                and results["policy"] in ["quarantine", "reject"]
-                and not results["error"]
+            results["record_exists"]
+            and results["policy"] in ["quarantine", "reject"]
+            and not results["error"]
         )
 
     except Exception as e:
