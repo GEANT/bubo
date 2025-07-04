@@ -9,7 +9,7 @@ from bubo.standards import dane
 @pytest.mark.asyncio
 async def test_check_tlsa_record_with_records():
     with patch(
-        "dns.asyncresolver.Resolver.resolve", new_callable=AsyncMock
+            "dns.asyncresolver.Resolver.resolve", new_callable=AsyncMock
     ) as mock_resolve:
         mock_answer = AsyncMock()
         mock_answer.to_text = lambda: "3 1 1 hash_value"
@@ -22,7 +22,7 @@ async def test_check_tlsa_record_with_records():
 @pytest.mark.asyncio
 async def test_check_tlsa_record_no_records():
     with patch(
-        "dns.asyncresolver.Resolver.resolve", new_callable=AsyncMock
+            "dns.asyncresolver.Resolver.resolve", new_callable=AsyncMock
     ) as mock_resolve:
         mock_resolve.side_effect = dns.exception.DNSException()
         result = await dane.check_tlsa_record("example.com", 443)
@@ -77,7 +77,7 @@ async def test_process_servers_with_valid_records(mock_dane_valid):
 @pytest.mark.asyncio
 async def test_process_servers_no_records():
     with patch(
-        "bubo.standards.dane.check_tlsa_record", new_callable=AsyncMock
+            "bubo.standards.dane.check_tlsa_record", new_callable=AsyncMock
     ) as mock_check:
         mock_check.return_value = []
         servers = ["ns1.example.com"]
@@ -91,7 +91,7 @@ async def test_process_servers_no_records():
 @pytest.mark.asyncio
 async def test_run_successful_validation(sample_domain, sample_servers):
     with patch(
-        "bubo.standards.dane.process_servers", new_callable=AsyncMock
+            "bubo.standards.dane.process_servers", new_callable=AsyncMock
     ) as mock_process:
         mock_process.return_value = {
             "ns1.example.com": {
@@ -102,7 +102,6 @@ async def test_run_successful_validation(sample_domain, sample_servers):
 
         results, state = await dane.run(
             sample_domain,
-            "single",
             sample_servers["domain_ns"],
             sample_servers["domain_mx"],
             sample_servers["mail_ns"],
@@ -115,7 +114,7 @@ async def test_run_successful_validation(sample_domain, sample_servers):
 @pytest.mark.asyncio
 async def test_run_failed_validation(sample_domain, sample_servers):
     with patch(
-        "bubo.standards.dane.process_servers", new_callable=AsyncMock
+            "bubo.standards.dane.process_servers", new_callable=AsyncMock
     ) as mock_process:
         mock_process.side_effect = [
             {"ns1.example.com": {"tlsa_records": [], "validation": False}},
@@ -125,7 +124,6 @@ async def test_run_failed_validation(sample_domain, sample_servers):
 
         results, state = await dane.run(
             sample_domain,
-            "single",
             sample_servers["domain_ns"],
             sample_servers["domain_mx"],
             sample_servers["mail_ns"],

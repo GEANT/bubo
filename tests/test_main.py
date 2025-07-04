@@ -9,13 +9,13 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from bubo.main import DomainValidator, start
+from bubo.main import Bubo, start
 
 
 @pytest.fixture
 def domain_validator(mock_cache_generator):
     with patch("bubo.main.DomainResultsCache", return_value=mock_cache_generator):
-        return DomainValidator(
+        return Bubo(
             cache_dir="test_cache",
             cache_duration=timedelta(days=1),
             routinator_url="http://localhost:8323",
@@ -29,7 +29,7 @@ def sample_domain_info():
 
 @pytest.mark.asyncio
 async def test_process_single_domain(
-    domain_validator, sample_domain_info, mock_standards_results
+        domain_validator, sample_domain_info, mock_standards_results
 ):
     standard_returns = {
         "RPKI": (
@@ -55,7 +55,7 @@ async def test_process_single_domain(
             "bubo.core.dns.records.process_domain", new_callable=AsyncMock
         ) as mock_process_domain,
         patch(
-            "bubo.main.DomainValidator.VALIDATION_TYPES", new={}
+            "bubo.main.Bubo.VALIDATION_TYPES", new={}
         ),  # Clear the validation types first
         patch("bubo.main.rpki.run", new_callable=AsyncMock) as mock_rpki_run,
         patch("bubo.main.dane.run", new_callable=AsyncMock) as mock_dane_run,
@@ -100,7 +100,7 @@ async def test_process_single_domain(
 
 @pytest.mark.asyncio
 async def test_process_single_domain_no_nameservers(
-    domain_validator, sample_domain_info
+        domain_validator, sample_domain_info
 ):
     async def mock_process_domain_impl(*args, **kwargs):
         return (None, None, None)
@@ -134,7 +134,7 @@ async def test_main_batch_mode():
 
     with (
         patch("sys.argv", ["bubo.main.py", *test_args]),
-        patch("bubo.main.DomainValidator") as mock_validator_class,
+        patch("bubo.main.Bubo") as mock_validator_class,
         patch("bubo.main.process_file", mock_process_file),
         patch("bubo.main.generate_html_report", new_callable=AsyncMock),
         patch("argparse.ArgumentParser.parse_args") as mock_parse_args,
