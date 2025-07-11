@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "bubo"
 version = "1.0.0"
 description = "Bubo is a tool for validating domains against internet and email standards."
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["dependencies"]
