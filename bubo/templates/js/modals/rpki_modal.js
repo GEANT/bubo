@@ -191,7 +191,7 @@ function createRPKIServerRows(serverData) {
         prefixes.forEach(([prefix, prefixData], index) => {
             const isFirstRow = index === 0;
 
-            rows += `<tr class="${isFirstRow ? 'server-row-start' : ''}">`;
+            rows += `<tr>`;
 
             // Server and IP columns only in first row
             if (isFirstRow) {

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="css/statistics.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/footer.css">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
 
 </head>
 <body>
@@ -27,10 +27,15 @@
                     <div class="widget-header">
                         <h2>Summary Statistics</h2>
                         <div class="header-actions">
+                            <a href="scoreboard.html" class="scoreboard-icon" title="View Scoreboard">
+                                <i class="fas fa-trophy"></i>
+                                <span>Scoreboard</span>
+                            </a>
                             <a href="index.html" class="main-report-icon" title="Main Report">
                                 <i class="fas fa-table"></i>
                                 <span>Main Report</span>
                             </a>
+
                             <span class="domain-count"><span id="domain-count">0</span> domain(s) analyzed</span>
                         </div>
                     </div>
@@ -223,6 +228,7 @@
                                         <th>TLS</th>
                                         <th>Certificate</th>
                                         <th>Secure Protocols</th>
+                                        <th>Insecure Protocols</th>
                                     </tr>
                                     </thead>
                                     <tbody id="domainListBody">
@@ -459,8 +465,7 @@
                 </div>
             </section>
 
-
-            <!-- Domain Standards Compliance Scorecard -->
+            <!-- Domain Standards Compliance Scorecard
             <section class="widget full-width">
                 <div class="widget-header">
                     <h2>Standards Compliance Scorecard</h2>
@@ -491,11 +496,10 @@
                         </tr>
                         </thead>
                         <tbody id="scorecard-body">
-                        <!-- Will be populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            </tbody>
+            </table>
+        </div>
+        </section -->
 
         </div>
     </main>
