@@ -86,10 +86,10 @@ function createDNSSECStatusTab(data, currentDataKey) {
                     <h4>${server} (${serverData.base_domain})</h4>
                 </div>
                 ${renderDNSSECStatusContent({
-                    dnssec_status: serverData.dnssec_status,
-                    verification_chain: serverData.verification_chain,
-                    summary: serverData.summary
-                })}
+                dnssec_status: serverData.dnssec_status,
+                verification_chain: serverData.verification_chain,
+                summary: serverData.summary
+            })}
             </div>`;
         }
     } else {
@@ -536,7 +536,7 @@ function renderDNSSECChainContent(resultsData) {
         if (index < resultsData.verification_chain.length - 1) {
             htmlContent += `
             <div class="chain-connector">
-                <i class="fas fa-arrow-down text-gray-400"></i>
+                <i class="fas fa-arrow-down text-gray-500"></i>
             </div>`;
         }
     });
