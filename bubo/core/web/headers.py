@@ -4,8 +4,7 @@ from bubo.core.web.models import SecurityHeadersInfo
 
 logger = setup_logger(__name__)
 
-
-USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) GÉANT-ComplianceScanner/1.0 InternetAndEmailSdandards/1.0"
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) BuBo/1.0 Compliance-Scanner/1.0"
 
 
 async def check_security_headers(
