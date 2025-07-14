@@ -29,8 +29,8 @@ RUN apk update && apk add --no-cache \
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-COPY main.py .
+COPY bubo.py .
 COPY ./bubo ./bubo
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "bubo.py"]
 CMD ["--help"]
