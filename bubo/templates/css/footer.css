@@ -102,23 +102,6 @@
     line-height: 1;
 }
 
-/* Status Colors */
-.status-valid {
-    color: #28a745;
-}
-
-.status-partially-valid {
-    color: #ffc107;
-}
-
-.status-not-valid {
-    color: #dc3545;
-}
-
-.status-not-found {
-    color: #6c757d;
-}
-
 .legend-item:has(.status-valid) {
     border-left-color: #28a745;
 }
