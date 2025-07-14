@@ -1,0 +1,219 @@
+/* Domain scorecard table */
+.widget-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.search-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    min-width: 240px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 98, 204, 0.15);
+}
+
+.sort-select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--neutral-300);
+    border-radius: var(--border-radius-sm);
+    background-color: white;
+    font-size: var(--font-size-sm);
+}
+
+/* Container styling - matching index.html pattern */
+.container h2 {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Scorecard table - using simplified approach like index.html */
+.scorecard-table {
+    width: 100%;
+    border-spacing: 0;
+    font-size: var(--font-size-sm);
+}
+
+/* Let the existing validation-report-sticky-table CSS handle sticky positioning */
+.scorecard-table td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--neutral-200);
+}
+
+.scorecard-table tbody tr:hover {
+    background-color: var(--primary-light);
+}
+
+.domain-col {
+    width: 15%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.score-col {
+    width: 15%;
+    text-align: center;
+}
+
+/* Compliance bar styling */
+.compliance-bar-container {
+    position: relative;
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.compliance-bar {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.compliance-value {
+    position: absolute;
+    right: 8px;
+    top: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    line-height: 16px;
+}
+
+.score-bar-container {
+    width: 100%;
+    height: 18px;
+    background-color: var(--neutral-200);
+    border-radius: 9px;
+    overflow: hidden;
+    position: relative;
+}
+
+.score-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--danger) 0%, var(--warning) 50%, var(--success) 100%);
+    border-radius: 9px;
+    transition: width var(--transition-normal);
+}
+
+.score-value {
+    position: absolute;
+    right: 8px;
+    top: 1px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--neutral-800);
+}
+
+.status-cell {
+    text-align: center;
+}
+
+/* Standard status colors for email, DANE, RPKI, and DNSSEC */
+.status-valid {
+    color: #15803d;
+}
+
+.status-partially-valid {
+    color: #ffc107;
+}
+
+.status-not-valid {
+    color: #dc3545;
+}
+
+.status-not-found {
+    color: #6c757d;
+}
+
+/* Web Security specific status colors - matching compliance color scheme */
+.status-web-excellent {
+    color: #15803d; /* Dark green - excellent */
+}
+
+.status-web-good {
+    color: #65a30d; /* Light green - good */
+}
+
+.status-web-fair {
+    color: #ca8a04; /* Yellow - fair */
+}
+
+.status-web-poor {
+    color: #b91c1c; /* Red - poor */
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: var(--font-size-sm);
+}
+
+.status-indicator.success {
+    background-color: var(--success-light);
+    color: var(--success);
+}
+
+.status-indicator.warning {
+    background-color: var(--warning-light);
+    color: var(--warning);
+}
+
+.status-indicator.danger {
+    background-color: var(--danger-light);
+    color: var(--danger);
+}
+
+/* Sortable column styles */
+.scorecard-table th.sortable {
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    text-align: center;
+}
+
+.scorecard-table th.sortable:hover {
+    background-color: #0a3580;
+}
+
+.sort-icon {
+    margin-left: 5px;
+    font-size: 0.8em;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.sortable:hover .sort-icon {
+    opacity: 1;
+}
+
+.sort-icon.active {
+    opacity: 1;
+    color: #ffeb3b;
+}
+
+/* Ensure proper spacing for sort icons */
+.scorecard-table th {
+    white-space: nowrap;
+    text-align: center;
+
+}
+
+.scorecard-table th.domain-col {
+    text-align: left;
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scoreboard - Internet Standards Validation Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/validation-sticky-table.css">
+    <link rel="stylesheet" href="css/search.css">
+    <link rel="stylesheet" href="css/scoreboard.css">
+
+
+    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
+</head>
+<body>
+<div class="page-wrapper">
+    {% set header_title = "Scoreboard of Internet and Email Standards" %}
+    {% include 'partials/header.html' %}
+    <main class="main-content">
+        <!-- Navigation container -->
+        <div class="search-container">
+            <div class="navigation-icons">
+                <a href="index.html" class="statistics-icon" title="Main Report">
+                    <i class="fas fa-table"></i>
+                    <span>Main Report</span>
+                </a>
+                <a href="statistics.html" class="statistics-icon" title="View Statistics">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Statistics Report</span>
+                </a>
+            </div>
+            <div class="search-toolbar">
+                <input type="text" id="domainSearch" placeholder="Search domains..." class="search-input">
+                <select id="sortOptions" class="sort-select">
+                    <option value="score-desc">Sort by Score (High to Low)</option>
+                    <option value="score-asc">Sort by Score (Low to High)</option>
+                    <option value="alpha-asc">Sort Alphabetically (A-Z)</option>
+                    <option value="alpha-desc">Sort Alphabetically (Z-A)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="container">
+            <table class="scorecard-table validation-report-sticky-table">
+                <thead>
+                <tr>
+                    <th class="domain-col sortable" data-sort="domain">Domain <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="score-col sortable" data-sort="score">Compliance Score <i
+                            class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="rpki">RPKI <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="dane">DANE <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="dnssec">DNSSEC <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="spf">SPF <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="dkim">DKIM <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="dmarc">DMARC <i class="fas fa-sort sort-icon"></i></th>
+                    <th class="sortable" data-sort="web">Web Security <i class="fas fa-sort sort-icon"></i></th>
+                </tr>
+                </thead>
+                <tbody id="scorecard-body">
+                <!-- Will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        {% include 'partials/footer.html' %}
+    </footer>
+</div>
+
+<script>
+    // Make stats data available globally for the scoreboard functionality
+    const statsData = {{ stats_json|tojson|safe }};
+    let dashboardInitialized = false;
+
+    // Track current sort state
+    let currentSort = {
+        column: 'score',
+        direction: 'desc'
+    };
+
+    document.getElementById('reportTimestamp').textContent = statsData.timestamp || 'N/A';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!dashboardInitialized) {
+            initializeScoreboard();
+            dashboardInitialized = true;
+        }
+    });
+
+    /**
+     * Initialize the scoreboard functionality
+     */
+    function initializeScoreboard() {
+        try {
+            createScorecardTable();
+            setupDomainSearch();
+            setupTableSorting();
+            setupColumnSorting();
+            console.log('Scoreboard initialized successfully');
+        } catch (error) {
+            console.error('Error initializing scoreboard:', error);
+        }
+    }
+</script>
+<script src="js/scoreboard.js"></script>
+</body>
+</html>
