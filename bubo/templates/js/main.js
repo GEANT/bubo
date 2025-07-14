@@ -4,7 +4,6 @@
  * Initialize the application
  */
 function initApp() {
-    console.log('Initializing Internet Standards Validation Report');
 
     // Verify that data is available
     if (!window.validationData) {
@@ -20,8 +19,6 @@ function initApp() {
 
     // Initialize modals
     initModals();
-
-    console.log('Initialization complete');
 }
 
 /**

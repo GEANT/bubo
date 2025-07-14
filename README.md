@@ -50,6 +50,7 @@ If you already have Routinator running, you can skip this step and look at the p
 the routinator url.
 <details>
 <summary>Click to expand</summary>
+
 ```bash
 # To persist the RPKI cache data you can create a Docker volume and mount it into the container like so:
 docker volume create rpki-cache
@@ -111,7 +112,7 @@ The tool generates two types of reports:
 
 - **Detailed HTML report** with validation results for each domain
 - **Statistics report** summarizing the overall compliance status and scores.
-- **Scoreboard report** with a list of domains and their scores. (Hall of Fame)
+- **Scoreboard report** with a list of domains and their scores.
 
 All reports are saved in the `results/` directory with timestamped directory and filenames.\
 The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
