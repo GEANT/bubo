@@ -157,14 +157,11 @@ docker compose run --rm bubo -d example.com
 ### Batch Processing
 
 ```bash
-# For domains file in the project directory
-docker compose run --rm bubo --batch /bubo/input/domains.csv
-
 # For files from external paths
 docker compose run --rm -v "/path/to/file/directory:/bubo/input" bubo --batch /bubo/input/domains.csv
 
-# Example with absolute path
-docker compose run --rm -v "/home/user/data:/bubo/input" bubo --batch /bubo/input/domains.csv
+# Example with a file path
+docker compose run --rm -v "/path/to/file.csv:/bubo/input" bubo --batch /bubo/input/file.csv
 ```
 
 ### Common Options
