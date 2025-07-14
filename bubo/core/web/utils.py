@@ -248,7 +248,7 @@ async def resolve_domain(domain: str, port: int, check_func, *args, **kwargs):
     for current_domain in domains_to_try:
         try:
             new_args = (
-                (current_domain, port) + args[2:]
+                (current_domain, port, *args[2:])
                 if len(args) > 2
                 else (current_domain, port)
             )

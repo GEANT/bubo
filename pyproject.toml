@@ -86,7 +86,8 @@ ignore = [
     "PLR0915",
     "A005",
     "G201",
-    "PERF401" # False performance assumption
+    "PERF401", # False performance assumption
+    "UP047" # Generic function `with_retries` should use type parameters (Python 3.12+)
 ]
 
 [tool.ruff.lint.isort]

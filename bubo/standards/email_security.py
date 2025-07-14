@@ -5,6 +5,7 @@ from typing import Any
 
 import dns.asyncresolver
 import dns.exception
+from cryptography.hazmat.primitives.serialization import load_der_public_key
 
 from bubo.core.dns.resolver import dns_manager
 from bubo.core.logging.logger import setup_logger
@@ -92,7 +93,6 @@ def extract_dkim_key_info(dkim_record: str) -> dict[str, str | int | None]:
     Returns:
         Dictionary with key type, length, and strength assessment
     """
-    from cryptography.hazmat.primitives.serialization import load_der_public_key
 
     key_info: dict[str, str | int | None] = {
         "key_type": None,

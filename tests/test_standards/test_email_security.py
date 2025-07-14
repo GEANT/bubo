@@ -1,3 +1,4 @@
+import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -533,18 +534,7 @@ def test_extract_dkim_key_info_rsa_key_sizes(
 
     mock_load_key = MagicMock(return_value=MockKey())
 
-    import sys
-
-    mock_serialization = MagicMock()
-    mock_serialization.load_der_public_key = mock_load_key
-
-    original_module = sys.modules.get(
-        "cryptography.hazmat.primitives.serialization", None
-    )
-
-    try:
-        sys.modules["cryptography.hazmat.primitives.serialization"] = mock_serialization
-
+    with patch("bubo.standards.email_security.load_der_public_key", mock_load_key):
         with patch("base64.b64decode", return_value=b"test_key_bytes"):
             result = extract_dkim_key_info(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC"
@@ -556,14 +546,6 @@ def test_extract_dkim_key_info_rsa_key_sizes(
         assert description_contains in result["strength_description"]
         assert result["error"] is None
 
-    finally:
-        if original_module:
-            sys.modules["cryptography.hazmat.primitives.serialization"] = (
-                original_module
-            )
-        else:
-            sys.modules.pop("cryptography.hazmat.primitives.serialization", None)
-
 
 def test_extract_dkim_key_info_fallback_parsing(monkeypatch):
     """Test fallback parsing when cryptography library fails"""
@@ -572,8 +554,6 @@ def test_extract_dkim_key_info_fallback_parsing(monkeypatch):
     mock_serialization.load_der_public_key = MagicMock(
         side_effect=Exception("Cryptography failure")
     )
-
-    import sys
 
     original_module = sys.modules.get(
         "cryptography.hazmat.primitives.serialization", None
@@ -610,8 +590,6 @@ def test_extract_dkim_key_info_fallback_exception(monkeypatch):
     mock_serialization.load_der_public_key = MagicMock(
         side_effect=Exception("Cryptography failure")
     )
-
-    import sys
 
     original_module = sys.modules.get(
         "cryptography.hazmat.primitives.serialization", None

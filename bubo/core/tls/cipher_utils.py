@@ -1,10 +1,14 @@
 import asyncio
-import os
 import re
 import subprocess
-from pathlib import Path
 
 from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.cache_utils import get_iana_csv_path
+from bubo.core.tls.iana_ciphers import (
+    get_iana_cipher_info,
+    initialize_iana_mappings,
+    is_recommended_cipher,
+)
 from bubo.core.tls.models import CipherDetails, CipherStrength, TLSProtocol
 
 logger = setup_logger(__name__)
@@ -15,36 +19,6 @@ _cipher_to_strength: dict[str, CipherStrength] | None = None
 _initialization_lock = asyncio.Lock()
 _initialized = False
 _iana_initialized = False
-
-
-def get_cache_directory() -> Path:
-    """Get the cache directory for IANA data.
-
-    Returns:
-        Path to the cache directory (bubo/cache/iana_data/)
-    """
-
-    current_file = Path(__file__).resolve()
-    project_root = current_file.parent.parent.parent
-    cache_dir = project_root / "cache" / "iana_data"
-
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    return cache_dir
-
-
-def get_iana_csv_path() -> Path:
-    """Get the path to the IANA CSV file.
-
-    Returns:
-        Path to the IANA TLS parameters CSV file
-    """
-
-    env_path = os.environ.get("IANA_CIPHERS_CSV")
-    if env_path:
-        return Path(env_path)
-
-    return get_cache_directory() / "iana_tls_parameters.csv"
-
 
 _iana_csv_path = str(get_iana_csv_path())
 
@@ -72,13 +46,9 @@ def classify_cipher(
     Returns:
         CipherStrength enum value
     """
-    from bubo.core.tls.models import CipherStrength
 
-    if _iana_initialized:
-        from bubo.core.tls.iana_ciphers import is_recommended_cipher
-
-        if is_recommended_cipher(cipher_name):
-            return CipherStrength.STRONG
+    if _iana_initialized and is_recommended_cipher(cipher_name):
+        return CipherStrength.STRONG
 
     if protocol_str is None:
         if cipher_name.startswith("TLS_"):
@@ -180,22 +150,20 @@ def parse_openssl_ciphers() -> tuple[
             - Dict mapping strength category to list of cipher names
             - Dict mapping cipher names to their detailed information
     """
-    try:
-        result = subprocess.run(
-            ["openssl", "ciphers", "-v"], capture_output=True, text=True, check=True
-        )
-        output = result.stdout
-    except (subprocess.SubprocessError, FileNotFoundError):
-        from bubo.core.tls.models import PROTOCOL_CIPHERS
-
-        return PROTOCOL_CIPHERS, {}, {}
-
     protocol_ciphers = {
         TLSProtocol.TLSv1_0: [],
         TLSProtocol.TLSv1_1: [],
         TLSProtocol.TLSv1_2: [],
         TLSProtocol.TLSv1_3: [],
     }
+
+    try:
+        result = subprocess.run(
+            ["openssl", "ciphers", "-v"], capture_output=True, text=True, check=True
+        )
+        output = result.stdout
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return protocol_ciphers, {}, {}
 
     strength_ciphers = {"strong": [], "medium": [], "weak": []}
 
@@ -240,8 +208,6 @@ def parse_openssl_ciphers() -> tuple[
         )
 
     if _iana_initialized:
-        from bubo.core.tls.iana_ciphers import get_iana_cipher_info
-
         for cipher_name, details in cipher_details.items():
             iana_info = get_iana_cipher_info(cipher_name)
             if iana_info:
@@ -287,11 +253,6 @@ async def initialize() -> None:
                     _cipher_to_strength[cipher] = CipherStrength(strength)
 
             try:
-                from bubo.core.tls.iana_ciphers import (
-                    get_iana_cipher_info,
-                    initialize_iana_mappings,
-                )
-
                 _iana_initialized = await loop.run_in_executor(
                     None, initialize_iana_mappings, _iana_csv_path
                 )

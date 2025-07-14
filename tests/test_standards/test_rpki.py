@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from aiohttp import ClientConnectorError
 
 from bubo.standards import rpki
 from bubo.standards.rpki import (
@@ -210,10 +211,6 @@ async def test_validate_rpki_successful_response():
 
 @pytest.mark.asyncio
 async def test_validate_rpki_connection_error():
-    from unittest.mock import MagicMock, patch
-
-    from aiohttp import ClientConnectorError
-
     connection_key = MagicMock()
     os_error = OSError("Connection refused")
     connector_error = ClientConnectorError(connection_key, os_error)
@@ -530,9 +527,6 @@ async def test_run_validator_down():
 @pytest.mark.asyncio
 async def test_shared_state_across_calls():
     """Test that multiple calls to run() with same URL share validator state"""
-    from unittest.mock import MagicMock, patch
-
-    from aiohttp import ClientConnectorError
 
     rpki._validator_instances.clear()
 

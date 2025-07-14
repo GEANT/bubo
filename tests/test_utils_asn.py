@@ -110,9 +110,6 @@ async def test_get_asn_and_prefix_ignore_cache():
             mock_loop.run_in_executor = AsyncMock(side_effect=mock_executor)
 
             with patch("asyncio.get_event_loop", return_value=mock_loop):
-                # Import after patching to ensure we use mocked versions
-                from bubo.core.network.ip_tools import get_asn_and_prefix
-
                 # Execute the function
                 asn, prefix = await get_asn_and_prefix("192.168.0.1", ignore_cache=True)
 
@@ -254,9 +251,6 @@ async def test_process_domain_ip_input():
         mock_get_asn = AsyncMock(return_value=("12345", "192.168.0.0/24"))
 
         with patch("bubo.core.dns.records.get_asn_and_prefix", mock_get_asn):
-            # Import the function after patching
-            from bubo.core.dns.records import process_domain
-
             # Call the function with an IP
             domain_ns, domain_mx, mail_ns = await process_domain("192.168.1.1")
 

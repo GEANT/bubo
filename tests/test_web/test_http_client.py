@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from bubo.core.web.headers import USER_AGENT
 from bubo.core.web.http_client import fetch_headers
 
 
@@ -104,7 +105,6 @@ async def test_fetch_headers_correct_timeout_usage():
 @pytest.mark.asyncio
 async def test_fetch_headers_uses_correct_headers():
     """Test that the function sends the expected request headers."""
-    from bubo.core.web.headers import USER_AGENT
 
     mock_response = MagicMock()
     mock_response.status = 200

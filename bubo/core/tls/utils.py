@@ -15,6 +15,7 @@ from typing import Any, TypeVar
 from cryptography import x509
 
 from bubo.core.logging.logger import setup_logger
+from bubo.core.tls.cipher_utils import classify_cipher
 from bubo.core.tls.models import (
     KEY_LENGTH_RECOMMENDATIONS,
     SIGNATURE_ALGORITHMS,
@@ -170,7 +171,6 @@ async def get_openssl_version() -> tuple[int, int, int]:
 
 def categorize_cipher_strength(cipher_name: str) -> CipherStrength:
     """Categorize cipher strength."""
-    from bubo.core.tls.cipher_utils import classify_cipher
 
     return classify_cipher(cipher_name)
 

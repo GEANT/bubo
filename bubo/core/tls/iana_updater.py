@@ -14,7 +14,7 @@ from pathlib import Path
 import aiohttp
 
 from bubo.core.logging.logger import setup_logger
-from bubo.core.tls.cipher_utils import get_cache_directory
+from bubo.core.tls.cache_utils import get_cache_directory
 
 logger = setup_logger(__name__)
 
