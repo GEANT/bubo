@@ -1326,8 +1326,9 @@ async def generate_report(
         _write_report_files(
             context, html_path_objects, json_path_objects, rendered_html
         )
-
-        logger.info(f"Report generated successfully: {html_paths[0]}")
+        logger.debug(
+            f"{template_name.split('.')[0].capitalize()} report generated successfully: {html_paths[1]}"
+        )
         return rendered_html
 
     except Exception as e:

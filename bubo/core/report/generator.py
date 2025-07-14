@@ -156,13 +156,16 @@ def render_main_report(
     try:
         with open(file_paths["report_html_path"], "w") as file:
             file.write(rendered_html)
-        logger.info(f"Report generated: {file_paths['report_html_path']}")
     except OSError as e:
         logger.error(f"Error writing report to {file_paths['report_html_path']}: {e}")
 
     try:
         with open(file_paths["report_final_html_path"], "w") as file:
             file.write(rendered_html)
+        logger.info(
+            f"Report generated successfully: {file_paths['report_final_html_path']}"
+        )
+
     except OSError as e:
         logger.error(
             f"Error writing report to {file_paths['report_final_html_path']}: {e}"
@@ -196,6 +199,9 @@ async def generate_html_report(
     write_json_report(serializable_results, file_paths)
 
     copy_asset_directories(base_dir, output_dir_dated, results_dir)
+    logger.info(
+        f"You can find timestamped reports in this directory: {output_dir_dated}"
+    )
 
     render_main_report(serializable_results, file_paths, env)
 
