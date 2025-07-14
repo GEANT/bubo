@@ -6,9 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from bubo.core.cache_manager.cache_manager import DomainResultsCache
-from bubo.core.tls.models import (
-    TLSCheckConfig,
-)
+from bubo.core.tls.models import CipherResult, CipherStrength, TLSCheckConfig
 
 
 @pytest.fixture
@@ -325,7 +323,6 @@ def mock_tls_check_config():
 @pytest.fixture
 def mock_cipher_result_factory():
     """Return a factory for creating CipherResult objects with proper enum handling."""
-    from bubo.core.tls.models import CipherResult, CipherStrength
 
     def _create_cipher_result(name, protocol, strength_val, bits=None):
         # Convert string strength to enum if needed

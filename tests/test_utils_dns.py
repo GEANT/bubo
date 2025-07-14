@@ -6,7 +6,7 @@ import dns.resolver
 import pytest
 
 from bubo.core.dns.records import get_mx_records, resolve_ips, resolve_nameservers
-from bubo.core.dns.resolver import dns_manager
+from bubo.core.dns.resolver import DNSResolverManager, dns_manager
 
 
 @pytest.fixture
@@ -113,8 +113,6 @@ async def test_get_mx_records_nxdomain(mock_dns_manager):
 
 @pytest.mark.asyncio
 async def test_dns_manager_singleton():
-    from bubo.core.dns.resolver import DNSResolverManager
-
     manager1 = DNSResolverManager()
     manager2 = DNSResolverManager()
 

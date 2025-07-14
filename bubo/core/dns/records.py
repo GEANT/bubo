@@ -6,6 +6,7 @@ import dns.resolver
 from bubo.core.dns.resolver import dns_manager
 from bubo.core.logging.logger import setup_logger
 from bubo.core.network.ip_tools import get_asn_and_prefix, is_valid_ip
+from bubo.core.validators.sanitizer import validate_hostname
 
 logger = setup_logger(__name__)
 
@@ -151,7 +152,6 @@ async def process_domain(
     Returns:
         Tuple of (domain nameservers, domain mailservers, mail nameservers)
     """
-    from bubo.core.validators.sanitizer import validate_hostname
 
     domain = domain.split("@")[1] if "@" in domain else domain
     domain_validated = await validate_hostname(domain) or is_valid_ip(domain)
