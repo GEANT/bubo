@@ -20,9 +20,9 @@ This project and its dependencies use the following licenses:
 
 ## Requirements
 
-- Python 3.10+
-- OpenSSL (installed on your system) (`apt install openssl`)
-- Routinator (RPKI validator) container.
+- **Python 3.10+**
+- **OpenSSL** - installed on your system (`apt install openssl`)
+- **Routinator (RPKI validator) container** - (Optional)
 
 ___
 
@@ -34,6 +34,13 @@ ___
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+
+# -- OR --
+# You can install the tool as a python package:
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install -e .
+# And use `bubo` command instead of `python bubo.py`
 ```
 
 ### 2. Set up Routinator for RPKI checks
@@ -41,7 +48,8 @@ pip install -r requirements.txt
 Routinator runs as a Docker container and validates Resource Public Key Infrastructure (RPKI).
 If you already have Routinator running, you can skip this step and look at the program usage to see how you can specify
 the routinator url.
-
+<details>
+<summary>Click to expand</summary>
 ```bash
 # To persist the RPKI cache data you can create a Docker volume and mount it into the container like so:
 docker volume create rpki-cache
@@ -51,6 +59,8 @@ docker run -d --restart=unless-stopped --name routinator \
     -v rpki-cache:/home/routinator/.rpki-cache \
     nlnetlabs/routinator
 ```
+
+</details>
 
 ___
 
@@ -103,7 +113,7 @@ The tool generates two types of reports:
 - **Statistics report** summarizing the overall compliance status and scores.
 - **Scoreboard report** with a list of domains and their scores. (Hall of Fame)
 
-Both reports are saved in the results/ directory with timestamped directory and filenames.\
+All reports are saved in the `results/` directory with timestamped directory and filenames.\
 The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
 machine-readable format for further processing.
 
