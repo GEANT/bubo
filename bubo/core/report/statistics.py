@@ -40,17 +40,17 @@ def count_status(statuses: list[str], valid_values: list[str]) -> dict[str, int]
         "partially_valid": counter.get("partially-valid", 0),
         "not_valid": counter.get("not-valid", 0),
         "not_found": counter.get("not-found", 0)
-                     + counter.get("No TLSA records found", 0),
+        + counter.get("No TLSA records found", 0),
     }
 
 
 def calculate_domain_score(
-        domain: str,
-        dnssec_state: dict,
-        dane_state: dict,
-        email_state: dict,
-        rpki_state: dict,
-        web_state: dict,
+    domain: str,
+    dnssec_state: dict,
+    dane_state: dict,
+    email_state: dict,
+    rpki_state: dict,
+    web_state: dict,
 ) -> float:
     """
     Calculate compliance score for a single domain across all security standards.
@@ -115,11 +115,11 @@ def calculate_domain_score(
 
 
 def calculate_domain_scores(
-        dnssec_state: dict,
-        dane_state: dict,
-        email_state: dict,
-        rpki_state: dict,
-        web_state: dict,
+    dnssec_state: dict,
+    dane_state: dict,
+    email_state: dict,
+    rpki_state: dict,
+    web_state: dict,
 ) -> list[tuple[str, float]]:
     """
     Calculate overall compliance score for each domain across all security standards.
@@ -183,8 +183,8 @@ def get_common_web_issues(web_results: dict) -> list[tuple[str, int, list[str]]]
 
     for domain, result in web_results.items():
         if (
-                "security_assessment" in result
-                and "issues" in result["security_assessment"]
+            "security_assessment" in result
+            and "issues" in result["security_assessment"]
         ):
             for issue in result["security_assessment"]["issues"]:
                 if issue not in issue_to_domains:
@@ -296,7 +296,7 @@ def get_top_email_domain(email_state: dict) -> tuple[str, float]:
 
 
 def get_top_domain_by_category(
-        category_state: dict, criteria_key: str, valid_value: Any
+    category_state: dict, criteria_key: str, valid_value: Any
 ) -> str:
     """
     Find the domain with the best score in a specific category.
@@ -576,7 +576,7 @@ def extract_web_security_issues(web_results: dict) -> dict[str, list[str]]:
 
 
 def get_web_rating_distribution_details(
-        web_state: dict, web_results: dict
+    web_state: dict, web_results: dict
 ) -> dict[str, list[dict]]:
     """
     Group domains by web security rating and include their issues.
@@ -651,7 +651,7 @@ def extract_dane_statuses(dane_state: dict) -> tuple[list[str], list[str], list[
 
 
 def analyze_dane_stats(
-        dane_state: dict,
+    dane_state: dict,
 ) -> tuple[dict[str, int], dict[str, int], dict[str, int], dict[str, int]]:
     """
     Analyze DANE compliance across domains.
@@ -711,15 +711,15 @@ def count_email_fully_compliant(email_state: dict) -> int:
         1
         for domain, state in email_state.items()
         if (
-                state["SPF"] == "valid"
-                and state["DKIM"] == "valid"
-                and state["DMARC"] == "valid"
+            state["SPF"] == "valid"
+            and state["DKIM"] == "valid"
+            and state["DMARC"] == "valid"
         )
     )
 
 
 def analyze_email_stats(
-        email_state: dict,
+    email_state: dict,
 ) -> tuple[dict[str, int], dict[str, int], dict[str, int], dict[str, int], int]:
     """
     Analyze email security compliance across domains.
@@ -793,7 +793,7 @@ def extract_rpki_statuses(rpki_state: dict) -> tuple[list[str], list[str], list[
 
 
 def analyze_rpki_stats(
-        rpki_state: dict,
+    rpki_state: dict,
 ) -> tuple[dict[str, int], dict[str, int], dict[str, int], dict[str, int]]:
     """
     Analyze RPKI compliance across domains.
@@ -820,8 +820,8 @@ def analyze_rpki_stats(
             for domain, state in rpki_state.items()
             if any(value == "partially-valid" for value in state.values())
             or (
-                    any(value == "valid" for value in state.values())
-                    and not all(value == "valid" for value in state.values())
+                any(value == "valid" for value in state.values())
+                and not all(value == "valid" for value in state.values())
             )
         ),
         "non_compliant": sum(
@@ -867,11 +867,11 @@ def analyze_web_security_stats(web_state: dict) -> dict[str, int]:
 
 
 def find_top_domains(
-        domain_scores: list[tuple[str, float]],
-        domain_metadata: dict,
-        dnssec_state: dict,
-        email_state: dict,
-        web_state: dict,
+    domain_scores: list[tuple[str, float]],
+    domain_metadata: dict,
+    dnssec_state: dict,
+    email_state: dict,
+    web_state: dict,
 ) -> tuple[str, float, str, tuple[str, float], str]:
     """
     Find domains with the best scores in different categories.
@@ -928,7 +928,7 @@ def find_top_domains(
 
 
 def extract_server_states(
-        dane_state: dict, rpki_state: dict
+    dane_state: dict, rpki_state: dict
 ) -> tuple[dict[str, str], dict[str, str]]:
     """
     Extract specific state information for mail servers.
@@ -1257,10 +1257,10 @@ def prepare_full_statistics_context(results: dict) -> dict:
 
 
 def _write_report_files(
-        context_data: dict,
-        html_paths: list[Path],
-        json_paths: list[Path],
-        template_content: str,
+    context_data: dict,
+    html_paths: list[Path],
+    json_paths: list[Path],
+    template_content: str,
 ) -> None:
     """
     Write report data to HTML and JSON files with proper error handling.
@@ -1290,12 +1290,12 @@ def _write_report_files(
 
 
 async def generate_report(
-        results: dict,
-        template_name: str,
-        context_preparer: callable,
-        html_paths: list[str],
-        json_paths: list[str],
-        env: Any,
+    results: dict,
+    template_name: str,
+    context_preparer: callable,
+    html_paths: list[str],
+    json_paths: list[str],
+    env: Any,
 ) -> str:
     """
     Generic report generation function to eliminate code duplication.
@@ -1339,12 +1339,12 @@ async def generate_report(
 
 
 async def generate_statistics_report(
-        results: dict,
-        stats_final_html_path: str,
-        stats_html_path: str,
-        stats_json_path: str,
-        stats_final_json_path: str,
-        env: Any,
+    results: dict,
+    stats_final_html_path: str,
+    stats_html_path: str,
+    stats_json_path: str,
+    stats_final_json_path: str,
+    env: Any,
 ) -> str:
     """Generate statistics report HTML using the template."""
     return await generate_report(
@@ -1358,12 +1358,12 @@ async def generate_statistics_report(
 
 
 async def generate_scoreboard_report(
-        results: dict,
-        scoreboard_final_html_path: str,
-        scoreboard_html_path: str,
-        scoreboard_json_path: str,
-        scoreboard_final_json_path: str,
-        env: Any,
+    results: dict,
+    scoreboard_final_html_path: str,
+    scoreboard_html_path: str,
+    scoreboard_json_path: str,
+    scoreboard_final_json_path: str,
+    env: Any,
 ) -> str:
     """Generate scoreboard report HTML using the template."""
     return await generate_report(
