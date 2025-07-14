@@ -60,14 +60,21 @@ async def test_fetch_headers_generic_exception():
             "aiohttp.ClientSession", return_value=AsyncContextManagerMock(mock_session)
         ),
         patch("bubo.core.web.http_client.logger.error") as mock_logger,
+        patch("asyncio.sleep") as mock_sleep,  # Mock sleep to avoid delays
     ):
         result = await fetch_headers("example.com", 443, 10)
 
         assert result is None
 
-        mock_logger.assert_called_once()
-        assert "Unexpected error" in mock_logger.call_args[0][0]
-        assert mock_logger.call_args[1].get("exc_info") is True
+        assert mock_logger.call_count == 3
+
+        for call in mock_logger.call_args_list:
+            assert "Unexpected error" in call[0][0]
+            assert call[1].get("exc_info") is True
+
+        assert mock_sleep.call_count == 2
+        mock_sleep.assert_any_call(1)
+        mock_sleep.assert_any_call(2)
 
 
 @pytest.mark.asyncio
