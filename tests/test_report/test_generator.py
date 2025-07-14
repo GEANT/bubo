@@ -294,6 +294,9 @@ async def test_generate_html_report_statistics_error():
             "bubo.core.report.generator.generate_statistics_report",
             side_effect=Exception("Stats error"),
         ) as mock_gen_stats,
+        patch(
+            "bubo.core.report.generator.generate_scoreboard_report"
+        ) as mock_gen_scoreboard,
         patch("bubo.core.report.generator.logger.error") as mock_logger_error,
     ):
         mock_setup_dirs.return_value = (
@@ -303,10 +306,14 @@ async def test_generate_html_report_statistics_error():
         mock_gen_paths.return_value = {
             "report_html_path": "/path/to/report.html",
             "report_final_html_path": "/path/to/index.html",
-            "stats_html_path": "/path/to/stats.html",
+            "stats_html_path": "/path/to/report_stats.html",
             "stats_final_html_path": "/path/to/statistics.html",
-            "stats_json_path": "/path/to/stats.json",
+            "stats_json_path": "/path/to/report_stats.json",
             "stats_final_json_path": "/path/to/statistics.json",
+            "scoreboard_html_path": "/path/to/report_scoreboard.html",
+            "scoreboard_final_html_path": "/path/to/scoreboard.html",
+            "scoreboard_json_path": "/path/to/report_scoreboard.json",
+            "scoreboard_final_json_path": "/path/to/scoreboard.json",
         }
         mock_env_instance = MagicMock()
         mock_env_class.return_value = mock_env_instance
@@ -319,7 +326,15 @@ async def test_generate_html_report_statistics_error():
         mock_write_json.assert_called_once()
         mock_copy_assets.assert_called_once()
         mock_render.assert_called_once()
+
         mock_gen_stats.assert_called_once()
 
-        mock_logger_error.assert_called_once()
-        assert "Stats error" in mock_logger_error.call_args[0][0]
+        mock_gen_scoreboard.assert_called_once()
+
+        mock_logger_error.assert_called()
+
+        expected_error_msg = "Error generating statistics report: Stats error"
+        actual_calls = [str(call.args[0]) for call in mock_logger_error.call_args_list]
+        assert any(expected_error_msg in call for call in actual_calls), (
+            f"Expected error message not found. Actual calls: {actual_calls}"
+        )

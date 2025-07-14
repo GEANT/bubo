@@ -697,7 +697,7 @@ async def test_generate_statistics_report():
     }
 
     with (
-        patch("bubo.core.report.statistics.open", MagicMock()),
+        patch("bubo.core.report.statistics._write_report_files") as mock_write_files,
         patch("bubo.core.report.statistics.json_dumps", return_value="{}"),
     ):
         mock_env = MagicMock()
