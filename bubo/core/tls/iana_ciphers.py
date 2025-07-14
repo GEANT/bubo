@@ -14,7 +14,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from bubo.core.tls.cipher_utils import get_cache_directory
+from bubo.core.tls.cache_utils import get_cache_directory
 from bubo.core.tls.iana_updater import (
     DEFAULT_CACHE_DURATION_DAYS,
     check_and_update_iana_csv,
