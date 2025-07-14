@@ -9,7 +9,10 @@ from jinja2 import Environment, FileSystemLoader
 
 from bubo.core.logging.logger import setup_logger
 from bubo.core.report.json_utils import convert_sets_to_lists, json_dumps
-from bubo.core.report.statistics import generate_statistics_report
+from bubo.core.report.statistics import (
+    generate_scoreboard_report,
+    generate_statistics_report,
+)
 
 logger = setup_logger(__name__)
 
@@ -61,6 +64,10 @@ def generate_file_paths(
             output_dir, output_file.replace(".html", "_stats.html")
         ),
         "stats_final_html_path": os.path.join(results_dir, "statistics.html"),
+        "scoreboard_html_path": os.path.join(
+            output_dir, output_file.replace(".html", "_scoreboard.html")
+        ),
+        "scoreboard_final_html_path": os.path.join(results_dir, "scoreboard.html"),
         # JSON paths
         "report_json_path": os.path.join(
             output_dir, output_file.replace(".html", ".json")
@@ -70,6 +77,10 @@ def generate_file_paths(
             output_dir, output_file.replace(".html", "_stats.json")
         ),
         "stats_final_json_path": os.path.join(results_dir, "statistics.json"),
+        "scoreboard_json_path": os.path.join(
+            output_dir, output_file.replace(".html", "_scoreboard.json")
+        ),
+        "scoreboard_final_json_path": os.path.join(results_dir, "scoreboard.json"),
     }
 
     return paths
@@ -149,7 +160,6 @@ def render_main_report(
     except OSError as e:
         logger.error(f"Error writing report to {file_paths['report_html_path']}: {e}")
 
-    # Write to main location
     try:
         with open(file_paths["report_final_html_path"], "w") as file:
             file.write(rendered_html)
@@ -165,7 +175,7 @@ async def generate_html_report(
     """
     Generate HTML reports from validation results.
 
-    Creates both the main report and statistics page.
+    Creates the main report, statistics page, and scoreboard page.
 
     Args:
         results: Validation results dictionary
@@ -200,3 +210,15 @@ async def generate_html_report(
         )
     except Exception as e:
         logger.error(f"Error generating statistics report: {e}")
+
+    try:
+        await generate_scoreboard_report(
+            serializable_results,
+            file_paths["scoreboard_final_html_path"],
+            file_paths["scoreboard_html_path"],
+            file_paths["scoreboard_json_path"],
+            file_paths["scoreboard_final_json_path"],
+            env,
+        )
+    except Exception as e:
+        logger.error(f"Error generating scoreboard report: {e}")
