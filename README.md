@@ -10,13 +10,11 @@ ___
 
 This project and its dependencies use the following licenses:
 
-| Component    | License              | Notes                             |
-|--------------|----------------------|-----------------------------------|
-| This project | Apache License 2.0   |                                   |
-| OpenSSL 3.0+ | Apache License 2.0   | Required system dependency        |
-| Routinator   | BSD 3-Clause License | RPKI validator (Docker container) |
-
-Full license texts are available in the respective project repositories.
+| Component    | License                                                                   | Notes                             |
+|--------------|---------------------------------------------------------------------------|-----------------------------------|
+| This project | MIT                                                                       |                                   |
+| OpenSSL 3.0+ | [Apache-2.0](https://github.com/openssl/openssl/blob/master/LICENSE.txt)  | Required system dependency        |
+| Routinator   | [BSD-3-Clause](https://github.com/NLnetLabs/routinator/blob/main/LICENSE) | RPKI validator (Docker container) |
 
 ---
 
@@ -52,15 +50,6 @@ docker run -d --restart=unless-stopped --name routinator \
     -p 8323:8323 \
     -v rpki-cache:/home/routinator/.rpki-cache \
     nlnetlabs/routinator
-   
-
-# In future, to update the routinator docker container, you can run the following commands:
-sudo docker pull nlnetlabs/routinator
-sudo docker rm --force routinator
-sudo docker run <your usual arguments> nlnetlabs/routinator
-
-# Routinator installation page: 
-# https://routinator.docs.nlnetlabs.nl/en/stable/installation.html
 ```
 
 ___
@@ -72,7 +61,7 @@ You can run the tool in two modes:
 1. ### Single domain check
 
 ```bash
-python main.py --single example.com
+python bubo.py --single example.com
 ```
 
 2. ### Batch domain check
@@ -89,18 +78,18 @@ example.uk,UK,Example Foundation
 Then run:
 
 ```bash
-python main.py --batch path/to/domains.csv
+python bubo.py --batch path/to/domains.csv
 ```
 
 ### Additional options
 
 ```
---batch [-b] FILE               Path to CSV file with domains to check
---single [-d] DOMAIN            Domain to check
---output-dir  [-o] DIR          Directory to save results (default: results/)
---max-concurrent INTEGER        Maximum concurrent validations (default: 48)
---ignore-cache                  Force fresh validation instead of using cached results (the cache is valid for 24 hours).
---routinator-url or -ru URL     URL of the Routinator RPKI validator service (default: http://localhost:8323)
+--batch [-b] FILE                 Path to CSV file with domains to check
+--single [-d] DOMAIN              Domain to check
+--output-dir [-o] DIR             Directory to save results (default: results/)
+--max-concurrent [-mc] INTEGER    Maximum concurrent validations (default: 48)
+--ignore-cache [-ic]              Force fresh validation instead of using cached results (the cache is valid for 24 hours).
+--routinator-url [-ru] URL        URL of the Routinator RPKI validator service (default: http://localhost:8323)
 # You can also have an environment variable called ROUTINATOR_URL=http://localhost:8323
 ```
 
@@ -112,13 +101,19 @@ The tool generates two types of reports:
 
 - **Detailed HTML report** with validation results for each domain
 - **Statistics report** summarizing the overall compliance status and scores.
+- **Scoreboard report** with a list of domains and their scores. (Hall of Fame)
 
 Both reports are saved in the results/ directory with timestamped directory and filenames.\
 The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
 machine-readable format for further processing.
 
-To make it easy to access (or automation), you can also find the last generated report in `results/index.html` and
-`results/statistics.html` files.
+### Note:
+
+- **To make it easy to access (or for automation), you can also find the last generated report in `results/index.html`,
+  `results/statistics.html`, and `results/scoreboard.html` files.**
+- **If you want to sent the report somewhere else, remember to contain `results/css`, `results/js`, and `results/img`
+  directories.**
+
 ___
 
 ## Cache
@@ -191,10 +186,10 @@ docker compose run --rm bubo -d example.com -ru http://routinator-host:8323
 If you prefer not to use a compose file:
 
 ```bash
-docker volume create compliance_cache
+docker volume create bubo_cache
 docker run --rm --network host \
   -v "$(pwd)/results:/results" \
-  -v compliance_cache:/bubo/cache \
+  -v bubo_cache:/bubo/cache \
   bubo -d example.com
 ```
 
