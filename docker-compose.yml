@@ -5,8 +5,8 @@ services:
     volumes:
       - ./results:/results
       - .:/bubo/input
-      - compliance_cache:/bubo/cache
+      - bubo_cache:/bubo/cache
     command: [ "--help" ]
 
 volumes:
-  compliance_cache:
+  bubo_cache:
