@@ -1,4 +1,4 @@
-aiohttp==3.11.18
+aiohttp==3.12.14
 dnspython==2.7.0
 python-whois==0.9.5
 ipwhois==1.3.0
