@@ -12,30 +12,32 @@ For additional images, see the [docs/images](https://github.com/geant/bubo/tree/
 
 ![Main application interface](docs/images/main.png)
 
-
-___
-
-## License
-
-This project and its dependencies use the following licenses:
-
-| Component    | License                                                                   | Notes                             |
-|--------------|---------------------------------------------------------------------------|-----------------------------------|
-| This project | MIT                                                                       |                                   |
-| OpenSSL 3.0+ | [Apache-2.0](https://github.com/openssl/openssl/blob/master/LICENSE.txt)  | Required system dependency        |
-| Routinator   | [BSD-3-Clause](https://github.com/NLnetLabs/routinator/blob/main/LICENSE) | RPKI validator (Docker container) |
-
 ---
 
 ## Requirements
 
 - **Python 3.10+**
-- **OpenSSL** - installed on your system (`apt install openssl`)
-- **Routinator (RPKI validator) container** - (Optional)
+- **OpenSSL** - install with `apt install openssl` (Linux) or equivalent
+- **Routinator (RPKI validator)** - Docker container for RPKI validation
+
+You can use bubo by either cloning the repository and installing Python dependencies using
+this [Setup guidance](https://github.com/GEANT/bubo?tab=readme-ov-file#setup), or
+using [Docker guidance](https://github.com/GEANT/bubo/tree/main?tab=readme-ov-file#docker-quick-reference).
+
+Routinator is required for RPKI validation. Without it, bubo will skip RPKI checks and mark them as "Not Available." See
+[Routinator docker command](https://github.com/GEANT/bubo?tab=readme-ov-file#2-set-up-routinator-for-rpki-checks) below
+to see how you can run it by Docker.
 
 ___
 
 ## Setup
+
+### 0. Cloning the repository
+
+```bash
+git clone https://github.com/GEANT/bubo.git
+cd bubo
+```
 
 ### 1. Install Python dependencies
 
@@ -44,12 +46,15 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# -- OR --
-# You can install the tool as a python package:
+```
+
+**Alternative**: Install as a Python package to use the bubo command:
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
 python3 -m pip install -e .
-# And use `bubo` command instead of `python bubo.py`
+# And use `bubo` command instead of `python3 bubo.py`
 ```
 
 ### 2. Set up Routinator for RPKI checks
@@ -58,7 +63,7 @@ Routinator runs as a Docker container and validates Resource Public Key Infrastr
 If you already have Routinator running, you can skip this step and look at the program usage to see how you can specify
 the routinator url.
 <details>
-<summary>Click to expand</summary>
+<summary>Click to see the docker command</summary>
 
 ```bash
 # To persist the RPKI cache data you can create a Docker volume and mount it into the container like so:
@@ -112,47 +117,6 @@ python bubo.py --batch path/to/domains.csv
 --routinator-url [-ru] URL        URL of the Routinator RPKI validator service (default: http://localhost:8323)
 # You can also have an environment variable called ROUTINATOR_URL=http://localhost:8323
 ```
-
-___
-
-## Output
-
-The tool generates two types of reports:
-
-- **Detailed HTML report** with validation results for each domain
-- **Statistics report** summarizing the overall compliance status and scores.
-- **Scoreboard report** with a list of domains and their scores.
-
-All reports are saved in the `results/` directory with timestamped directory and filenames.\
-The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
-machine-readable format for further processing.
-
-### Note:
-
-- **To make it easy to access (or for automation), you can also find the last generated report in `results/index.html`,
-  `results/statistics.html`, and `results/scoreboard.html` files.**
-- **If you want to sent the report somewhere else, remember to contain `results/css`, `results/js`, and `results/img`
-  directories.**
-
-___
-
-## Cache
-
-<details>
-<summary>Click to expand</summary>
-By default, results are cached for 24 hours to speed up repeated checks. Use the `--ignore-cache` flag to force fresh
-validation.
-When using the Docker image, you can create a persistent volume to retain cached data (see the Docker quick reference).
-Without a persistent volume, the cache is cleared between runs, so validations are always fresh and `--ignore-cache` is
-unnecessary.
-
-- For cipher suites, we use IANA TLS cipher suite recommendations. The cache is valid for 30 days by default. You can
-  change this by setting the `IANA_UPDATE_CACHE_DAYS` environment variable in `.env` file or in the shell:
-    ```bash
-    export IANA_UPDATE_CACHE_DAYS=7
-    ```
-
-</details>
 
 ___
 
@@ -212,6 +176,46 @@ docker run --rm --network host \
 
 </details>
 
+___
+
+## Output
+
+The tool generates two types of reports:
+
+- **Detailed HTML report** with validation results for each domain
+- **Statistics report** summarizing the overall compliance status and scores.
+- **Scoreboard report** with a list of domains and their scores.
+
+All reports are saved in the `results/` directory with timestamped directory and filenames.\
+The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
+machine-readable format for further processing.
+
+### Note:
+
+- **To make it easy to access (or for automation), you can also find the last generated report in `results/index.html`,
+  `results/statistics.html`, and `results/scoreboard.html` files.**
+- **If you want to sent the report somewhere else, remember to contain `results/css`, `results/js`, and `results/img`
+  directories.**
+
+___
+
+## Cache
+
+<details>
+<summary>Click to expand</summary>
+By default, results are cached for 24 hours to speed up repeated checks. Use the `--ignore-cache` flag to force fresh
+validation.
+When using the Docker image, you can create a persistent volume to retain cached data (see the Docker quick reference).
+Without a persistent volume, the cache is cleared between runs, so validations are always fresh and `--ignore-cache` is
+unnecessary.
+
+- For cipher suites, we use IANA TLS cipher suite recommendations. The cache is valid for 30 days by default. You can
+  change this by setting the `IANA_UPDATE_CACHE_DAYS` environment variable in `.env` file or in the shell:
+    ```bash
+    export IANA_UPDATE_CACHE_DAYS=7
+    ```
+
+</details>
 
 ___
 
@@ -260,6 +264,18 @@ docker run -d --restart=unless-stopped --name routinator \
 ```
 
 </details>
+
+___
+
+## License
+
+This project and its dependencies use the following licenses:
+
+| Component    | License                                                                   | Notes                             |
+|--------------|---------------------------------------------------------------------------|-----------------------------------|
+| This project | MIT                                                                       |                                   |
+| OpenSSL 3.0+ | [Apache-2.0](https://github.com/openssl/openssl/blob/master/LICENSE.txt)  | Required system dependency        |
+| Routinator   | [BSD-3-Clause](https://github.com/NLnetLabs/routinator/blob/main/LICENSE) | RPKI validator (Docker container) |
 
 ___
 
