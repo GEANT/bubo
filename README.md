@@ -2,7 +2,16 @@
 
 This tool helps you check whether domains comply with important internet standards, including RPKI, DANE, DNSSEC, Email
 Security (SPF,
-DKIM, DMARC), Web Security (Certificate, Protocol & Ciphers, and HTTP headers), etc.
+DKIM, DMARC), Web Security (TLS Audit - Certificate, Protocol & Ciphers, and HTTP headers), etc.
+
+---
+
+## Sample report output
+
+For additional images, see the [docs/images](https://github.com/geant/bubo/tree/main/docs/images/) directory.
+
+![Main application interface](docs/images/main.png)
+
 
 ___
 
