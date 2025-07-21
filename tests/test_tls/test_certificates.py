@@ -348,7 +348,7 @@ class TestCertificateWithSocket:
                 assert "No certificate data received" in result.validation_error
 
                 mock_utils["create_error_cert_result"].assert_called_once_with(
-                    "No certificate data received"
+                    "Error: No certificate data received", is_connection_error=False
                 )
 
 
