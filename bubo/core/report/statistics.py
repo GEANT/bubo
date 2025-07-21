@@ -94,16 +94,14 @@ def calculate_domain_score(
 
     # RPKI scoring
     rpki_components = ["Mail Server of Domain", "Nameserver of Domain"]
-    if "Nameserver of Mail Server" in rpki_state[domain]:
-        rpki_components.append("Nameserver of Mail Server")
 
     for component in rpki_components:
+        max_score += 1
         if component in rpki_state[domain]:
             if rpki_state[domain][component] == "valid":
                 score += 1
             elif rpki_state[domain][component] == "partially-valid":
                 score += 0.5
-            max_score += 1
 
     # Web security scoring
     web_rating = web_state[domain]["rating"]

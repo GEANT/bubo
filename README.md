@@ -1,14 +1,13 @@
 # Bubo
 
-This tool helps you check whether domains comply with important internet standards, including RPKI, DANE, DNSSEC, Email
+BUBO is an easy-to-use CLI tool that helps you check whether domains comply with important internet standards, including
+RPKI,
+DANE,
+DNSSEC, Email
 Security (SPF,
 DKIM, DMARC), Web Security (TLS Audit - Certificate, Protocol & Ciphers, and HTTP headers), etc.
 
----
-
-## Sample report output
-
-For additional images, see the [docs/images](https://github.com/geant/bubo/tree/main/docs/images/) directory.
+- For additional sample outputs, see the [docs/images](https://github.com/geant/bubo/tree/main/docs/images/) directory.
 
 ![Main application interface](docs/images/main.png)
 
