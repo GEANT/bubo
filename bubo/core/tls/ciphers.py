@@ -20,13 +20,11 @@ from bubo.core.tls.utils import (
 
 logger = setup_logger(__name__)
 
-_cipher_semaphore = asyncio.Semaphore(10)
-
 
 async def check_ciphers(
     domain: str, port: int, protocol: TLSProtocol, config: TLSCheckConfig
 ) -> list[CipherResult] | None:
-    """Check all supported ciphers for a protocol with full concurrency."""
+    """Check all supported ciphers for a protocol with enhanced error handling."""
     if not config.check_ciphers or not has_openssl():
         return None
 
@@ -37,6 +35,12 @@ async def check_ciphers(
         TLSProtocol.TLSv1_3: "-tls1_3",
     }.get(protocol)
 
+    if not await _protocol_supported(
+        domain, port, protocol_option, config.timeout_command
+    ):
+        logger.debug(f"Protocol {protocol.value} not supported by {domain}:{port}")
+        return None
+
     ciphers = get_ciphers_for_protocol(protocol)
 
     if not ciphers:
@@ -46,6 +50,8 @@ async def check_ciphers(
     if protocol in [TLSProtocol.TLSv1_0, TLSProtocol.TLSv1_1]:
         security_level = ":@SECLEVEL=0"
 
+    cipher_semaphore = asyncio.Semaphore(5)
+
     tasks = []
     for cipher in ciphers:
         if protocol == TLSProtocol.TLSv1_3:
@@ -54,7 +60,8 @@ async def check_ciphers(
             cipher_spec = f"{cipher}{security_level}"
 
         task = asyncio.create_task(
-            test_cipher(
+            _check_cipher_with_semaphore(
+                cipher_semaphore,
                 domain,
                 port,
                 protocol_option,
@@ -78,6 +85,60 @@ async def check_ciphers(
     if not supported_ciphers:
         return None
     return supported_ciphers
+
+
+async def _protocol_supported(
+    domain: str, port: int, protocol_option: str, timeout: int
+) -> bool:
+    """
+    Check if a protocol is supported by the server before testing individual ciphers.
+
+    Args:
+        domain: Target domain
+        port: Target port
+        protocol_option: OpenSSL protocol option (e.g., "-tls1_3")
+        timeout: Command timeout
+
+    Returns:
+        True if protocol is supported, False otherwise
+    """
+    args = [protocol_option]
+    output, _ = await run_openssl_command(domain, port, args, timeout)
+
+    if re.search(r"New,.*Cipher\s+is\s+[^(]", output) or re.search(
+        r"Cipher\s+:\s+[^(]", output
+    ):
+        return True
+
+    return not any(
+        error in output
+        for error in [
+            "sslv3 alert handshake failure",
+            "wrong version number",
+            "unsupported protocol",
+            "no protocols available",
+        ]
+    )
+
+
+async def _check_cipher_with_semaphore(
+    semaphore: asyncio.Semaphore,
+    domain: str,
+    port: int,
+    protocol_option: str,
+    cipher_spec: str,
+    protocol: str,
+    timeout: int,
+) -> CipherResult | None:
+    """
+    Test a cipher with semaphore-controlled concurrency and enhanced error handling.
+    """
+    async with semaphore:
+        await asyncio.sleep(0.1 + (hash(cipher_spec) % 100) / 1000)
+
+        return await test_cipher(
+            domain, port, protocol_option, cipher_spec, protocol, timeout
+        )
 
 
 def process_cipher_results(
@@ -184,71 +245,77 @@ async def test_cipher(
     Returns:
         CipherResult if the cipher is supported, None otherwise
     """
-    async with _cipher_semaphore:
-        if protocol == TLSProtocol.TLSv1_3.value:
-            args = [protocol_option, "-ciphersuites", cipher_spec]
-        else:
-            args = [protocol_option, "-cipher", cipher_spec]
+    if protocol == TLSProtocol.TLSv1_3.value:
+        args = [protocol_option, "-ciphersuites", cipher_spec]
+    else:
+        args = [protocol_option, "-cipher", cipher_spec]
 
-        output, exit_code = await run_openssl_command(domain, port, args, timeout)
+    output, exit_code = await run_openssl_command(domain, port, args, timeout)
 
-        cipher_match = re.search(r"New,.*Cipher\s+is\s+(\S+)", output)
-        if not cipher_match:
-            cipher_match = re.search(r"Cipher\s+:\s+(.+?)[\r\n]", output)
+    cipher_match = None
+    cipher_match = re.search(r"New,.*?Cipher\s+is\s+(\S+)", output)
+    if not cipher_match:
+        cipher_match = re.search(r"Cipher\s*:\s*(\S+)", output)
 
-        if cipher_match:
-            cipher_name = cipher_match.group(1).strip()
-            if cipher_name and cipher_name not in ("(NONE)", "0000"):
-                bits = None
-                bits_match = re.search(r"(\d+) bit", output)
-                if bits_match:
-                    bits = int(bits_match.group(1))
-
-                strength = get_cipher_strength(cipher_name)
-
-                cipher_details = get_cipher_details().get(cipher_name)
-
-                key_exchange = None
-                authentication = None
-                encryption = None
-                mac = None
-                iana_value = None
-                iana_name = None
-                dtls_ok = False
-                recommended = False
-                reference = None
-
-                if cipher_details:
-                    key_exchange = cipher_details.key_exchange
-                    authentication = cipher_details.authentication
-                    encryption = cipher_details.encryption
-                    mac = cipher_details.mac
-
-                    if hasattr(cipher_details, "iana_value"):
-                        iana_value = cipher_details.iana_value
-                    if hasattr(cipher_details, "iana_name"):
-                        iana_name = cipher_details.iana_name
-                    if hasattr(cipher_details, "dtls_ok"):
-                        dtls_ok = cipher_details.dtls_ok
-                    if hasattr(cipher_details, "recommended"):
-                        recommended = cipher_details.recommended
-                    if hasattr(cipher_details, "reference"):
-                        reference = cipher_details.reference
-
-                return CipherResult(
-                    name=cipher_name,
-                    protocol=protocol,
-                    strength=strength,
-                    bits=bits,
-                    key_exchange=key_exchange,
-                    authentication=authentication,
-                    encryption=encryption,
-                    mac=mac,
-                    iana_value=iana_value,
-                    iana_name=iana_name,
-                    dtls_ok=dtls_ok,
-                    recommended=recommended,
-                    reference=reference,
-                )
-
+    if "handshake failure" in output or "alert" in output.lower():
+        logger.debug(
+            f"Handshake failure for {cipher_spec} - {protocol}: {output[:100]}"
+        )
         return None
+
+    if cipher_match:
+        cipher_name = cipher_match.group(1).strip()
+        if cipher_name and cipher_name not in ("(NONE)", "0000", "NONE", "none"):
+            bits = None
+            bits_match = re.search(r"(\d+) bit", output)
+            if bits_match:
+                bits = int(bits_match.group(1))
+
+            strength = get_cipher_strength(cipher_name)
+
+            cipher_details = get_cipher_details().get(cipher_name)
+
+            key_exchange = None
+            authentication = None
+            encryption = None
+            mac = None
+            iana_value = None
+            iana_name = None
+            dtls_ok = False
+            recommended = False
+            reference = None
+
+            if cipher_details:
+                key_exchange = cipher_details.key_exchange
+                authentication = cipher_details.authentication
+                encryption = cipher_details.encryption
+                mac = cipher_details.mac
+
+                if hasattr(cipher_details, "iana_value"):
+                    iana_value = cipher_details.iana_value
+                if hasattr(cipher_details, "iana_name"):
+                    iana_name = cipher_details.iana_name
+                if hasattr(cipher_details, "dtls_ok"):
+                    dtls_ok = cipher_details.dtls_ok
+                if hasattr(cipher_details, "recommended"):
+                    recommended = cipher_details.recommended
+                if hasattr(cipher_details, "reference"):
+                    reference = cipher_details.reference
+
+            return CipherResult(
+                name=cipher_name,
+                protocol=protocol,
+                strength=strength,
+                bits=bits,
+                key_exchange=key_exchange,
+                authentication=authentication,
+                encryption=encryption,
+                mac=mac,
+                iana_value=iana_value,
+                iana_name=iana_name,
+                dtls_ok=dtls_ok,
+                recommended=recommended,
+                reference=reference,
+            )
+
+    return None

@@ -408,13 +408,12 @@ async def run_openssl_command(
     cmd = base_cmd + valid_args
     cmd_str = " ".join(cmd)
 
-    # Detect if this is a cipher test
-    is_cipher_test = any("-cipher" in arg for arg in valid_args)
+    is_cipher_test = any(arg in ["-cipher", "-ciphersuites"] for arg in valid_args)
 
     if is_cipher_test:
-        effective_timeout = min(2.0, timeout)
-        effective_retries = min(1, retries)
-        retry_delay = 0.5  # Very short retry delay for ciphers
+        effective_timeout = min(5.0, timeout)
+        effective_retries = min(2, retries)
+        retry_delay = 1.0
     else:
         effective_timeout = timeout
         effective_retries = retries
