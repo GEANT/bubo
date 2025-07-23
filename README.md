@@ -123,6 +123,28 @@ python bubo.py --batch path/to/domains.csv
 
 ___
 
+## Environment Configuration
+
+You can customize BUBO's behavior using environment variables. Create a `.env` file in the project root directory with
+your configuration. See [.env.example](https://github.com/geant/bubo/tree/main/.env.example) for available options:
+
+```bash
+# RPKI Validator URL (default: http://localhost:8323)
+ROUTINATOR_URL='http://localhost:8323'
+
+# IANA cipher suite cache validity in days (default: 30)
+IANA_UPDATE_CACHE_DAYS=7
+```
+
+Alternatively, you can set these variables directly in your shell:
+
+```bash
+export ROUTINATOR_URL='http://your-routinator-host:8323'
+export IANA_UPDATE_CACHE_DAYS=7
+```
+
+___
+
 ## Docker quick reference
 
 <details>
@@ -212,11 +234,8 @@ When using the Docker image, you can create a persistent volume to retain cached
 Without a persistent volume, the cache is cleared between runs, so validations are always fresh and `--ignore-cache` is
 unnecessary.
 
-- For cipher suites, we use IANA TLS cipher suite recommendations. The cache is valid for 30 days by default. You can
-  change this by setting the `IANA_UPDATE_CACHE_DAYS` environment variable in `.env` file or in the shell:
-    ```bash
-    export IANA_UPDATE_CACHE_DAYS=7
-    ```
+- For cipher suites, we follow IANA TLS cipher suite recommendations. The cipher suite cache is valid for 30 days by
+  default. Refer to the **Environment Configuration** section to learn how to adjust this duration.
 
 </details>
 
