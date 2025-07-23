@@ -61,8 +61,11 @@ python3 -m pip install -e .
 Routinator runs as a Docker container and validates Resource Public Key Infrastructure (RPKI).
 If you already have Routinator running, you can skip this step and look at the program usage to see how you can specify
 the routinator url.
+
+**NOTE**: Routinator requires a few minutes to initialize its RPKI cache and begin responding to API requests. During
+this startup period, the RPKI column will display "Not Available" until validation services are ready.
 <details>
-<summary>Click to see the docker command</summary>
+<summary>Click to see the docker command for Routinator</summary>
 
 ```bash
 # To persist the RPKI cache data you can create a Docker volume and mount it into the container like so:
