@@ -9,11 +9,10 @@
     <link rel="stylesheet" href="css/statistics.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/footer.css">
-    <link rel="stylesheet" href="css/statistics-dark.css">
     <link rel="icon" href="img/favicon.ico" type="image/x-icon">
 
 </head>
-<body data-theme="light">
+<body>
 <div class="page-wrapper">
     {% set header_title = "Statistics of Internet and Email Standards Report" %}
     {% include 'partials/header.html' %}
@@ -519,17 +518,7 @@
             chartsInitialized = true;
         }
     });
-
-    // Ensure theme is properly initialized
-    document.addEventListener('DOMContentLoaded', function () {
-        // Check if theme toggle is available and apply stored theme
-        const storedTheme = localStorage.getItem('theme');
-        if (storedTheme) {
-            document.documentElement.setAttribute('data-theme', storedTheme);
-        }
-    });
 </script>
-<script src="js/theme-toggle.js"></script>
 <script src="js/statistics.js"></script>
 </body>
 </html>

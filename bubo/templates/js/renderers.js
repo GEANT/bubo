@@ -166,7 +166,7 @@ function createRPKIorDANECell(type, domain) {
     const modalId = `${type.toLowerCase()}-${domain.replace(/\./g, '-')}`;
     const button = document.createElement('button');
     button.className = 'status-button';
-    button.onclick = function() {
+    button.onclick = function () {
         openModalWithData(
             modalId,
             type,
@@ -200,7 +200,7 @@ function createRPKIorDANECell(type, domain) {
                 iconClass = 'fas fa-question-circle status-not-found';
             } else {
                 const status = CONFIG.STATUS_MAPPING[state] ||
-                              CONFIG.STATUS_MAPPING['not-found'];
+                    CONFIG.STATUS_MAPPING['not-found'];
                 iconClass = `fas fa-${status.icon} ${status.class}`;
             }
 
@@ -243,7 +243,7 @@ function createDNSSECCell(domain) {
     // Create button with appropriate icon and text
     const button = document.createElement('button');
     button.className = 'status-button';
-    button.onclick = function() {
+    button.onclick = function () {
         openModalWithData(modalId, 'DNSSEC', domain, dnssecData);
     };
 
@@ -282,7 +282,7 @@ function createEmailSecurityCell(domain) {
     // Create button with appropriate content
     const button = document.createElement('button');
     button.className = 'status-button';
-    button.onclick = function() {
+    button.onclick = function () {
         openModalWithData(modalId, 'EMAIL_SECURITY', domain, emailSecurityResults);
     };
 
@@ -373,20 +373,47 @@ function createWebSecurityCell(domain) {
     // Create button with appropriate icon based on rating
     const button = document.createElement('button');
     button.className = 'status-button';
-    button.onclick = function() {
+    button.style.position = 'relative'; // Required for absolute positioning of warning icon
+    button.onclick = function () {
         openModalWithData(modalId, 'WEB_SECURITY', domain, webSecurityResults);
     };
 
     let securityStatusClass = '';
-    if (webSecurityState.rating && ['excellent', 'good'].includes(webSecurityState.rating.toLowerCase())) {
-        securityStatusClass = 'status-valid';
-    } else if (webSecurityState.rating && webSecurityState.rating.toLowerCase() === 'fair') {
+    const rating = webSecurityState.rating?.toLowerCase();
+
+    if (rating === 'excellent') {
+        securityStatusClass = 'status-excellent';
+    } else if (rating === 'good') {
+        securityStatusClass = 'status-good';
+    } else if (rating === 'fair') {
         securityStatusClass = 'status-partially-valid';
     } else {
         securityStatusClass = 'status-not-valid';
     }
 
+    // Check for issues using the issues_count from state
+    const hasIssues = webSecurityState.issues_count > 0;
+
+    // Build button content
     button.innerHTML = `<i class="fas fa-lock status-icon ${securityStatusClass}"></i> Details`;
+
+    // Add warning icon in top right corner for Excellent/Good ratings that have issues
+    if (hasIssues && (rating === 'excellent')) {
+        const warningIcon = document.createElement('i');
+        warningIcon.className = 'fas fa-info-circle';
+        warningIcon.style.cssText = `
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            color: #ff8c00;
+            font-size: 10px;
+            border-radius: 50%;
+            padding: 1px;
+            box-shadow: 0 0 2px rgba(0,0,0,0.3);
+        `;
+        warningIcon.title = 'Has identified issue(s)';
+        button.appendChild(warningIcon);
+    }
     cell.appendChild(button);
 
     return cell;
