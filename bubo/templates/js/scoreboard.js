@@ -153,8 +153,8 @@ function setupDomainSearch() {
         const searchTerm = this.value.toLowerCase().trim();
 
         document.querySelectorAll('.scorecard-table tbody tr').forEach(row => {
-            const domain = row.querySelector('.domain-col').textContent.toLowerCase();
-
+            const domain = row.querySelector('.domain-col')?.textContent?.toLowerCase() || '';
+            
             if (searchTerm === '' || domain.includes(searchTerm)) {
                 row.style.display = '';
             } else {

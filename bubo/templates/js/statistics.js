@@ -199,6 +199,21 @@ function createStatusCell(status, type = 'default') {
     return cell;
 }
 
+function getComplianceColor(score) {
+    if (score >= 85) return '#15803d'; // excellent - green
+    if (score >= 70) return '#65a30d'; // good - light green
+    if (score >= 50) return '#ca8a04'; // fair - yellow
+    return '#b91c1c'; // poor - red
+}
+
+function getComplianceClass(score) {
+    if (score >= 85) return 'compliance-excellent';  // Green
+    if (score >= 70) return 'compliance-good';       // Light green
+    if (score >= 50) return 'compliance-fair';       // Yellow
+    return 'compliance-poor';                         // Red
+}
+
+
 /**
  * Create the scorecard table
  */
@@ -213,6 +228,7 @@ function createScorecardTable() {
     statsData.domain_scores.forEach(([domain, score]) => {
         const row = document.createElement('tr');
 
+
         // Domain column
         const domainCell = document.createElement('td');
         domainCell.className = 'domain-col';
@@ -223,11 +239,11 @@ function createScorecardTable() {
         const scoreCell = document.createElement('td');
         scoreCell.className = 'score-col';
         scoreCell.innerHTML = `
-            <div class="compliance-bar-container">
-                <div class="compliance-bar" style="width: ${score}%"></div>
-                <span class="compliance-value">${score.toFixed(1)}%</span>
-            </div>
-        `;
+    <div class="compliance-bar-container">
+        <div class="compliance-bar" style="width: ${score}%; background-color: ${getComplianceColor(score)}"></div>
+        <span class="compliance-value">${score.toFixed(1)}%</span>
+    </div>
+`;
         row.appendChild(scoreCell);
 
         // RPKI status - pass the actual status value, not just a boolean
@@ -474,9 +490,10 @@ function createComplianceScoresChart() {
     const domains = data.map(item => item[0]);
     const scores = data.map(item => item[1]);
     const colors = scores.map(score => {
-        if (score >= 80) return '#28a745'; // success
-        if (score >= 60) return '#ffc107'; // warning
-        return '#dc3545'; // danger
+        if (score >= 85) return '#15803d'; // excellent - green
+        if (score >= 70) return '#65a30d'; // good - teal
+        if (score >= 50) return '#ca8a04'; // fair - yellow
+        return '#b91c1c'; // poor - red
     });
 
     new Chart(ctx, {
@@ -502,7 +519,14 @@ function createComplianceScoresChart() {
                 tooltip: {
                     callbacks: {
                         label: function (context) {
-                            return `Compliance Score: ${context.formattedValue}%`;
+                            const score = context.parsed.x;
+                            let level;
+                            if (score >= 80) level = 'Excellent';
+                            else if (score >= 60) level = 'Good';
+                            else if (score >= 40) level = 'Fair';
+                            else level = 'Poor';
+
+                            return `Compliance Score: ${context.formattedValue}% (${level})`;
                         }
                     }
                 }
@@ -522,13 +546,85 @@ function createComplianceScoresChart() {
 }
 
 /**
- * Create standards adoption chart
+ * Get theme-appropriate colors for charts
+ */
+function getChartColors() {
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    if (isDarkTheme) {
+        return {
+            textColor: '#e6edf3',
+            gridColor: '#30363d',
+            backgroundColor: 'rgba(31, 111, 235, 0.2)',
+            borderColor: 'rgba(31, 111, 235, 1)',
+            pointBackgroundColor: 'rgba(31, 111, 235, 1)',
+            pointBorderColor: '#e6edf3',
+            pointHoverBackgroundColor: '#e6edf3',
+            pointHoverBorderColor: 'rgba(31, 111, 235, 1)',
+            tooltipBackgroundColor: '#21262d',
+            tooltipBorderColor: '#30363d',
+            tooltipTextColor: '#e6edf3',
+            // Comparison chart colors
+            primaryDataset: {
+                backgroundColor: 'rgba(31, 111, 235, 0.2)',
+                borderColor: 'rgba(31, 111, 235, 1)',
+                pointBackgroundColor: 'rgba(31, 111, 235, 1)',
+                pointBorderColor: '#e6edf3',
+                pointHoverBackgroundColor: '#e6edf3',
+                pointHoverBorderColor: 'rgba(31, 111, 235, 1)'
+            },
+            secondaryDataset: {
+                backgroundColor: 'rgba(234, 67, 53, 0.2)',
+                borderColor: 'rgba(234, 67, 53, 1)',
+                pointBackgroundColor: 'rgba(234, 67, 53, 1)',
+                pointBorderColor: '#e6edf3',
+                pointHoverBackgroundColor: '#e6edf3',
+                pointHoverBorderColor: 'rgba(234, 67, 53, 1)'
+            }
+        };
+    } else {
+        return {
+            textColor: '#333333',
+            gridColor: '#e5e7eb',
+            backgroundColor: 'rgba(0, 98, 204, 0.2)',
+            borderColor: 'rgba(0, 98, 204, 1)',
+            pointBackgroundColor: 'rgba(0, 98, 204, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(0, 98, 204, 1)',
+            tooltipBackgroundColor: '#ffffff',
+            tooltipBorderColor: '#e5e7eb',
+            tooltipTextColor: '#333333',
+            // Comparison chart colors
+            primaryDataset: {
+                backgroundColor: 'rgba(66, 133, 244, 0.2)',
+                borderColor: 'rgba(66, 133, 244, 1)',
+                pointBackgroundColor: 'rgba(66, 133, 244, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(66, 133, 244, 1)'
+            },
+            secondaryDataset: {
+                backgroundColor: 'rgba(234, 67, 53, 0.2)',
+                borderColor: 'rgba(234, 67, 53, 1)',
+                pointBackgroundColor: 'rgba(234, 67, 53, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(234, 67, 53, 1)'
+            }
+        };
+    }
+}
+
+/**
+ * Create standards adoption chart with theme support
  */
 function createStandardsAdoptionChart() {
     const ctx = document.getElementById('standardsAdoptionChart');
     if (!ctx) return;
 
     const domainCount = statsData.domain_count;
+    const colors = getChartColors();
 
     // Calculate weighted percentages for each standard
     // Formula: (100% * valid + 50% * partially_valid) / total * 100
@@ -585,19 +681,20 @@ function createStandardsAdoptionChart() {
         Math.round(webScore)
     ];
 
-    new Chart(ctx, {
+    // Store chart instance globally so it can be updated on theme change
+    window.standardsAdoptionChart = new Chart(ctx, {
         type: 'radar',
         data: {
             labels: ['DNSSEC', 'DANE', 'SPF', 'DKIM', 'DMARC', 'RPKI', 'Web Security'],
             datasets: [{
                 label: 'Adoption Rate',
                 data: standardsData,
-                backgroundColor: 'rgba(0, 98, 204, 0.2)',
-                borderColor: 'rgba(0, 98, 204, 1)',
-                pointBackgroundColor: 'rgba(0, 98, 204, 1)',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: 'rgba(0, 98, 204, 1)',
+                backgroundColor: colors.backgroundColor,
+                borderColor: colors.borderColor,
+                pointBackgroundColor: colors.pointBackgroundColor,
+                pointBorderColor: colors.pointBorderColor,
+                pointHoverBackgroundColor: colors.pointHoverBackgroundColor,
+                pointHoverBorderColor: colors.pointHoverBorderColor,
                 borderWidth: 2
             }]
         },
@@ -608,8 +705,19 @@ function createStandardsAdoptionChart() {
                 r: {
                     beginAtZero: true,
                     max: 100,
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    pointLabels: {
+                        color: colors.textColor,
+                        font: {
+                            size: 12
+                        }
+                    },
                     ticks: {
                         stepSize: 20,
+                        color: colors.textColor,
+                        backdropColor: 'transparent', // This fixes the white background issue
                         callback: function (value) {
                             return value + '%';
                         }
@@ -617,7 +725,17 @@ function createStandardsAdoptionChart() {
                 }
             },
             plugins: {
+                legend: {
+                    labels: {
+                        color: colors.textColor
+                    }
+                },
                 tooltip: {
+                    backgroundColor: colors.tooltipBackgroundColor,
+                    titleColor: colors.tooltipTextColor,
+                    bodyColor: colors.tooltipTextColor,
+                    borderColor: colors.tooltipBorderColor,
+                    borderWidth: 1,
                     callbacks: {
                         label: function (context) {
                             return `${context.label}: ${context.formattedValue}%`;
@@ -1617,11 +1735,13 @@ function createComplianceIssuesChart() {
 }
 
 /**
- * Initialize comparison chart without data
+ * Initialize comparison chart without data with theme support
  */
 function initializeComparisonChart() {
     const ctx = document.getElementById('comparisonChart');
     if (!ctx) return;
+
+    const colors = getChartColors();
 
     // Create empty chart
     window.comparisonChart = new Chart(ctx, {
@@ -1636,7 +1756,37 @@ function initializeComparisonChart() {
             scales: {
                 r: {
                     beginAtZero: true,
-                    max: 100
+                    max: 100,
+                    grid: {
+                        color: colors.gridColor
+                    },
+                    pointLabels: {
+                        color: colors.textColor,
+                        font: {
+                            size: 12
+                        }
+                    },
+                    ticks: {
+                        color: colors.textColor,
+                        backdropColor: 'transparent', // This fixes the white background issue
+                        callback: function (value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: colors.textColor
+                    }
+                },
+                tooltip: {
+                    backgroundColor: colors.tooltipBackgroundColor,
+                    titleColor: colors.tooltipTextColor,
+                    bodyColor: colors.tooltipTextColor,
+                    borderColor: colors.tooltipBorderColor,
+                    borderWidth: 1
                 }
             }
         }
@@ -1644,10 +1794,12 @@ function initializeComparisonChart() {
 }
 
 /**
- * Update comparison chart with domain and metric data
+ * Update comparison chart with domain and metric data with theme support
  */
 function updateComparisonChart(domain1, domain2, metric) {
     if (!window.comparisonChart) return;
+
+    const colors = getChartColors();
 
     // Get metrics data based on selected metric
     let labels = [];
@@ -1781,36 +1933,115 @@ function updateComparisonChart(domain1, domain2, metric) {
             break;
     }
 
-    // Update chart data
+    // Update chart data with theme-appropriate colors
     window.comparisonChart.data.labels = labels;
     window.comparisonChart.data.datasets = [
         {
             label: domain1,
             data: domain1Data,
-            backgroundColor: 'rgba(66, 133, 244, 0.2)',
-            borderColor: 'rgba(66, 133, 244, 1)',
-            pointBackgroundColor: 'rgba(66, 133, 244, 1)',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgba(66, 133, 244, 1)'
+            backgroundColor: colors.primaryDataset.backgroundColor,
+            borderColor: colors.primaryDataset.borderColor,
+            pointBackgroundColor: colors.primaryDataset.pointBackgroundColor,
+            pointBorderColor: colors.primaryDataset.pointBorderColor,
+            pointHoverBackgroundColor: colors.primaryDataset.pointHoverBackgroundColor,
+            pointHoverBorderColor: colors.primaryDataset.pointHoverBorderColor,
+            borderWidth: 2
         },
         {
             label: domain2,
             data: domain2Data,
-            backgroundColor: 'rgba(234, 67, 53, 0.2)',
-            borderColor: 'rgba(234, 67, 53, 1)',
-            pointBackgroundColor: 'rgba(234, 67, 53, 1)',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgba(234, 67, 53, 1)'
+            backgroundColor: colors.secondaryDataset.backgroundColor,
+            borderColor: colors.secondaryDataset.borderColor,
+            pointBackgroundColor: colors.secondaryDataset.pointBackgroundColor,
+            pointBorderColor: colors.secondaryDataset.pointBorderColor,
+            pointHoverBackgroundColor: colors.secondaryDataset.pointHoverBackgroundColor,
+            pointHoverBorderColor: colors.secondaryDataset.pointHoverBorderColor,
+            borderWidth: 2
         }
     ];
 
-    // Update chart scale maximum
+    // Update chart scale and colors
     window.comparisonChart.options.scales.r.max = 100;
+    window.comparisonChart.options.scales.r.grid.color = colors.gridColor;
+    window.comparisonChart.options.scales.r.pointLabels.color = colors.textColor;
+    window.comparisonChart.options.scales.r.ticks.color = colors.textColor;
+    window.comparisonChart.options.scales.r.ticks.backdropColor = 'transparent';
+    window.comparisonChart.options.plugins.legend.labels.color = colors.textColor;
+    window.comparisonChart.options.plugins.tooltip.backgroundColor = colors.tooltipBackgroundColor;
+    window.comparisonChart.options.plugins.tooltip.titleColor = colors.tooltipTextColor;
+    window.comparisonChart.options.plugins.tooltip.bodyColor = colors.tooltipTextColor;
+    window.comparisonChart.options.plugins.tooltip.borderColor = colors.tooltipBorderColor;
 
     // Update chart
     window.comparisonChart.update();
+}
+
+/**
+ * Update all charts when theme changes
+ */
+function updateChartsForTheme() {
+    // Update standards adoption chart
+    if (window.standardsAdoptionChart) {
+        const colors = getChartColors();
+
+        // Update dataset colors
+        window.standardsAdoptionChart.data.datasets[0].backgroundColor = colors.backgroundColor;
+        window.standardsAdoptionChart.data.datasets[0].borderColor = colors.borderColor;
+        window.standardsAdoptionChart.data.datasets[0].pointBackgroundColor = colors.pointBackgroundColor;
+        window.standardsAdoptionChart.data.datasets[0].pointBorderColor = colors.pointBorderColor;
+        window.standardsAdoptionChart.data.datasets[0].pointHoverBackgroundColor = colors.pointHoverBackgroundColor;
+        window.standardsAdoptionChart.data.datasets[0].pointHoverBorderColor = colors.pointHoverBorderColor;
+
+        // Update scale colors
+        window.standardsAdoptionChart.options.scales.r.grid.color = colors.gridColor;
+        window.standardsAdoptionChart.options.scales.r.pointLabels.color = colors.textColor;
+        window.standardsAdoptionChart.options.scales.r.ticks.color = colors.textColor;
+        window.standardsAdoptionChart.options.scales.r.ticks.backdropColor = 'transparent';
+        window.standardsAdoptionChart.options.plugins.legend.labels.color = colors.textColor;
+        window.standardsAdoptionChart.options.plugins.tooltip.backgroundColor = colors.tooltipBackgroundColor;
+        window.standardsAdoptionChart.options.plugins.tooltip.titleColor = colors.tooltipTextColor;
+        window.standardsAdoptionChart.options.plugins.tooltip.bodyColor = colors.tooltipTextColor;
+        window.standardsAdoptionChart.options.plugins.tooltip.borderColor = colors.tooltipBorderColor;
+
+        window.standardsAdoptionChart.update();
+    }
+
+    // Update comparison chart
+    if (window.comparisonChart && window.comparisonChart.data.datasets.length > 0) {
+        const colors = getChartColors();
+
+        // Update dataset colors
+        if (window.comparisonChart.data.datasets[0]) {
+            window.comparisonChart.data.datasets[0].backgroundColor = colors.primaryDataset.backgroundColor;
+            window.comparisonChart.data.datasets[0].borderColor = colors.primaryDataset.borderColor;
+            window.comparisonChart.data.datasets[0].pointBackgroundColor = colors.primaryDataset.pointBackgroundColor;
+            window.comparisonChart.data.datasets[0].pointBorderColor = colors.primaryDataset.pointBorderColor;
+            window.comparisonChart.data.datasets[0].pointHoverBackgroundColor = colors.primaryDataset.pointHoverBackgroundColor;
+            window.comparisonChart.data.datasets[0].pointHoverBorderColor = colors.primaryDataset.pointHoverBorderColor;
+        }
+
+        if (window.comparisonChart.data.datasets[1]) {
+            window.comparisonChart.data.datasets[1].backgroundColor = colors.secondaryDataset.backgroundColor;
+            window.comparisonChart.data.datasets[1].borderColor = colors.secondaryDataset.borderColor;
+            window.comparisonChart.data.datasets[1].pointBackgroundColor = colors.secondaryDataset.pointBackgroundColor;
+            window.comparisonChart.data.datasets[1].pointBorderColor = colors.secondaryDataset.pointBorderColor;
+            window.comparisonChart.data.datasets[1].pointHoverBackgroundColor = colors.secondaryDataset.pointHoverBackgroundColor;
+            window.comparisonChart.data.datasets[1].pointHoverBorderColor = colors.secondaryDataset.pointHoverBorderColor;
+        }
+
+        // Update scale colors
+        window.comparisonChart.options.scales.r.grid.color = colors.gridColor;
+        window.comparisonChart.options.scales.r.pointLabels.color = colors.textColor;
+        window.comparisonChart.options.scales.r.ticks.color = colors.textColor;
+        window.comparisonChart.options.scales.r.ticks.backdropColor = 'transparent';
+        window.comparisonChart.options.plugins.legend.labels.color = colors.textColor;
+        window.comparisonChart.options.plugins.tooltip.backgroundColor = colors.tooltipBackgroundColor;
+        window.comparisonChart.options.plugins.tooltip.titleColor = colors.tooltipTextColor;
+        window.comparisonChart.options.plugins.tooltip.bodyColor = colors.tooltipTextColor;
+        window.comparisonChart.options.plugins.tooltip.borderColor = colors.tooltipBorderColor;
+
+        window.comparisonChart.update();
+    }
 }
 
 /**
@@ -1950,6 +2181,10 @@ function openRatingModal(rating) {
                 <span class="status-indicator ${domainDetail.uses_secure_protocols ? 'status-success' : 'status-failure'}"></span>
                 ${domainDetail.uses_secure_protocols ? 'Yes' : 'No'}
             </td>
+            <td>
+            <span class="status-indicator ${domainDetail.security_features.protocols.secure_only ? 'status-success' : 'status-failure'}"></span>
+                ${domainDetail.security_features.protocols.secure_only ? 'No' : 'Yes'}
+</td>
         `;
 
         domainListBody.appendChild(row);
