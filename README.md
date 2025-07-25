@@ -15,7 +15,7 @@ DKIM, DMARC), Web Security (TLS Audit - Certificate, Protocol & Ciphers, and HTT
 
 ## Requirements
 
-- **Python 3.10+**
+- **Python 3.11+**
 - **OpenSSL** - install with `apt install openssl` (Linux) or equivalent
 - **Routinator (RPKI validator)** - Docker container for RPKI validation
 
@@ -205,15 +205,16 @@ ___
 
 ## Output
 
-The tool generates two types of reports:
+The tool generates two types of reports (HTML and JSON):
 
 - **Detailed HTML report** with validation results for each domain
 - **Statistics report** summarizing the overall compliance status and scores.
 - **Scoreboard report** with a list of domains and their scores.
 
-All reports are saved in the `results/` directory with timestamped directory and filenames.\
+All reports are saved in the `results/` directory with timestamped directory and filenames.
+
 The HTML report provides a user-friendly visualization of the results, while the JSON file contains the same data in a
-machine-readable format for further processing.
+machine-readable (API-Friendly) format for further processing.
 
 ### Note:
 
