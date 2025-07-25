@@ -11,7 +11,7 @@ authors = [
 description = "Bubo is a tool for validating domains against internet and email standards."
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
 [project.scripts]
