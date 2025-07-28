@@ -50,7 +50,7 @@ async def check_ciphers(
     if protocol in [TLSProtocol.TLSv1_0, TLSProtocol.TLSv1_1]:
         security_level = ":@SECLEVEL=0"
 
-    cipher_semaphore = asyncio.Semaphore(5)
+    cipher_semaphore = asyncio.Semaphore(10)
 
     tasks = []
     for cipher in ciphers:
